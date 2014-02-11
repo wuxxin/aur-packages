@@ -3,7 +3,7 @@
 
 pkgname=salt
 pkgver=0.17.5
-pkgrel=0.4
+pkgrel=2
 pkgdesc='Central system and configuration manager'
 arch=('any')
 url='http://saltstack.org/'
