@@ -4,7 +4,7 @@
 
 pkgbase=salt
 pkgname=(salt-zmq salt-raet)
-pkgver=2015.5.5
+pkgver=2015.8.0
 pkgrel=1
 pkgdesc='Central system and configuration manager'
 arch=('any')
@@ -31,7 +31,7 @@ backup=('etc/salt/master'
 install=salt.install
 conflicts=('salt')
 source=("http://pypi.python.org/packages/source/s/salt/salt-$pkgver.tar.gz")
-md5sums=('1a8e9e658d900b314fc3720ba51cc663')
+md5sums=('a15842ef0582cca9d26143fe0a6180b7')
 
 package_salt-zmq() {
   cd $pkgbase-$pkgver
@@ -48,8 +48,7 @@ package_salt-zmq() {
            'python2-systemd'
            'python2-tornado')
   python2 setup.py clean
-  python2 setup.py install --root="$pkgdir" --optimize=1 \
-    --salt-pidfile-dir="/run/salt"
+  python2 setup.py --salt-pidfile-dir="/run/salt" install --root="$pkgdir" --optimize=1
 
   # default config
   install -Dm644 conf/master "$pkgdir/etc/salt/master"
@@ -77,8 +76,7 @@ package_salt-raet() {
            'python2-tornado'
            'python2-systemd')
   python2 setup.py clean
-  python2 setup.py --salt-transport=raet install --root="$pkgdir" --optimize=1 \
-    --salt-pidfile-dir="/run/salt"
+  python2 setup.py --salt-pidfile-dir="/run/salt" --salt-transport=raet install --root="$pkgdir" --optimize=1
 
   # default config
   install -Dm644 conf/master "$pkgdir/etc/salt/master"
