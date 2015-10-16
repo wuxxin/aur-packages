@@ -4,7 +4,7 @@
 
 pkgbase=salt
 pkgname=(salt-zmq salt-raet)
-pkgver=2015.8.0
+pkgver=2015.8.1
 pkgrel=1
 pkgdesc='Central system and configuration manager'
 arch=('any')
@@ -31,7 +31,7 @@ backup=('etc/salt/master'
 install=salt.install
 conflicts=('salt')
 source=("http://pypi.python.org/packages/source/s/salt/salt-$pkgver.tar.gz")
-md5sums=('a15842ef0582cca9d26143fe0a6180b7')
+md5sums=('9aa641fd51433e8a8dbf4efabfcff604')
 
 package_salt-zmq() {
   cd $pkgbase-$pkgver
