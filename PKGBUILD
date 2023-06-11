@@ -7,7 +7,7 @@
 
 pkgname=salt
 pkgver=3006.1
-pkgrel=1
+pkgrel=2
 pkgdesc='Central system and configuration manager'
 arch=('any')
 url='http://saltstack.org/'
@@ -15,14 +15,19 @@ license=('Apache')
 replaces=('salt-zmq' 'salt-raet')
 conflicts=('salt-zmq' 'salt-raet')
 depends=('python-jinja'
+         'python-jmespath'
          'python-msgpack'
          'python-yaml'
          'python-markupsafe'
          'python-requests'
+         'python-distro'
+         'python-psutil'
+         'python-packaging'
+         'python-looseversion'
+
          'python-pyzmq'
          'python-m2crypto'
          'python-systemd'
-         'python-distro'
          'python-importlib-metadata'
          'python-pycryptodomex')
 makedepends=('python-setuptools')
