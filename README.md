@@ -2,8 +2,6 @@
 
 Archlinux AUR packages
 
-- [aichat](aichat)
-    - Use ChatGPT, LocalAI and other LLMs in the terminal.
 - [coreos-installer](coreos-installer)
     - Installer for CoreOS disk images
 - [localai-git](localai-git)
