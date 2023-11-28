@@ -1,0 +1,24 @@
+# Maintainer: wuxxin <wuxxin@gmail.com>
+
+pkgname=aichat
+pkgver=0.10.0
+pkgrel=1
+pkgdesc="Use ChatGPT, LocalAI and other LLMs in the terminal."
+url="https://github.com/sigoden/aichat"
+depends=('cargo')
+arch=('x86_64' 'aarch64' 'i686')
+license=('APACHE', 'MIT')
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/sigoden/${pkgname}/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('d55ac87b587a25acd0203a2c310250d66347b6733e33f7c4f7546b17d1a3ebe9')
+
+build() {
+  cd "${pkgname}-${pkgver}"
+  cargo build --release --locked
+}
+
+package() {
+  cd "${pkgname}-${pkgver}"
+  install -Dm755 "target/release/${pkgname}" "${pkgdir}/usr/bin/${pkgname}"
+  install -Dm644 config.example.yaml -t "${pkgdir}/usr/share/doc/${pkgname}"
+  install -Dm644 README.md -t "${pkgdir}/usr/share/doc/${pkgname}"
+}
