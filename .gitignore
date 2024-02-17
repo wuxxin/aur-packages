@@ -1,0 +1,5 @@
+src/
+pkg/
+localai-git/localai
+*.pkg.tar.zst
+
