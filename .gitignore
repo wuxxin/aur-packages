@@ -1,5 +1,6 @@
 src/
 pkg/
 localai-git/localai
+build.log
 *.pkg.tar.zst
 
