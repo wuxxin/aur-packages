@@ -16,8 +16,8 @@ depends=(
   'fmt'
   'hicolor-icon-theme'
   'kdbusaddons5'
-  'kquickcharts5'
   'libarchive'
+  'ocl-icd'
   'openblas'
   'perl'
   'python>=3.11'
@@ -37,6 +37,7 @@ makedepends=(
   'extra-cmake-modules'
   'git'
   'meson'
+  'patchelf'
   'pybind11'
   'qt5-tools'
 )
@@ -45,7 +46,6 @@ makedepends_x86_64=(
   'rocm-hip-sdk'
 )
 optdepends=(
-  'ocl-icd: Support for GPU acceleration with OpenCL'
   'python-accelerate: Support for Punctuation and Hebrew Diacritics restoration'
   'python-torchaudio: Support for Coqui TTS models'
   'python-transformers: Support for Punctuation and Hebrew Diacritics restoration'
@@ -55,7 +55,7 @@ optdepends_x86_64=(
   'cuda: Support for GPU acceleration on NVidia graphic cards'
   'cudnn: Support for GPU acceleration on NVidia graphic cards'
   'rocblas: Support for GPU acceleration on AMD graphic cards'
-  'rocm-opencl-runtime: Support GPU acceleration on AMD graphic cards'
+  'rocm-opencl-runtime: Support for GPU acceleration on AMD graphic cards'
 )
 provides=(${_pkgname})
 conflicts=(${_pkgname})
