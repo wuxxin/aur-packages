@@ -42,8 +42,8 @@ makedepends=(
   'qt5-tools'
 )
 makedepends_x86_64=(
-  'cuda'
-  'rocm-hip-sdk'
+#  'cuda'
+#  'rocm-hip-sdk'
 )
 optdepends=(
   'python-accelerate: Support for Punctuation and Hebrew Diacritics restoration'
@@ -70,30 +70,51 @@ pkgver() {
 
 build() {
   cd "${srcdir}/${_pkgname}"
-  if [[ "${CARCH}" == "x86_64" ]]; then
-    # fix for CUDA >= 12.3.0
-    export HOST_COMPILER=/usr/bin/g++-12
-    export CUDAHOSTCXX=/usr/bin/g++-12
-    export CUDA_PATH=/opt/cuda
-  fi
   mkdir -p build
   cd build
-  cmake ../ -DCMAKE_BUILD_TYPE=Release -DWITH_DESKTOP=ON \
-    -DWITH_PY=ON \
-    -DBUILD_LIBARCHIVE=OFF \
-    -DBUILD_FMT=OFF \
-    -DBUILD_CATCH2=OFF \
-    -DBUILD_OPENBLAS=OFF \
-    -DBUILD_XZ=OFF \
-    -DBUILD_PYBIND11=OFF \
-    -DBUILD_RUBBERBAND=OFF \
-    -DBUILD_FFMPEG=ON \
-    -DBUILD_TAGLIB=OFF \
-    -DBUILD_VOSK=OFF \
-    -DBUILD_QQC2_BREEZE_STYLE=ON \
-    -DDOWNLOAD_VOSK=ON \
-    -DCMAKE_INSTALL_PREFIX=/usr \
-    -Wno-dev
+
+  CMAKE="-DCMAKE_BUILD_TYPE=Release -DWITH_DESKTOP=ON \
+        -DWITH_PY=ON \
+        -DBUILD_LIBARCHIVE=OFF \
+        -DBUILD_FMT=OFF \
+        -DBUILD_CATCH2=OFF \
+        -DBUILD_OPENBLAS=OFF \
+        -DBUILD_XZ=OFF \
+        -DBUILD_PYBIND11=OFF \
+        -DBUILD_RUBBERBAND=OFF \
+        -DBUILD_FFMPEG=ON \
+        -DBUILD_TAGLIB=OFF \
+        -DBUILD_VOSK=OFF \
+        -DBUILD_QQC2_BREEZE_STYLE=ON \
+        -DDOWNLOAD_VOSK=ON \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -Wno-dev"
+
+  #################### !! IMPORTANT!! ######################
+  # CUDA and/or ROCm support are experimental and may break!
+  # In order to enable support for either, please uncomment
+  # the respective entry in makedepends_x86_64 (or install
+  # the dependency package first) and change FULL_BUILD
+  # value below to true *before* making the build.
+  ##########################################################
+
+  FULL_BUILD=false
+
+  if [[ "${CARCH}" == "x86_64" ]]; then
+    # Do not build for CUDA if needed package is not found
+    pacman -Qi cuda &> /dev/null && FULL_BUILD || CMAKE+=" -DBUILD_WHISPERCPP_CUBLAS=OFF"
+    pacman -Qi cuda &> /dev/null && FULL_BUILD && export CUDA_PATH=/opt/cuda
+
+    # Do not build for HIP if needed package is not found
+    pacman -Qi rocm-hip-sdk &> /dev/null && FULL_BUILD || CMAKE+=" -DBUILD_WHISPERCPP_HIPBLAS=OFF"
+  fi
+
+  CI_BUILD=false
+
+  # Disable bergamot and RHVoice (used for CI builds only)
+  CI_BUILD && CMAKE+=" -DBUILD_BERGAMOT=OFF -DBUILD_RHVOICE=OFF"
+
+  cmake ../ $CMAKE
 
   test $(nproc) -gt 2 && make -j$(($(nproc)-2)) || make
 }
