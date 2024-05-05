@@ -6,12 +6,11 @@ pkgdesc="Lightweight wrapper around CUDA custom functions, in particular 8-bit o
 license=("MIT")
 url="https://github.com/ROCm/$_name"
 pkgver=0.41.0.r312.g5bada9b
-pkgrel=2
+pkgrel=3
 arch=("x86_64")
 makedepends=("make" "cmake")
 depends=("hipblaslt" "hiprand" "hipsparse" "hipcub" "rocthrust" "python-setuptools" "python-pytest" "python-einops" "python-wheel" "python-scipy" "python-lion-pytorch" "python-pandas" "python-matplotlib")
 provides=("python-$_name")
-conflicts=("python-$_name-git" "python-$_name-cuda121")
 source=("$pkgname::git+$url")
 sha512sums=("SKIP")
 
