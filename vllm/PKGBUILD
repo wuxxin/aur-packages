@@ -1,0 +1,81 @@
+# Maintainer: wuxxin <wuxxin@gmail.com>
+
+_pkgname="vllm"
+_pytorch_min="2.3.0"
+_rocm_min="6.0.0"
+_ENABLE_CUDA=${_ENABLE_CUDA:-1}
+_ENABLE_ROCM=${_ENABLE_ROCM:-1}
+_ENABLE_CPU=${_ENABLE_CPU:-1}
+
+pkgbase="$_pkgname"
+pkgname=()
+pkgver="0.4.3"
+pkgrel=1
+pkgdesc='A high-throughput and memory-efficient inference and serving engine for LLMs'
+url='https://github.com/vllm-project/vllm'
+license=('APACHE')
+arch=('x86_64')
+
+provides=('vllm')
+conflicts=('vllm')
+
+depends=(
+    "python-pytorch>=${_pytorch_min}"
+)
+
+makedepends=(
+    cmake
+    ninja
+    python-setuptools
+)
+
+if [[ $_ENABLE_CPU = 1 ]]; then
+    pkgname+=("${pkgbase}")
+fi
+
+if [[ $_ENABLE_CUDA = 1 ]]; then
+    pkgname+=("${pkgbase}-cuda")
+    makedepends+=(
+        'cuda'
+        'cudnn'
+        'nccl'
+        'magma-cuda'
+    )
+fi
+
+if [[ $_ENABLE_ROCM = 1 ]]; then
+    pkgname+=("${pkgbase}-rocm")
+    makedepends+=(
+        "rocm-hip-sdk>=${_rocm_min}"
+        'miopen-hip'
+        'rccl'
+        'magma-hip'
+    )
+fi
+
+source=(
+    "${pkgname}-${pkgver}.tar.gz::https://vllm-project/${_pkgname}/archive/refs/tags/v${pkgver}.tar.gz"
+)
+sha256sums=('37eb50327aa72444bb0901463c0c58f141fd1cc462f7ebe76ab23dea61d4cefe')
+
+build() {
+    cd "${srcdir}/${_pkgname}"
+    python setup.py build
+}
+
+package_vllm() {
+    cd "${srcdir}/${_pkgname}"
+    python setup.py install --root="${pkgdir}" --optimize=1 --skip-build
+    install -Dm 644 LICENSE -t "${pkgdir}"/usr/share/licenses/python-trio/
+}
+
+package_vllm-cuda() {
+    cd "${srcdir}/${_pkgname}"
+    depends+=("python-pytorch-cuda>=${_pytorch_min}")
+
+}
+
+package_vllm-rocm() {
+    cd "${srcdir}/${_pkgname}"
+    depends+=("python-pytorch-rocm>=${_pytorch_min}")
+}
