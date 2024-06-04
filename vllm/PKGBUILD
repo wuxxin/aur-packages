@@ -54,7 +54,7 @@ if [[ $_ENABLE_ROCM = 1 ]]; then
 fi
 
 source=(
-    "${pkgname}-${pkgver}.tar.gz::https://vllm-project/${_pkgname}/archive/refs/tags/v${pkgver}.tar.gz"
+    "${pkgname}-${pkgver}.tar.gz::https://github.com/vllm-project/${_pkgname}/archive/refs/tags/v${pkgver}.tar.gz"
 )
 sha256sums=('37eb50327aa72444bb0901463c0c58f141fd1cc462f7ebe76ab23dea61d4cefe')
 
