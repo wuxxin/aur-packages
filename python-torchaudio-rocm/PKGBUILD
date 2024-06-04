@@ -42,7 +42,7 @@ build() {
     export ROCM_HOME="${ROCM_HOME:-/opt/rocm}"
     export ROCM_PATH="$ROCM_HOME"
     export HIP_ROOT_DIR="$ROCM_HOME"
-    
+
     BUILD_SOX=1 USE_ROCM=1 python setup.py build
 }
 
