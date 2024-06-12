@@ -2,16 +2,16 @@
 
 _name=bitsandbytes
 pkgname=python-$_name-rocm-git
-pkgdesc="Lightweight wrapper around CUDA custom functions, in particular 8-bit optimizers, matrix multiplication (LLM.int8()), and quantization functions (official AMD ROCm fork)"
+pkgdesc="Lightweight wrapper around CUDA custom functions, in particular 8-bit optimizers, matrix multiplication (LLM.int8()), and quantization functions (official AMD ROCm branch)"
 license=("MIT")
-url="https://github.com/ROCm/$_name"
-pkgver=0.41.0.r312.g5bada9b
-pkgrel=3
+url="https://github.com/TimDettmers/$_name"
+pkgver=0.43.1.r228.g517eaf2
+pkgrel=1
 arch=("x86_64")
 makedepends=("make" "cmake")
 depends=("hipblaslt" "hiprand" "hipsparse" "hipcub" "rocthrust" "python-setuptools" "python-pytest" "python-einops" "python-wheel" "python-scipy" "python-lion-pytorch" "python-pandas" "python-matplotlib")
 provides=("python-$_name")
-source=("$pkgname::git+$url")
+source=("$pkgname::git+$url.git#branch=multi-backend-refactor")
 sha512sums=("SKIP")
 
 
