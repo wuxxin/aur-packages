@@ -1,6 +1,6 @@
 ## AUR-Packages
 
-Archlinux AUR packages i currently maintain
+Archlinux [AUR packages](https://aur.archlinux.org/) i currently maintain
 
 - [coreos-installer](coreos-installer)
     - Installer for CoreOS disk images
