@@ -11,11 +11,11 @@
 # Contributor: Stephen Zhang <zsrkmyn at gmail dot com>
 
 _pkgname='vision'
-# if not set, populate build architecture list from arch:python-pytorch@2.3.1-4
-_PYTORCH_ROCM_ARCH="gfx906;gfx908;gfx90a;gfx940;gfx941;gfx942;gfx1010;gfx1012;gfx1030;gfx1100;gfx1101;gfx1102"
+# if not set, populate build architecture list from arch:python-pytorch@2.5.1-3
+_PYTORCH_ROCM_ARCH="gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx940;gfx941;gfx942;gfx1010;gfx1012;gfx1030;gfx1100;gfx1101;gfx1102"
 pkgbase='python-torchvision-rocm'
 pkgname=('torchvision-rocm' 'python-torchvision-rocm')
-pkgver=0.18.1
+pkgver=0.20.1
 pkgrel=1
 pkgdesc='Datasets, transforms, and models specific to computer vision (with ROCM support)'
 arch=('x86_64')
@@ -47,16 +47,13 @@ source=(
   "torchvision-0_17_1-fix-build.patch"
 )
 sha256sums=(
-  '347d472a9ceecc44e0bee1eda140d63cfaffc74a54ec07d4b98da7698ce75516'
+  '7e08c7f56e2c89859310e53d898f72bccc4987cd83e08cfd6303513da15a9e71'
   'SKIP'
   'SKIP'
 )
 
 prepare() {
   cd "${srcdir}/${_pkgname}-${pkgver}"
-
-  # Fix build with ffmpeg 7.0
-  patch -Np1 -i "${srcdir}/pytorch-vision-8408.patch"
 
   # https://github.com/pytorch/vision/issues/8307
   patch -N -i "${srcdir}"/torchvision-0_17_1-fix-build.patch
@@ -74,7 +71,8 @@ build() {
   export PYTORCH_ROCM_ARCH="${_PYTORCH_ROCM_ARCH}"
   echo "building for PYTORCH_ROCM_ARCH=$PYTORCH_ROCM_ARCH"
 
-  # if not set, hardcode ROCM_PATH, HIP_ROOT_DIR, ROCM_HOME to /opt/rocm, fixes bin/hipcc a.o.
+  # if ROCM_HOME is not set, hardcode ROCM_HOME, ROCM_PATH, HIP_ROOT_DIR to /opt/rocm
+  # fixes bin/hipcc a.o.
   export ROCM_HOME="${ROCM_HOME:-/opt/rocm}"
   export ROCM_PATH="$ROCM_HOME"
   export HIP_ROOT_DIR="$ROCM_HOME"
