@@ -5,7 +5,7 @@
 
 pkgname=python-torchaudio-rocm
 _pkgname=audio
-pkgver=2.3.1
+pkgver=2.5.1
 _sox_ver=14.4.2
 pkgrel=1
 pkgdesc="Data manipulation and transformation for audio signal processing, powered by PyTorch (with ROCM support)"
@@ -20,10 +20,11 @@ provides=('python-torchaudio' "python-torchaudio=${pkgver}")
 
 source=("${url}/archive/refs/tags/v${pkgver}.tar.gz"
 	"https://downloads.sourceforge.net/project/sox/sox/$_sox_ver/sox-$_sox_ver.tar.bz2")
-sha256sums=('6e95f777c4ed2689932c180fc176c427e406b0fa2fdf99359bc9567f86cc7415'
+sha256sums=('200fbb1234c104a3662b444c0bec2acf4049c4b2113a73c0dc5f4e672cc2a4cc'
 	'81a6956d4330e75b5827316e44ae381e6f1e8928003c6aa45896da9041ea149c')
 
-_PYTORCH_ROCM_ARCH="gfx906;gfx908;gfx90a;gfx940;gfx941;gfx942;gfx1010;gfx1012;gfx1030;gfx1100;gfx1101;gfx1102"
+# architecture list taken from corresponding pytorch package: arch:python-pytorch@2.5.1-3
+_PYTORCH_ROCM_ARCH="gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx940;gfx941;gfx942;gfx1010;gfx1012;gfx1030;gfx1100;gfx1101;gfx1102"
 
 prepare() {
 	cd "$srcdir/${_pkgname}-${pkgver}"
@@ -39,7 +40,7 @@ build() {
     export PYTORCH_ROCM_ARCH="${_PYTORCH_ROCM_ARCH}"
     echo "building for PYTORCH_ROCM_ARCH=$PYTORCH_ROCM_ARCH"
 
-    # if not set, hardcode ROCM_PATH, HIP_ROOT_DIR, ROCM_HOME to /opt/rocm, fixes bin/hipcc a.o.
+    # if ROCM_HOME is not set, hardcode ROCM_HOME, ROCM_PATH, HIP_ROOT_DIR to /opt/rocm
     export ROCM_HOME="${ROCM_HOME:-/opt/rocm}"
     export ROCM_PATH="$ROCM_HOME"
     export HIP_ROOT_DIR="$ROCM_HOME"
