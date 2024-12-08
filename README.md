@@ -12,3 +12,5 @@ Archlinux [AUR packages](https://aur.archlinux.org/) i currently maintain
     - Datasets, transforms, and models specific to computer vision (with ROCM support)
 - [solo1](solo1)
     - Python tool and library for SoloKeys Solo 1
+- [salt](salt)
+    - Portable, distributed, remote execution and configuration management system
