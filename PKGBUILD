@@ -1,5 +1,6 @@
-# Maintainer: Johannes Löthberg <johannes@kyriasis.com>
-# Maintainer: Morten Linderud <foxboron@archlinux.org>
+# Maintainer: Wuxxin <wuxxin@gmail.com>
+# Contributor: Johannes Löthberg <johannes@kyriasis.com>
+# Contributor: Morten Linderud <foxboron@archlinux.org>
 # Contributor: Sébastien Luttringer
 # Contributor: Daniel Wallace <danielwallace at gtmanfred dot com>
 # Contributor: Christer Edwards <christer.edwards@gmail.com>
@@ -8,9 +9,9 @@
 pkgname=salt
 pkgver=3007.1
 pkgrel=1
-pkgdesc='Central system and configuration manager'
+pkgdesc='Portable, distributed, remote execution and configuration management system'
 arch=('any')
-url='http://saltstack.org/'
+url='https://saltproject.io/'
 license=('Apache')
 replaces=('salt-zmq' 'salt-raet')
 conflicts=('salt-zmq' 'salt-raet')
