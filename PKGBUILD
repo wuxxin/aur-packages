@@ -5,7 +5,7 @@
 
 pkgname=python-torchaudio-rocm
 _pkgname=audio
-pkgver=2.5.1
+pkgver=2.6.0
 _sox_ver=14.4.2
 pkgrel=1
 pkgdesc="Data manipulation and transformation for audio signal processing, powered by PyTorch (with ROCM support)"
@@ -20,11 +20,11 @@ provides=('python-torchaudio' "python-torchaudio=${pkgver}")
 
 source=("${url}/archive/refs/tags/v${pkgver}.tar.gz"
 	"https://downloads.sourceforge.net/project/sox/sox/$_sox_ver/sox-$_sox_ver.tar.bz2")
-sha256sums=('200fbb1234c104a3662b444c0bec2acf4049c4b2113a73c0dc5f4e672cc2a4cc'
+sha256sums=('3335d8fcf58c26acf3c628d751103b59226e01c91847ce56efb2a4e7ae8351ef'
 	'81a6956d4330e75b5827316e44ae381e6f1e8928003c6aa45896da9041ea149c')
 
-# architecture list taken from corresponding pytorch package: arch:python-pytorch@2.5.1-3
-_PYTORCH_ROCM_ARCH="gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx940;gfx941;gfx942;gfx1010;gfx1012;gfx1030;gfx1100;gfx1101;gfx1102"
+# architecture list taken from corresponding pytorch package: arch:python-pytorch@2.6.0-3
+_PYTORCH_ROCM_ARCH="gfx900;gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101;gfx942"
 
 prepare() {
 	cd "$srcdir/${_pkgname}-${pkgver}"
