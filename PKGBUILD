@@ -3,7 +3,7 @@
 pkgname=llama.cpp-hip
 _pkgname="${pkgname%-hip}"
 pkgver=b4713
-pkgrel=1
+pkgrel=2
 pkgdesc="Port of Facebook's LLaMA model in C/C++ (with AMD ROCm optimizations)"
 arch=(x86_64 armv7h aarch64)
 url='https://github.com/ggerganov/llama.cpp'
@@ -29,6 +29,7 @@ makedepends=(
   rocm-hip-runtime
   rocm-hip-sdk
 )
+optdepends=(python-pytorch)
 provides=(${_pkgname})
 conflicts=(${_pkgname})
 options+=(lto)
