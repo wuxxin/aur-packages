@@ -1,7 +1,7 @@
 pkgbase = salt
 	pkgdesc = Portable, distributed, remote execution and configuration management system
 	pkgver = 3007.1
-	pkgrel = 1
+	pkgrel = 2
 	url = https://saltproject.io/
 	install = salt.install
 	arch = any
@@ -33,7 +33,11 @@ pkgbase = salt
 	backup = etc/salt/minion
 	source = https://pypi.io/packages/source/s/salt/salt-3007.1.tar.gz
 	source = salt.logrotate
+	source = contextvars.patch
+	source = urllib.patch
 	sha256sums = b933ac4cb3e4b1118b46dada55c9cc6bdc6f0f94b4c92877aec44b25c6a28c9a
 	sha256sums = abecc3c1be124c4afffaaeb3ba32b60dfee8ba6dc32189edfa2ad154ecb7a215
+	sha256sums = SKIP
+	sha256sums = SKIP
 
 pkgname = salt

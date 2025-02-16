@@ -8,7 +8,7 @@
 
 pkgname=salt
 pkgver=3007.1
-pkgrel=1
+pkgrel=2
 pkgdesc='Portable, distributed, remote execution and configuration management system'
 arch=('any')
 url='https://saltproject.io/'
@@ -40,37 +40,30 @@ backup=('etc/logrotate.d/salt'
         'etc/salt/minion')
 install=salt.install
 source=("https://pypi.io/packages/source/s/salt/salt-$pkgver.tar.gz"
-        salt.logrotate)
+        salt.logrotate
+        contextvars.patch
+        urllib.patch)
 sha256sums=('b933ac4cb3e4b1118b46dada55c9cc6bdc6f0f94b4c92877aec44b25c6a28c9a'
-            'abecc3c1be124c4afffaaeb3ba32b60dfee8ba6dc32189edfa2ad154ecb7a215')
+            'abecc3c1be124c4afffaaeb3ba32b60dfee8ba6dc32189edfa2ad154ecb7a215'
+            'SKIP'
+            'SKIP')
 
 prepare() {
-  cd salt-$pkgver
-  sed -i '/^contextvars/d' requirements/base.txt
-
-  # remove version requirements for pyzmq, there's no point in it
-  # we only have one version and the "python_version <=> *" checks are discarded
-  # so pyzmq<=20.0.0 ends up in the final requirements.txt
-  echo -e '-r crypto.txt\n\npyzmq' > requirements/zeromq.txt
+  cd "${srcdir}/${pkgname}-${pkgver}"
+  patch -N -p1 -i "${srcdir}/contextvars.patch"
+  patch -N -p1 -i "${srcdir}/urllib.patch"
 }
 
 build() {
-  cd salt-$pkgver
+  cd "${srcdir}/${pkgname}-${pkgver}"
   python setup.py build
 }
 
-# TODO: Missing salt-factories, pytest-tempdir
-# check() {
-# local site_packages=$(python -c "import site; print(site.getsitepackages()[0])")
-#   cd salt-$pkgver
-#   python setup.py install --root="$PWD/tmp_install" --optimize=1
-#   PYTHONPATH="$PWD/tmp_install/$site_packages:$PYTHONPATH" py.test
-# }
 
 package() {
   install -Dm644 salt.logrotate "$pkgdir"/etc/logrotate.d/salt
 
-  cd salt-$pkgver
+  cd "${srcdir}/${pkgname}-${pkgver}"
 
   python setup.py --salt-pidfile-dir="/run/salt" install --root="$pkgdir" --optimize=1 --skip-build
 
