@@ -1,27 +1,36 @@
-# Maintainer: Christoph Gysin <christoph.gysin@gmail.com>
+# Maintainer: Andrew Crerar <crerar@archlinux.org>
+# Maintainer: Christian Rebischke <chris.rebischke@archlinux.org>
+# Contributor: Christoph Gysin <christoph.gysin@gmail.com>
+# Contributor: Felix Erkinger <wuxxin@gmail.com>
 
 pkgname=pulumi
-pkgver=3.6.1
-pkgrel=1
+pkgver=3.150.0
+pkgrel=2
 pkgdesc='Modern Infrastructure as Code'
 arch=('x86_64')
 url="https://github.com/$pkgname/$pkgname"
-license=('GPL')
+license=('Apache')
 depends=('glibc')
 makedepends=('go')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
-sha256sums=('5cde973f65333d4d09a82a6d806783655074213597a5be0cdb5a61583b11195e')
+b2sums=('6bef2b28cbdf8dbc69efd365aeceab3a77c359a423ec78813b569195a13ecc3666d7630a2a58e1161a87f0055f2bf84979342ff520faaa01d60dde6acb0c6287')
+options=() # disable as soon as LTO problems are resolved
 
-_plugins=(
-  "nodejs/cmd/pulumi-language-nodejs"
+_plugin_dirs=(
   "python/cmd/pulumi-language-python"
-  "dotnet/cmd/pulumi-language-dotnet"
+  "nodejs/cmd/pulumi-language-nodejs"
   "go/pulumi-language-go"
 )
 
 build() {
-  cd "${srcdir}/${pkgname}-${pkgver}"
+  local _work_dir _pkg_dir _sdk_dir _bin_dir _cwd 
+  local _plugin_dir _plugin_path _plugin_name _lang_name lang_dir
+  _work_dir="${srcdir}/${pkgname}-${pkgver}"
+  _pkg_dir="${_work_dir}/pkg"
+  _sdk_dir="${_work_dir}/sdk"
+  _bin_dir="${_work_dir}/bin"
 
+  cd "${_work_dir}"
   export CGO_CPPFLAGS="${CPPFLAGS}"
   export CGO_CFLAGS="${CFLAGS}"
   export CGO_CXXFLAGS="${CXXFLAGS}"
@@ -29,25 +38,39 @@ build() {
   export GOFLAGS="-buildmode=pie -trimpath -mod=readonly -modcacherw"
 
   # Build the `pulumi` executable
-  cd "${srcdir}/${pkgname}-${pkgver}/pkg"
+  cd "${_pkg_dir}"
   go build \
-    -ldflags "-X github.com/pulumi/pulumi/pkg/v${pkgver%%.*}/version.Version=${pkgver} -extldflags ${LDFLAGS}" \
-    -o "${srcdir}/${pkgname}-${pkgver}/bin/${pkgname}" \
+    -ldflags "-linkmode external
+              -X github.com/pulumi/pulumi/sdk/v${pkgver%%.*}/go/common/version.Version=${pkgver}" \
+    -o "${_bin_dir}/${pkgname}" \
     "./cmd/${pkgname}" \
 
   # Build the plugins
-  cd "${srcdir}/${pkgname}-${pkgver}/sdk"
-  for plugin in "${_plugins[@]}"; do
-    plugin_name=${plugin##*/}
-    go build \
-      -ldflags "-X github.com/pulumi/pulumi/pkg/v${pkgver%%.*}/version.Version=${pkgver} -extldflags ${LDFLAGS}" \
-      -o "${srcdir}/${pkgname}-${pkgver}/bin/${plugin_name}" \
-      "./${plugin}"
+  cd "${_sdk_dir}"
+  for _plugin_path in "${_plugin_dirs[@]}"; do
+    _plugin_name="${_plugin_path##*/}"
+    _lang_name="${_plugin_path%%/*}"
+    _lang_dir="${_sdk_dir}/${_lang_name}"
+    _plugin_dir="${_sdk_dir}/${_plugin_path}"
+    _cwd="${PWD}"
+    cd "${_plugin_dir}"
 
-    # Add possible executor
-    if [ -f "${plugin}-exec" ]; then
-      cp "${plugin}-exec" "${srcdir}/${pkgname}-${pkgver}/bin/"
+    go build \
+      -ldflags "-linkmode external
+                -X github.com/pulumi/pulumi/sdk/v${pkgver%%.*}/go/common/version.Version=${pkgver}" \
+      -o "${_bin_dir}/${_plugin_name}" \
+      .
+    # copy additional files per plugin
+    if test "${_lang_name}" = "python"; then
+      cp ${_sdk_dir}/${_lang_name}/cmd/pulumi-language-python-exec "${_bin_dir}"
+      cp ${_sdk_dir}/${_lang_name}/dist/pulumi-resource-pulumi-python "${_bin_dir}"
+      cp ${_sdk_dir}/${_lang_name}/dist/pulumi-analyzer-policy-python "${_bin_dir}"
+    elif test "${_lang_name}" = "nodejs"; then
+      cp ${_sdk_dir}/${_lang_name}/dist/pulumi-resource-pulumi-nodejs* "${_bin_dir}"
+	    cp ${_sdk_dir}/${_lang_name}/dist/pulumi-analyzer-policy* "${_bin_dir}"
     fi
+
+    cd "${_cwd}"
   done
 }
 
@@ -68,6 +91,11 @@ package() {
   install -D -m 644 \
     <("${pkgdir}/usr/bin/${pkgname}" gen-completion zsh) \
     "${pkgdir}/usr/share/zsh/site-functions/_${pkgname}"
+
+  # Generate Fish completion
+  install -D -m 644 \
+    <("${pkgdir}/usr/bin/${pkgname}" gen-completion fish) \
+    "${pkgdir}/usr/share/fish/completions/${pkgname}.fish"
 }
 
 # vim:set ts=2 sw=2 et:
