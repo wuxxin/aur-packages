@@ -8,7 +8,7 @@
 
 pkgname=salt
 pkgver=3007.1
-pkgrel=2
+pkgrel=3
 pkgdesc='Portable, distributed, remote execution and configuration management system'
 arch=('any')
 url='https://saltproject.io/'
@@ -42,9 +42,11 @@ install=salt.install
 source=("https://pypi.io/packages/source/s/salt/salt-$pkgver.tar.gz"
         salt.logrotate
         contextvars.patch
+        rpmvercmp.patch
         urllib.patch)
 sha256sums=('b933ac4cb3e4b1118b46dada55c9cc6bdc6f0f94b4c92877aec44b25c6a28c9a'
             'abecc3c1be124c4afffaaeb3ba32b60dfee8ba6dc32189edfa2ad154ecb7a215'
+            'SKIP'
             'SKIP'
             'SKIP')
 
@@ -52,6 +54,7 @@ prepare() {
   cd "${srcdir}/${pkgname}-${pkgver}"
   patch -N -p1 -i "${srcdir}/contextvars.patch"
   patch -N -p1 -i "${srcdir}/urllib.patch"
+  patch -N -p1 -i "${srcdir}/rpmvercmp.patch"
 }
 
 build() {
