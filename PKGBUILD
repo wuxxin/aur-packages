@@ -11,12 +11,12 @@
 # Contributor: Stephen Zhang <zsrkmyn at gmail dot com>
 
 _pkgname='vision'
-# if not set, populate build architecture list from arch:python-pytorch@2.6.0-3
-_PYTORCH_ROCM_ARCH="gfx900;gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101;gfx942"
+# if not set, populate build architecture list taken from pkg arch:python-pytorch@2.6.0-9
+_PYTORCH_ROCM_ARCH="gfx900;gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101;gfx942;gfx1102"
 pkgbase='python-torchvision-rocm'
 pkgname=('torchvision-rocm' 'python-torchvision-rocm')
 pkgver=0.21.0
-pkgrel=1
+pkgrel=2
 pkgdesc='Datasets, transforms, and models specific to computer vision (with ROCM support)'
 arch=('x86_64')
 url='https://github.com/pytorch/vision'
