@@ -1,49 +1,46 @@
-# Maintainer: Andrew Crerar <crerar@archlinux.org>
-# Maintainer: Christian Rebischke <chris.rebischke@archlinux.org>
+# Maintainer: Wuxxin <wuxxin@gmail.com>
+# Based on arch:extra:pulumi; original contributors:
+# Contributor: Andrew Crerar <crerar@archlinux.org>
+# Contributor#: Christian Rebischke <chris.rebischke@archlinux.org>
 # Contributor: Christoph Gysin <christoph.gysin@gmail.com>
-# Contributor: Felix Erkinger <wuxxin@gmail.com>
 
-pkgname=pulumi
-pkgrel=2
-pkgver=3.0.0
-pkgdesc='Modern Infrastructure as Code'
+pkgname=pulumi-git
+_pkgname=pulumi
+pkgrel=1
+pkgdesc='Modern Infrastructure as Code - git tag build with python+ nodejs dynamic resource provider'
 arch=('x86_64')
-url="https://github.com/$pkgname/$pkgname"
+url="https://github.com/pulumi/pulumi"
 license=('Apache')
+
+_get_latest_tag() {
+  git ls-remote --tags --sort=-v:refname "$url" |
+    head -n 1 | awk '{print $2}' | sed 's|refs/tags/||; s/^v//'
+}
+_latest_tag=$(_get_latest_tag)
+pkgver=$_latest_tag
+
 depends=('glibc')
 makedepends=('go' 'git')
-source=("$pkgname::git+$url.git")
-sha256sums=(SKIP)
+source=("${pkgname}::git+${url}.git")
+sha256sums=('SKIP')
+
+conflicts=('pulumi')
+provides=('pulumi' "pulumi=${pkgver}")
 
 _plugin_dirs=(
+  "go/pulumi-language-go"
   "python/cmd/pulumi-language-python"
   "nodejs/cmd/pulumi-language-nodejs"
-  "go/pulumi-language-go"
 )
 
-pkgver() {
-  set -x  # Enable command tracing
-
-  pwd  # Print the current working directory BEFORE the cd
-  cd "$pkgname" || { echo "cd to $pkgname failed!"; exit 1; } # Print error and exit if cd fails
-  pwd  # Print the current working directory AFTER the cd
-
-  # Check if it's a git repository
-  if ! git rev-parse --is-inside-work-tree; then
-    echo "Not a git repository or any of the parent directories!"
-    exit 1
-  fi
-
-  git status  # Show git status (helps diagnose repository issues)
-
-  echo "$(git describe --tags --abbrev=0 | sed 's/^v//')"
-
-  set +x  # Disable command tracing
+prepare() {
+  cd "${srcdir}/${pkgname}"
+  git fetch --tags
+  git checkout "v$_latest_tag"
 }
 
 build() {
-  _work_dir="${srcdir}/${pkgname}"
-  cd "${_work_dir}"
+  cd "${srcdir}/${pkgname}"
 
   export CGO_CPPFLAGS="${CPPFLAGS}"
   export CGO_CFLAGS="${CFLAGS}"
@@ -51,51 +48,45 @@ build() {
   export CGO_LDFLAGS="${LDFLAGS}"
   export GOFLAGS="-buildmode=pie -trimpath -mod=readonly -modcacherw"
 
-  # Build the `pulumi` executable
-  cd "${_work_dir}/pkg"
-  go build -ldflags \
-    "-linkmode external -X github.com/pulumi/pulumi/sdk/v${pkgver%%.*}/go/common/version.Version=${pkgver}" \
-    -o "${_work_dir}/bin/${pkgname}" "./cmd/${pkgname}"
+  local _full_ver="v${_latest_tag}"
+  local _major_ver="${_full_ver%%.*}"
 
+  # Build the main executable
+  cd pkg
+  go build -ldflags \
+    "-linkmode external -X github.com/pulumi/pulumi/sdk/${_major_ver}/go/common/version.Version=${_full_ver}" \
+    -o "bin/${_pkgname}" "./cmd/${_pkgname}"
+  
   # Build the plugins
-  cd "${_work_dir}/sdk"
+  cd ../sdk
   for _plugin_path in "${_plugin_dirs[@]}"; do
-    cd "${_work_dir}/sdk/${_plugin_path}"
-    go build -ldflags \
-      "-linkmode external -X github.com/pulumi/pulumi/sdk/v${pkgver%%.*}/go/common/version.Version=${pkgver}" \
-      -o "${_work_dir}/bin/${_plugin_path##*/}" .
+    go build -ldflags "-linkmode external -X github.com/pulumi/pulumi/sdk/${_major_ver}/go/common/version.Version=${_full_ver}" \
+      -o "../bin/${_plugin_path##*/}" "./${_plugin_path}"
   done
 
-  # copy additional files of plugins
-  cp ${_work_dir}/sdk/python/cmd/pulumi-language-python-exec "${_work_dir}/bin"
-  cp ${_work_dir}/sdk/python/dist/pulumi-resource-pulumi-python "${_work_dir}/bin"
-  cp ${_work_dir}/sdk/python/dist/pulumi-analyzer-policy-python "${_work_dir}/bin"
-  cp ${_work_dir}/sdk/nodejs/dist/pulumi-resource-pulumi-nodejs* "${_work_dir}/bin"
-  cp ${_work_dir}/sdk/nodejs/dist/pulumi-analyzer-policy* "${_work_dir}/bin"
+  # Copy additional files of plugins
+  cp python/cmd/pulumi-language-python-exec bin/
+  cp python/dist/pulumi-resource-pulumi-python bin/
+  cp python/dist/pulumi-analyzer-policy-python bin/
+  cp nodejs/dist/pulumi-resource-pulumi-nodejs bin/
+  cp nodejs/dist/pulumi-analyzer-policy bin/
 }
 
 package() {
   cd "${srcdir}/${pkgname}"
 
   # Install all executables
-  for f in ./bin/*; do
-    install -D -m 755 "$f" "${pkgdir}/usr/bin/$(basename $f)"
-  done
+  install -Dm755 bin/* -t "${pkgdir}/usr/bin/"
 
   # Generate Bash completion
-  install -D -m 644 \
-    <("${pkgdir}/usr/bin/${pkgname}" gen-completion bash) \
-    "${pkgdir}/etc/bash_completion.d/${pkgname}"
+  "${pkgdir}/usr/bin/${pkgname}" gen-completion bash > "${pkgdir}/etc/bash_completion.d/${pkgname}"
+  install -Dm644 "${pkgdir}/etc/bash_completion.d/${pkgname}" "${pkgdir}/etc/bash_completion.d/${pkgname}"  # Ensure permissions
 
   # Generate ZSH completion
-  install -D -m 644 \
-    <("${pkgdir}/usr/bin/${pkgname}" gen-completion zsh) \
-    "${pkgdir}/usr/share/zsh/site-functions/_${pkgname}"
+  "${pkgdir}/usr/bin/${pkgname}" gen-completion zsh > "${pkgdir}/usr/share/zsh/site-functions/_${pkgname}"
+  install -Dm644 "${pkgdir}/usr/share/zsh/site-functions/_${pkgname}" "${pkgdir}/usr/share/zsh/site-functions/_${pkgname}"
 
   # Generate Fish completion
-  install -D -m 644 \
-    <("${pkgdir}/usr/bin/${pkgname}" gen-completion fish) \
-    "${pkgdir}/usr/share/fish/completions/${pkgname}.fish"
+  "${pkgdir}/usr/bin/${pkgname}" gen-completion fish > "${pkgdir}/usr/share/fish/completions/${pkgname}.fish"
+  install -Dm644 "${pkgdir}/usr/share/fish/completions/${pkgname}.fish" "${pkgdir}/usr/share/fish/completions/${pkgname}.fish"
 }
-
-# vim:set ts=2 sw=2 et:
