@@ -1,5 +1,5 @@
 pkgbase = pulumi-git
-	pkgdesc = Modern Infrastructure as Code - git tag build with python+ nodejs dynamic resource provider
+	pkgdesc = Modern Infrastructure as Code (git tag build with python and nodejs dynamic resource provider)
 	pkgver = 3.156.0
 	pkgrel = 1
 	url = https://github.com/pulumi/pulumi
