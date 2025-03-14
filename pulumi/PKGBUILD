@@ -52,13 +52,13 @@ build() {
   local _major_ver="${_full_ver%%.*}"
   local _build_bin="${srcdir}/${pkgname}/bin"
   local _plugin_dir _plugin_name
-  
+
   # Build the main executable
   cd "${srcdir}/${pkgname}/pkg"
   go build \
     -ldflags "-linkmode external -X github.com/pulumi/pulumi/sdk/${_major_ver}/go/common/version.Version=${_full_ver}" \
     -o "${_build_bin}/${_pkgname}" "./cmd/${_pkgname}"
-  
+
   # Build the plugins
   for _plugin_dir in "${_plugin_dirs[@]}"; do
     _plugin_name="${plugin_dir##*/}"
