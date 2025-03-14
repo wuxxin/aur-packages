@@ -1,0 +1,17 @@
+pkgbase = pulumi-git
+	pkgdesc = Modern Infrastructure as Code (git tag build with python and nodejs dynamic resource provider)
+	pkgver = 3.156.0
+	pkgrel = 1
+	url = https://github.com/pulumi/pulumi
+	arch = x86_64
+	license = Apache
+	makedepends = go
+	makedepends = git
+	depends = glibc
+	provides = pulumi
+	provides = pulumi=3.156.0
+	conflicts = pulumi
+	source = pulumi-git::git+https://github.com/pulumi/pulumi.git
+	sha256sums = SKIP
+
+pkgname = pulumi-git
