@@ -1,19 +1,22 @@
-# Maintainer: Cody Wyatt Neiman (xangelix) <neiman@cody.to>
+# Maintainer: wuxxin <wuxxin@gmail.com
+# Based on arch:extra:pulumi; original contributors:
+# Contributor: Cody Wyatt Neiman (xangelix) <neiman@cody.to>
 
 _name=bitsandbytes
 pkgname=python-$_name-rocm-git
-pkgdesc="Lightweight wrapper around CUDA custom functions, in particular 8-bit optimizers, matrix multiplication (LLM.int8()), and quantization functions (official AMD ROCm branch)"
+pkgdesc="Lightweight wrapper around CUDA custom functions, in particular 8-bit optimizers, matrix multiplication (LLM.int8()), and quantization functions (ROCm/bitsandbytes upstream)"
 license=("MIT")
-url="https://github.com/TimDettmers/$_name"
-pkgver=0.43.1.r228.g517eaf2
+url="https://github.com/ROCm/$_name"
+pkgver=0.41.0.r587.g35266ea
 pkgrel=1
 arch=("x86_64")
 makedepends=("make" "cmake")
 depends=("hipblaslt" "hiprand" "hipsparse" "hipcub" "rocthrust" "python-setuptools" "python-pytest" "python-einops" "python-wheel" "python-scipy" "python-lion-pytorch" "python-pandas" "python-matplotlib")
 provides=("python-$_name")
-source=("$pkgname::git+$url.git#branch=multi-backend-refactor")
+source=("$pkgname::git+$url.git#branch=rocm_enabled_multi_backend")
 sha512sums=("SKIP")
-
+# build architecture list taken from pkg arch:python-pytorch@2.6.0-9
+_PYTORCH_ROCM_ARCH="gfx900;gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101;gfx942;gfx1102"
 
 pkgver() {
   cd $pkgname
@@ -28,8 +31,11 @@ pkgver() {
 
 build() {
   cd $pkgname
-
-  cmake -DCOMPUTE_BACKEND=hip -S .
+  if test -n "$GPU_TARGETS"; then _PYTORCH_ROCM_ARCH="$GPU_TARGETS"; fi
+  if test -n "$AMDGPU_TARGETS"; then _PYTORCH_ROCM_ARCH="$AMDGPU_TARGETS"; fi
+  if test -n "$PYTORCH_ROCM_ARCH"; then _PYTORCH_ROCM_ARCH="$PYTORCH_ROCM_ARCH"; fi
+  # build for GPU_TARGETS, AMDGPU_TARGETS or PYTORCH_ROCM_ARCH, else use list of latest python-pytorch
+  cmake -DCOMPUTE_BACKEND=hip -DBNB_ROCM_ARCH="${_PYTORCH_ROCM_ARCH}" -S .
   make
   python -m build --wheel --no-isolation
 }
