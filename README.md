@@ -21,4 +21,4 @@ Private Forks of Archlinux and Archlinux AUR packages
     - *private fork* of arch extra package build from git tag with enabled python and nodejs dynamic provider
 
 - [python-bitsandbytes-rocm-git](python-bitsandbytes-rocm-git) - 8bit optimizers, matrix multiplications,quantization functions
-    - *private fork* of an aur package with different upstream source, and build for all supported gpu architectures
+    - *private fork* of an aur package with different upstream source and build for all gpu architectures
