@@ -7,7 +7,7 @@ pkgname=python-torchaudio-rocm
 _pkgname=audio
 pkgver=2.6.0
 _sox_ver=14.4.2
-pkgrel=2
+pkgrel=3
 pkgdesc="Data manipulation and transformation for audio signal processing, powered by PyTorch (with ROCM support)"
 arch=('x86_64')
 url="https://github.com/pytorch/audio"
@@ -25,11 +25,6 @@ sha256sums=('3335d8fcf58c26acf3c628d751103b59226e01c91847ce56efb2a4e7ae8351ef'
 
 # if not set, populate build architecture list taken from pkg arch:python-pytorch@2.6.0-9
 _PYTORCH_ROCM_ARCH="gfx900;gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101;gfx942;gfx1102"
-
-prepare() {
-	cd "$srcdir/${_pkgname}-${pkgver}"
-	git submodule init
-}
 
 build() {
 	cd "$srcdir/${_pkgname}-${pkgver}"
