@@ -8,60 +8,73 @@
 
 pkgname=salt
 pkgver=3007.1
-pkgrel=3
+pkgrel=4
 pkgdesc='Portable, distributed, remote execution and configuration management system'
 arch=('any')
 url='https://saltproject.io/'
 license=('Apache')
 replaces=('salt-zmq' 'salt-raet')
 conflicts=('salt-zmq' 'salt-raet')
-depends=('python-jinja'
-         'python-jmespath'
-         'python-msgpack'
-         'python-yaml'
-         'python-markupsafe'
-         'python-requests'
-         'python-distro'
-         'python-psutil'
-         'python-packaging'
-         'python-looseversion'
+# dependencies: base, crypto, zeromq; ignore contextvars, timelib; extra: systemd
+depends=(
+  'python-jinja'
+  'python-jmespath'
+  'python-msgpack'
+  'python-yaml'
+  'python-markupsafe'
+  'python-networkx'
+  'python-requests'
+  'python-certifi'
+  'python-distro'
+  'python-psutil'
+  'python-packaging'
+  'python-looseversion'
+  'python-tornado'
+  'python-aiohttp'
+  'python-urllib3'
+  'python-croniter'
+  'python-setproctitle'
+  'python-pyopenssl'
+  'python-dateutil'
+  'python-gnupg'
+  'python-cherrypy'
+  'python-importlib-metadata'
+  'python-cryptography'
+  'python-pycryptodomex'
+  'python-pyzmq'
+  'python-systemd'
+)
 
-         'python-pyzmq'
-         'python-m2crypto'
-         'python-systemd'
-         'python-importlib-metadata'
-         'python-pycryptodomex')
 makedepends=('python-setuptools')
 optdepends=('dmidecode: decode SMBIOS/DMI tables'
-            'python-pygit2: gitfs support')
+  'python-pygit2: gitfs support')
 #checkdepends=('python-pytest' 'python-psutil')
 backup=('etc/logrotate.d/salt'
-        'etc/salt/master'
-        'etc/salt/minion')
+  'etc/salt/master'
+  'etc/salt/minion')
 install=salt.install
 source=("https://pypi.io/packages/source/s/salt/salt-$pkgver.tar.gz"
-        salt.logrotate
-        contextvars.patch
-        rpmvercmp.patch
-        urllib.patch)
+  salt.logrotate
+  contextvars.patch
+  rpmvercmp.patch
+  urllib.patch)
 sha256sums=('b933ac4cb3e4b1118b46dada55c9cc6bdc6f0f94b4c92877aec44b25c6a28c9a'
-            'abecc3c1be124c4afffaaeb3ba32b60dfee8ba6dc32189edfa2ad154ecb7a215'
-            'SKIP'
-            'SKIP'
-            'SKIP')
+  'abecc3c1be124c4afffaaeb3ba32b60dfee8ba6dc32189edfa2ad154ecb7a215'
+  'SKIP'
+  'SKIP'
+  'SKIP')
 
 prepare() {
   cd "${srcdir}/${pkgname}-${pkgver}"
   patch -N -p1 -i "${srcdir}/contextvars.patch"
-  patch -N -p1 -i "${srcdir}/urllib.patch"
   patch -N -p1 -i "${srcdir}/rpmvercmp.patch"
+  patch -N -p1 -i "${srcdir}/urllib.patch"
 }
 
 build() {
   cd "${srcdir}/${pkgname}-${pkgver}"
   python setup.py build
 }
-
 
 package() {
   install -Dm644 salt.logrotate "$pkgdir"/etc/logrotate.d/salt
