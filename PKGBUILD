@@ -6,7 +6,7 @@
 
 pkgname=pulumi-git
 _pkgname=pulumi
-pkgrel=1
+pkgrel=2
 pkgdesc='Modern Infrastructure as Code (git tag build with python and nodejs dynamic resource provider)'
 arch=('x86_64')
 url="https://github.com/pulumi/pulumi"
@@ -19,13 +19,12 @@ _get_latest_tag() {
 _latest_tag=$(_get_latest_tag)
 pkgver=$_latest_tag
 
-depends=('glibc')
+conflicts=('pulumi')
+provides=('pulumi' "pulumi=${pkgver}")
+depends=('glibc' 'nodejs' 'python')
 makedepends=('go' 'git')
 source=("${pkgname}::git+${url}.git")
 sha256sums=('SKIP')
-
-conflicts=('pulumi')
-provides=('pulumi' "pulumi=${pkgver}")
 
 _plugin_dirs=(
   "go/pulumi-language-go"
