@@ -8,7 +8,7 @@
 
 pkgname=salt
 pkgver=3007.1
-pkgrel=5
+pkgrel=6
 pkgdesc='Portable, distributed, remote execution and configuration management system'
 arch=('any')
 url='https://saltproject.io/'
@@ -65,6 +65,7 @@ source=(
   contextvars.patch
   rpmvercmp.patch
   urllib.patch
+  has_crypt.patch
   salt-call
 )
 sha256sums=(
@@ -74,13 +75,14 @@ sha256sums=(
   'SKIP'
   'SKIP'
   'SKIP'
+  'SKIP'
 )
 
 prepare() {
   cd "${srcdir}/${pkgname}-${pkgver}"
-  patch -N -p1 -i "${srcdir}/contextvars.patch"
-  patch -N -p1 -i "${srcdir}/rpmvercmp.patch"
-  patch -N -p1 -i "${srcdir}/urllib.patch"
+  for i in contextvars rpmvercmp urllib has_crypt; do
+    patch -N -p1 -i "${srcdir}/${i}.patch"
+  done
 }
 
 build() {
