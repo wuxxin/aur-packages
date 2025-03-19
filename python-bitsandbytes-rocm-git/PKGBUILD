@@ -1,45 +1,47 @@
 # Maintainer: wuxxin <wuxxin@gmail.com
-# Based on arch:extra:pulumi; original contributors:
+# Based on AUR/python-bitsandbytes-rocm-git
 # Contributor: Cody Wyatt Neiman (xangelix) <neiman@cody.to>
 
 _name=bitsandbytes
+_org=bitsandbytes-foundation
+_branch=multi-backend-refactor
+
 pkgname=python-$_name-rocm-git
 pkgdesc="Lightweight wrapper around CUDA custom functions, in particular 8-bit optimizers, matrix multiplication (LLM.int8()), and quantization functions (ROCm/bitsandbytes upstream)"
 license=("MIT")
-url="https://github.com/ROCm/$_name"
-pkgver=0.41.0.r587.g35266ea
+url="https://github.com/$_org/$_name"
 pkgrel=1
+pkgver=0.45.2.r279.g8fe6325
 arch=("x86_64")
 makedepends=("make" "cmake")
 depends=("hipblaslt" "hiprand" "hipsparse" "hipcub" "rocthrust" "python-setuptools" "python-pytest" "python-einops" "python-wheel" "python-scipy" "python-lion-pytorch" "python-pandas" "python-matplotlib")
 provides=("python-$_name")
-source=("$pkgname::git+$url.git#branch=rocm_enabled_multi_backend")
+source=("$pkgname::git+$url.git#branch=$_branch")
 sha512sums=("SKIP")
-# build architecture list taken from pkg arch:python-pytorch@2.6.0-9
+
+# build architecture list, taken from pkg arch:python-pytorch@2.6.0-9
+# use GPU_TARGETS, AMDGPU_TARGETS or PYTORCH_ROCM_ARCH to override this list
 _PYTORCH_ROCM_ARCH="gfx900;gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101;gfx942;gfx1102"
+if test -n "$GPU_TARGETS"; then _PYTORCH_ROCM_ARCH="$GPU_TARGETS"; fi
+if test -n "$AMDGPU_TARGETS"; then _PYTORCH_ROCM_ARCH="$AMDGPU_TARGETS"; fi
+if test -n "$PYTORCH_ROCM_ARCH"; then _PYTORCH_ROCM_ARCH="$PYTORCH_ROCM_ARCH"; fi
 
 pkgver() {
   cd $pkgname
-
-  ( set -o pipefail
+  (
+    set -o pipefail
     # cutting off 'v' prefix that presents in the git tag
     git describe --tags | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g' ||
-    printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+      printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
   )
 }
 
-
 build() {
   cd $pkgname
-  if test -n "$GPU_TARGETS"; then _PYTORCH_ROCM_ARCH="$GPU_TARGETS"; fi
-  if test -n "$AMDGPU_TARGETS"; then _PYTORCH_ROCM_ARCH="$AMDGPU_TARGETS"; fi
-  if test -n "$PYTORCH_ROCM_ARCH"; then _PYTORCH_ROCM_ARCH="$PYTORCH_ROCM_ARCH"; fi
-  # build for GPU_TARGETS, AMDGPU_TARGETS or PYTORCH_ROCM_ARCH, else use list of latest python-pytorch
   cmake -DCOMPUTE_BACKEND=hip -DBNB_ROCM_ARCH="${_PYTORCH_ROCM_ARCH}" -S .
   make
   python -m build --wheel --no-isolation
 }
-
 
 package() {
   # Install license
