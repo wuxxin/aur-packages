@@ -8,7 +8,7 @@
 
 pkgname=salt
 pkgver=3007.1
-pkgrel=4
+pkgrel=5
 pkgdesc='Portable, distributed, remote execution and configuration management system'
 arch=('any')
 url='https://saltproject.io/'
@@ -45,24 +45,36 @@ depends=(
   'python-systemd'
 )
 
-makedepends=('python-setuptools')
-optdepends=('dmidecode: decode SMBIOS/DMI tables'
-  'python-pygit2: gitfs support')
+makedepends=(
+  'python-setuptools'
+)
+optdepends=(
+  'dmidecode: decode SMBIOS/DMI tables'
+  'python-pygit2: gitfs support'
+)
 #checkdepends=('python-pytest' 'python-psutil')
-backup=('etc/logrotate.d/salt'
+backup=(
+  'etc/logrotate.d/salt'
   'etc/salt/master'
-  'etc/salt/minion')
+  'etc/salt/minion'
+)
 install=salt.install
-source=("https://pypi.io/packages/source/s/salt/salt-$pkgver.tar.gz"
+source=(
+  "https://pypi.io/packages/source/s/salt/salt-$pkgver.tar.gz"
   salt.logrotate
   contextvars.patch
   rpmvercmp.patch
-  urllib.patch)
-sha256sums=('b933ac4cb3e4b1118b46dada55c9cc6bdc6f0f94b4c92877aec44b25c6a28c9a'
+  urllib.patch
+  salt-call
+)
+sha256sums=(
+  'b933ac4cb3e4b1118b46dada55c9cc6bdc6f0f94b4c92877aec44b25c6a28c9a'
   'abecc3c1be124c4afffaaeb3ba32b60dfee8ba6dc32189edfa2ad154ecb7a215'
   'SKIP'
   'SKIP'
-  'SKIP')
+  'SKIP'
+  'SKIP'
+)
 
 prepare() {
   cd "${srcdir}/${pkgname}-${pkgver}"
@@ -82,6 +94,8 @@ package() {
   cd "${srcdir}/${pkgname}-${pkgver}"
 
   python setup.py --salt-pidfile-dir="/run/salt" install --root="$pkgdir" --optimize=1 --skip-build
+  # workaround KeyError: 'config.option'
+  cp ${srcdir}/salt-call ${pkgdir}/usr/bin/salt-call
 
   # default config
   install -v -Dm644 conf/master "$pkgdir/etc/salt/master"
