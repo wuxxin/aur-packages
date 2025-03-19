@@ -8,7 +8,7 @@
 
 pkgname=salt
 pkgver=3007.1
-pkgrel=6
+pkgrel=7
 pkgdesc='Portable, distributed, remote execution and configuration management system'
 arch=('any')
 url='https://saltproject.io/'
