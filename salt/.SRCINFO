@@ -1,7 +1,7 @@
 pkgbase = salt
 	pkgdesc = Portable, distributed, remote execution and configuration management system
 	pkgver = 3007.1
-	pkgrel = 6
+	pkgrel = 7
 	url = https://saltproject.io/
 	install = salt.install
 	arch = any
