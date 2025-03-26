@@ -1,0 +1,95 @@
+# Maintainer: TheBill2001 <tuantran1632001 at gmail dot com>
+# Contributer: Alpin <alpin 'at' alpindale 'dot' dev>
+# Author: LostRuins (concedo), YellowRoseCx
+
+# Build configuration could be change with environment variables.
+# Or via `${XDG_CONFIG_HOME}/koboldcpp_build.conf` (default is `~/.config/koboldcpp_build.conf`).
+#
+# Disabling portable build
+# KOBOLDCPP_NO_PORTABLE:
+#   '0' - Keep portable build enabled (default)
+#   '1' or any other value that isn't '0' - Disable portable build.
+
+: ${KOBOLDCPP_BUILD_CONF:=${XDG_CONFIG_HOME:-~/.config}/koboldcpp_build.conf}
+: ${KOBOLDCPP_NO_PORTABLE:=0}
+
+pkgname=koboldcpp-hipblas
+_git_name=koboldcpp-rocm
+_pkgver=1.86
+pkgver=$_pkgver.yr0
+pkgrel=1
+# Commit: /archive/aef66c462abe817e33aad91d97aa782a1e2ad2c7.tar.gz
+_git_archive=d854325bce0291a6c54295121c8ef1b2c2ade04b
+_git_source=${_git_name}-${_git_archive}
+# Branch/Main: /archive/refs/heads/main.tar.gz
+#_git_archive=refs/heads/main
+#_git_source=${_git_name}-main
+# Releases/Tags: /archive/refs/tags/projectname/v1.2.3.4.tar.gz
+#_git_archive=refs/refs/tags/${_git_name}/v${_pkgver}
+#_git_source=${_git_name}-${pkgver}-ROCm
+pkgdesc="An easy-to-use AI text-generation software for GGML and GGUF models (with HIPBLAS, for ROCM)"
+arch=('x86_64')
+url="https://github.com/YellowRoseCx/${_git_name}"
+license=('AGPL-3.0-only')
+depends=(
+    'python'
+    'cblas'
+    'clblast'
+    'vulkan-icd-loader'
+    'hipblas'
+)
+optdepends=(
+    'python-customtkinter: for GUI launcher'
+    'python-psutil: increasing the process CPU priority'
+)
+provides=("koboldcpp=$_pkgver" "${_git_name}=$_pkgver")
+conflicts=('koboldcpp')
+source=(
+    "${_git_source}.tar.gz::${url}/archive/${_git_archive}.tar.gz"
+    'koboldcpp.desktop'
+    'koboldcpp.png'
+)
+sha256sums=('SKIP'
+    'fcec7b843b908e1c03496fdc0605e6509f52526a855c43db16e287ef646503ef'
+    'd244788c74a693a383bea7db6ab2bb2f762e6020de900be977b16e18dcd20f54')
+
+build() {
+    if [ -f "${KOBOLDCPP_BUILD_CONF}" ]; then
+        echo "Using config from ${KOBOLDCPP_BUILD_CONF}"
+        source "${KOBOLDCPP_BUILD_CONF}"
+    fi
+
+    if [ "${KOBOLDCPP_NO_PORTABLE}" == "0" ]; then
+        export LLAMA_PORTABLE=1
+    fi
+
+    export LLAMA_VULKAN=1
+    export LLAMA_CLBLAST=1
+    export LLAMA_HIPBLAS=1
+
+    cd "$srcdir/${_git_source}"
+
+    make clean && make
+}
+
+package() {
+    cd "$srcdir/${_git_source}"
+
+    install -d "$pkgdir/usr/share/koboldcpp"
+
+    install -Dm644 ./*.so "$pkgdir/usr/share/koboldcpp/"
+    install -Dm644 ./*.embd "$pkgdir/usr/share/koboldcpp/"
+
+    install -d "$pkgdir/usr/share/koboldcpp/kcpp_adapters"
+    install -m644 "kcpp_adapters"/* "$pkgdir/usr/share/koboldcpp/kcpp_adapters/"
+
+    install -Dm644 "koboldcpp.py" "$pkgdir/usr/share/koboldcpp/koboldcpp.py"
+
+    echo '#!/bin/sh' >koboldcpp
+    echo 'python /usr/share/koboldcpp/koboldcpp.py "$@"' >>koboldcpp
+
+    install -Dm755 koboldcpp "$pkgdir/usr/bin/koboldcpp"
+
+    install -Dm644 "$srcdir/koboldcpp.desktop" "$pkgdir/usr/share/applications/koboldcpp.desktop"
+    install -Dm644 "$srcdir/koboldcpp.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/koboldcpp.png"
+}
