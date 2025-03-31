@@ -35,3 +35,14 @@ pkgname = faiss-cuda
 	provides = faiss
 	provides = python-faiss
 	provides = python-faiss-cuda
+
+pkgname = faiss-rocm
+	depends = blas
+	depends = lapack
+	depends = openmp
+	depends = python
+	depends = python-numpy
+	depends = cuda
+	provides = faiss
+	provides = python-faiss
+	provides = python-faiss-rocm
