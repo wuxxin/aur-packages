@@ -1,5 +1,5 @@
-[torchvision]
+[coreos-installer]
 source = "git"
-git = "https://github.com/pytorch/vision.git"
+git = "https://github.com/coreos/coreos-installer.git"
 prefix = "v"
 exclude_regex = "v.*(pre|rc|alpha|beta|\\-).*"

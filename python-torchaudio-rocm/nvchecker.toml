@@ -1,5 +1,5 @@
-[torchvision]
+[torchaudio]
 source = "git"
-git = "https://github.com/pytorch/vision.git"
+git = "https://github.com/pytorch/audio.git"
 prefix = "v"
 exclude_regex = "v.*(pre|rc|alpha|beta|\\-).*"
