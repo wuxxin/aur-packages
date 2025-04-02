@@ -16,7 +16,7 @@ _PYTORCH_ROCM_ARCH="gfx900;gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101;gfx942;g
 pkgbase='python-torchvision-rocm'
 pkgname=('torchvision-rocm' 'python-torchvision-rocm')
 pkgver=0.21.0
-pkgrel=2
+pkgrel=3
 pkgdesc='Datasets, transforms, and models specific to computer vision (with ROCM support)'
 arch=('x86_64')
 url='https://github.com/pytorch/vision'
@@ -77,6 +77,10 @@ build() {
   export ROCM_PATH="$ROCM_HOME"
   export HIP_ROOT_DIR="$ROCM_HOME"
 
+  # XXX we need to exclude this in favor of the hipified source, setup.py, make_C_extension
+  # add after: shutil.copy(str(header), str(CSRS_DIR / "ops/hip"))
+  # cuda_sources.remove(CSRS_DIR / "vision.cpp")
+
   cmake \
     -G Ninja \
     -Wno-dev \
@@ -86,7 +90,8 @@ build() {
     -DCMAKE_CXX_FLAGS="${CXXFLAGS} -O3" \
     -DCMAKE_SHARED_LINKER_FLAGS="${LDFLAGS}" \
     -DWITH_PNG=ON \
-    -DWITH_JPEG=ON
+    -DWITH_JPEG=ON \
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
   cmake --build build
 
@@ -96,16 +101,6 @@ build() {
     TORCHVISION_USE_VIDEO_CODEC=0 \
     TORCHVISION_USE_FFMPEG=1 \
     python setup.py build
-}
-
-check() {
-  # local python_version=$(python -c 'import sys; print("".join(map(str, sys.version_info[:2])))')
-  # # check if VideoReader is build
-  # # VideoReader depends on ffmpeg
-  # cd "${srcdir}/${_pkgname}-${pkgver}"
-  # PYTHONPATH="${PWD}/build/lib.linux-${CARCH}-cpython-${python_version}" \
-  #   python -c "from torchvision.io import VideoReader"
-  true
 }
 
 package_torchvision-rocm() {
