@@ -11,7 +11,7 @@ depends=()
 optdepends=()
 makedepends=(
   "cargo"
-  "libxcb"
+  "nodejs"
   "just"
 )
 # LTO is broken for dependency ring https://github.com/briansmith/ring/issues/1444
