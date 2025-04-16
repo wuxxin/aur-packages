@@ -2,7 +2,7 @@
 
 pkgname=goose-desktop
 pkgver=1.0.18
-pkgrel=1
+pkgrel=2
 pkgdesc="An open-source, extensible AI agent that goes beyond code suggestions (with UI)"
 arch=("x86_64")
 url="https://github.com/block/goose"
