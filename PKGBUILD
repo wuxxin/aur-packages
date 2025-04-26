@@ -2,12 +2,15 @@
 
 pkgname=goose-desktop
 pkgver=1.0.20
-pkgrel=1
+pkgrel=2
 pkgdesc="An open-source, extensible AI agent that goes beyond code suggestions (with UI)"
 arch=("x86_64")
 url="https://github.com/block/goose"
 license=("Apache-2.0")
-depends=()
+depends=(
+  "uv"
+  "npm"
+)
 optdepends=()
 makedepends=(
   "cargo"
@@ -47,6 +50,12 @@ package() {
   mkdir -p "$pkgdir/usr/lib/$pkgname"
   cp -r "ui/desktop/out/Goose-linux-x64/"* "$pkgdir/usr/lib/$pkgname/"
   
+  # Link to local uvx and npx, instead of running the script that installs them with hermit
+  rm "$pkgdir/usr/lib/$pkgname/resources/bin/uvx"
+  rm "$pkgdir/usr/lib/$pkgname/resources/bin/npx"
+  ln -s /usr/bin/uvx "$pkgdir/usr/lib/$pkgname/resources/bin/uvx"
+  ln -s /usr/bin/npx "$pkgdir/usr/lib/$pkgname/resources/bin/npx"
+
   # Install wrapper script, desktop file, and icons
   install -Dm755 "$startdir/goose-desktop.sh" "$pkgdir/usr/bin/$pkgname"
   install -Dm644  ui/desktop/out/Goose-linux-x64/resources/images/icon.png "$pkgdir/usr/share/pixmaps/$pkgname.png"
