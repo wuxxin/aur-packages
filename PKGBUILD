@@ -15,8 +15,8 @@ _pkgname='vision'
 _PYTORCH_ROCM_ARCH="gfx900;gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101;gfx942;gfx1102"
 pkgbase='python-torchvision-rocm'
 pkgname=('torchvision-rocm' 'python-torchvision-rocm')
-pkgver=0.21.0
-pkgrel=3
+pkgver=0.22.0
+pkgrel=1
 pkgdesc='Datasets, transforms, and models specific to computer vision (with ROCM support)'
 arch=('x86_64')
 url='https://github.com/pytorch/vision'
@@ -46,11 +46,9 @@ source=(
   "pytorch-vision-8408.patch"
   "torchvision-0_17_1-fix-build.patch"
 )
-sha256sums=(
-  '0a4a967bbb7f9810f792cd0289a07fb98c8fb5d1303fae8b63e3a6b05d720058'
-  'SKIP'
-  'SKIP'
-)
+sha256sums=('83ed8855cdfb138aba6f116f8fd8da8b83463170dad67a70f60327915ed12014'
+            'd14ce08f7d1929fff746d7fc7b80b3065a5d7111ab08b5a5e73b44e77bf1b56f'
+            'ed715ca202d2b010c50414e370ebc0492f0f42b298a8e6e03f9fe80b7ce60331')
 
 prepare() {
   cd "${srcdir}/${_pkgname}-${pkgver}"
