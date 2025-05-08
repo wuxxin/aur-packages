@@ -5,9 +5,9 @@
 
 pkgname=python-torchaudio-rocm
 _pkgname=audio
-pkgver=2.6.0
+pkgver=2.7.0
 _sox_ver=14.4.2
-pkgrel=4
+pkgrel=1
 pkgdesc="Data manipulation and transformation for audio signal processing, powered by PyTorch (with ROCM support)"
 arch=('x86_64')
 url="https://github.com/pytorch/audio"
@@ -23,11 +23,9 @@ source=(
     "https://downloads.sourceforge.net/project/sox/sox/$_sox_ver/sox-$_sox_ver.tar.bz2"
     policy_min_3.5.patch
 )
-sha256sums=(
-    '3335d8fcf58c26acf3c628d751103b59226e01c91847ce56efb2a4e7ae8351ef'
-    '81a6956d4330e75b5827316e44ae381e6f1e8928003c6aa45896da9041ea149c'
-    SKIP
-)
+sha256sums=('31de856d3daa5c1db983eb5b964ed33d54be6e5038d6504181fe51e2d6cc6448'
+            '81a6956d4330e75b5827316e44ae381e6f1e8928003c6aa45896da9041ea149c'
+            'af89ba1d9a7324918797f56ee5a4f542907ed697c3cf7474c46946beafc94ed9')
 
 # if not set, populate build architecture list taken from pkg arch:python-pytorch@2.6.0-9
 _PYTORCH_ROCM_ARCH="gfx900;gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101;gfx942;gfx1102"
