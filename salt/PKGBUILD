@@ -7,8 +7,8 @@
 # Contributor: zer0def <zer0def@github>
 
 pkgname=salt
-pkgver=3007.1
-pkgrel=7
+pkgver=3007.2
+pkgrel=1
 pkgdesc='Portable, distributed, remote execution and configuration management system'
 arch=('any')
 url='https://saltproject.io/'
@@ -69,7 +69,7 @@ source=(
   salt-call
 )
 sha256sums=(
-  'b933ac4cb3e4b1118b46dada55c9cc6bdc6f0f94b4c92877aec44b25c6a28c9a'
+  '76dfd8e43db646fb357ba52b45394008182549b6a5584688ed452c48c9d112ec'
   'abecc3c1be124c4afffaaeb3ba32b60dfee8ba6dc32189edfa2ad154ecb7a215'
   'SKIP'
   'SKIP'
@@ -107,7 +107,7 @@ package() {
   for _svc in salt-master.service salt-syndic.service salt-minion.service salt-api.service; do
     install -v -Dm644 pkg/common/$_svc "$pkgdir/usr/lib/systemd/system/$_svc"
   done
-  install -v -Dm644 pkg/common/salt.bash "$pkgdir/usr/share/bash-completion/completions/salt"
+  install -v -Dm644 pkg/rpm/salt.bash "$pkgdir/usr/share/bash-completion/completions/salt"
   install -v -Dm644 pkg/common/salt.zsh "$pkgdir/usr/share/zsh/site-functions/_salt"
   install -v -Dm644 -t "$pkgdir/usr/share/fish/vendor_completions.d" pkg/common/fish-completions/*
 }
