@@ -22,7 +22,7 @@ Archlinux [AUR packages](https://aur.archlinux.org/) i currently maintain
 - [python-bitsandbytes-rocm-git](python-bitsandbytes-rocm-git)
 - [koboldcpp-hipblas](koboldcpp-hipblas)
 - [faiss](faiss)
-- [llama.cpp-hip]llama.cpp-hip]
+- [llama.cpp-hip](llama.cpp-hip)
 - [claude-desktop-native](claude-desktop-native)
 - [dsnote-git](dsnote-git)
 
