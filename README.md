@@ -23,6 +23,9 @@ Temporary private Forks of Archlinux and Archlinux AUR packages
 
 - [python-bitsandbytes-rocm-git](python-bitsandbytes-rocm-git) - 8bit optimizers, matrix multiplications,quantization functions
     - *private fork* of an aur package with different upstream source and build for all gpu architectures
-
 - [koboldcpp-hipblas](koboldcpp-hipblas)
     - *private fork** on an aur package with modular build from a git commit, tag or branch
+- [faiss](faiss)
+- [llama.cpp-hip]llama.cpp-hip]
+- [claude-desktop-native](claude-desktop-native)
+- [dsnote-git](dsnote-git)
