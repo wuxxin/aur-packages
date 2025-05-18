@@ -4,8 +4,6 @@ Archlinux [AUR packages](https://aur.archlinux.org/) i currently maintain
 
 - [coreos-installer](coreos-installer)
     - Installer for CoreOS disk images
-- [localai-git](localai-git)
-    - The free, Open Source OpenAI alternative. Self-hosted, community-driven and local-first
 - [pulumi-git](pulumi-git) - Modern Infrastructure as Code
     - build from the latest git tag with enabled python and nodejs dynamic provider
 - [python-torchaudio-rocm](python-torchaudio-rocm)
@@ -19,13 +17,18 @@ Archlinux [AUR packages](https://aur.archlinux.org/) i currently maintain
 
 ---
 
-Temporary private Forks of Archlinux and Archlinux AUR packages
+**Temporary** private Forks of Archlinux and Archlinux AUR packages (can be **bitrotten at anytime**)
 
-- [python-bitsandbytes-rocm-git](python-bitsandbytes-rocm-git) - 8bit optimizers, matrix multiplications,quantization functions
-    - *private fork* of an aur package with different upstream source and build for all gpu architectures
+- [python-bitsandbytes-rocm-git](python-bitsandbytes-rocm-git)
 - [koboldcpp-hipblas](koboldcpp-hipblas)
-    - *private fork** on an aur package with modular build from a git commit, tag or branch
 - [faiss](faiss)
 - [llama.cpp-hip]llama.cpp-hip]
 - [claude-desktop-native](claude-desktop-native)
 - [dsnote-git](dsnote-git)
+
+---
+
+up for adoption
+
+- [localai-git](localai-git)
+    - The free, Open Source OpenAI alternative. Self-hosted, community-driven and local-first
