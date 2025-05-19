@@ -1,7 +1,7 @@
 # Maintainer: David Birks <david@birks.dev>
 
 pkgname=goose-desktop
-pkgver=1.0.21
+pkgver=1.0.24
 pkgrel=1
 pkgdesc="An open-source, extensible AI agent that goes beyond code suggestions (with UI)"
 arch=("x86_64")
@@ -16,11 +16,12 @@ makedepends=(
   "cargo"
   "nodejs"
   "just"
+  "oniguruma"
 )
 # LTO is broken for dependency ring https://github.com/briansmith/ring/issues/1444
 options=("!lto" "!debug")
 source=("https://github.com/block/goose/archive/refs/tags/v${pkgver}.tar.gz")
-b2sums=('25ef15397a8d5ff377bbdf4b2755570737e98399903a235177030b974e38fbc6623329d9b8e81fb379a88eccd595eb0ed8f6cc02cd956ec4727b249c4e50e581')
+b2sums=('fbdb973ad14d9923fc5ea390e94de54e8e06bcedfdc6d115d08229664e10c365126988f7087de6407ca114b994d40a3f16ce250f958f84d6e2fc7dc726a454e9')
 conflicts=(
   "codename-goose"
   "codename-goose-bin"
@@ -28,6 +29,10 @@ conflicts=(
 
 build() {
   cd goose-$pkgver
+
+  # Use the prebuilt oniguruma for now
+  # https://github.com/block/goose/issues/2572
+  export RUSTONIG_SYSTEM_LIBONIG=1
 
   # Build the command-line binary
   just release-binary
