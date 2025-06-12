@@ -1,7 +1,7 @@
 # Maintainer: David Birks <david@birks.dev>
 
 pkgname=goose-desktop
-pkgver=1.0.24
+pkgver=1.0.27
 pkgrel=1
 pkgdesc="An open-source, extensible AI agent that goes beyond code suggestions (with UI)"
 arch=("x86_64")
@@ -21,7 +21,7 @@ makedepends=(
 # LTO is broken for dependency ring https://github.com/briansmith/ring/issues/1444
 options=("!lto" "!debug")
 source=("https://github.com/block/goose/archive/refs/tags/v${pkgver}.tar.gz")
-b2sums=('fbdb973ad14d9923fc5ea390e94de54e8e06bcedfdc6d115d08229664e10c365126988f7087de6407ca114b994d40a3f16ce250f958f84d6e2fc7dc726a454e9')
+b2sums=('bc7952eb797b95e72807bc890486b1fb6326471baedac478c5d16d154b54b15866b7e92659d4221528ce93399d580c1c795bd245b6c5d43b1cbe284b27893836')
 conflicts=(
   "codename-goose"
   "codename-goose-bin"
@@ -40,6 +40,14 @@ build() {
   cd ui/desktop
   # Install dependencies, ignoring the prepare script which tries to run husky
   npm ci --ignore-scripts
+
+  # To fix error from Forge:
+  # > Cannot find module @rollup/rollup-linux-x64-gnu.
+  npm i @rollup/rollup-linux-x64-gnu@4.43.0
+
+  # To fix error from Forge:
+  # > Error: The package "@esbuild/linux-x64" could not be found, and is needed by esbuild.
+  npm i @esbuild/linux-x64@0.25.5
 
   # Build the Electron app
   npx electron-forge package

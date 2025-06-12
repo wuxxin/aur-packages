@@ -1,6 +1,6 @@
 pkgbase = goose-desktop
 	pkgdesc = An open-source, extensible AI agent that goes beyond code suggestions (with UI)
-	pkgver = 1.0.24
+	pkgver = 1.0.27
 	pkgrel = 1
 	url = https://github.com/block/goose
 	arch = x86_64
@@ -15,7 +15,7 @@ pkgbase = goose-desktop
 	conflicts = codename-goose-bin
 	options = !lto
 	options = !debug
-	source = https://github.com/block/goose/archive/refs/tags/v1.0.24.tar.gz
-	b2sums = fbdb973ad14d9923fc5ea390e94de54e8e06bcedfdc6d115d08229664e10c365126988f7087de6407ca114b994d40a3f16ce250f958f84d6e2fc7dc726a454e9
+	source = https://github.com/block/goose/archive/refs/tags/v1.0.27.tar.gz
+	b2sums = bc7952eb797b95e72807bc890486b1fb6326471baedac478c5d16d154b54b15866b7e92659d4221528ce93399d580c1c795bd245b6c5d43b1cbe284b27893836
 
 pkgname = goose-desktop
