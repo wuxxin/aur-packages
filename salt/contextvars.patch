@@ -1,0 +1,22 @@
+Index: salt-3007.1/requirements/base.txt
+===================================================================
+--- salt-3007.1.orig/requirements/base.txt	2024-11-06 20:25:51.898374912 +0100
++++ salt-3007.1/requirements/base.txt	2024-11-06 20:26:23.586354279 +0100
+@@ -15,7 +15,6 @@ aiohttp>=3.9.0
+ 
+ # We need contextvars for salt-ssh.
+ # Even on python versions which ships with contextvars in the standard library!
+-contextvars
+ 
+ setproctitle>=1.2.3
+ timelib>=0.2.5
+Index: salt-3007.1/requirements/zeromq.txt
+===================================================================
+--- salt-3007.1.orig/requirements/zeromq.txt	2024-11-06 20:25:51.899374912 +0100
++++ salt-3007.1/requirements/zeromq.txt	2024-11-06 20:27:44.898301325 +0100
+@@ -1,4 +1,4 @@
+ -r base.txt
+ -r crypto.txt
+ 
+-pyzmq>=25.1.2
++pyzmq>=25.1.1
