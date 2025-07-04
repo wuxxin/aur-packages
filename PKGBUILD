@@ -1,7 +1,7 @@
 # Maintainer: David Birks <david@birks.dev>
 
 pkgname=goose-desktop
-pkgver=1.0.27
+pkgver=1.0.32
 pkgrel=1
 pkgdesc="An open-source, extensible AI agent that goes beyond code suggestions (with UI)"
 arch=("x86_64")
@@ -21,7 +21,7 @@ makedepends=(
 # LTO is broken for dependency ring https://github.com/briansmith/ring/issues/1444
 options=("!lto" "!debug")
 source=("https://github.com/block/goose/archive/refs/tags/v${pkgver}.tar.gz")
-b2sums=('bc7952eb797b95e72807bc890486b1fb6326471baedac478c5d16d154b54b15866b7e92659d4221528ce93399d580c1c795bd245b6c5d43b1cbe284b27893836')
+b2sums=('1ac97f70f23f8e80e2ecc53489e7eb109b228cd0f3996d70934e074499b333221340788d29f0b340c0d7c8a51249ea6b423961a6c070eecb8622bc9b1d797918')
 conflicts=(
   "codename-goose"
   "codename-goose-bin"
