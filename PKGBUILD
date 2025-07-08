@@ -2,7 +2,7 @@
 
 pkgname=goose-desktop
 pkgver=1.0.35
-pkgrel=1
+pkgrel=2
 pkgdesc="An open-source, extensible AI agent that goes beyond code suggestions (with UI)"
 arch=("x86_64")
 url="https://github.com/block/goose"
@@ -20,12 +20,23 @@ makedepends=(
 )
 # LTO is broken for dependency ring https://github.com/briansmith/ring/issues/1444
 options=("!lto" "!debug")
-source=("https://github.com/block/goose/archive/refs/tags/v${pkgver}.tar.gz")
-b2sums=('4a65ce80da087ffcf23c236677c1385ab688375ae2204459f362c560114a76366dd63ab26c04db87376517b7479d3e515367affbf382696bb7dd5da6c46bc16e')
+source=(
+  "https://github.com/block/goose/archive/refs/tags/v${pkgver}.tar.gz"
+  "auto-hide-menu-bar.patch"
+)
+b2sums=('4a65ce80da087ffcf23c236677c1385ab688375ae2204459f362c560114a76366dd63ab26c04db87376517b7479d3e515367affbf382696bb7dd5da6c46bc16e'
+        '94d5a2add73bcde850f5c0555039d71b63611e54dc896ab8b5c12165884ad4126e3298c6542a10d82ef9b84f6b191468c6ba4a7843a854c560facd3591b5bdc5')
 conflicts=(
   "codename-goose"
   "codename-goose-bin"
 )
+
+prepare() {
+  cd goose-$pkgver
+
+  # Apply patches
+  patch -Np1 -i "$srcdir/auto-hide-menu-bar.patch"
+}
 
 build() {
   cd goose-$pkgver
