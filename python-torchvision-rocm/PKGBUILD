@@ -44,16 +44,20 @@ source=(
 	"${_pkgname}-${pkgver}.tar.gz::https://github.com/pytorch/vision/archive/v${pkgver}.tar.gz"
 	"pytorch-vision-8408.patch"
 	"torchvision-0_17_1-fix-build.patch"
+	"ffmpeg-8.patch"
 )
 sha256sums=('db5a91569e5eb4a3b02e9eaad6080335f5ae3824890a697f5618541999f04027'
             'd14ce08f7d1929fff746d7fc7b80b3065a5d7111ab08b5a5e73b44e77bf1b56f'
-            'ed715ca202d2b010c50414e370ebc0492f0f42b298a8e6e03f9fe80b7ce60331')
-
+            'ed715ca202d2b010c50414e370ebc0492f0f42b298a8e6e03f9fe80b7ce60331'
+            '1c466d4ae0874a8ab6518cb3b0c7747f43060fb6803352ac9e13f2b5ecae1931')
 prepare() {
 	cd "${srcdir}/${_pkgname}-${pkgver}"
 
 	# https://github.com/pytorch/vision/issues/8307
 	patch -N -i "${srcdir}"/torchvision-0_17_1-fix-build.patch
+
+        # Fix build with ffmpeg 8
+        patch -p1 -i "${srcdir}"/ffmpeg-8.patch
 }
 
 build() {
