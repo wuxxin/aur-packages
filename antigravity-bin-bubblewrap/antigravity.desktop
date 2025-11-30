@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Antigravity
-Comment=Agentic IDE (Sandboxed)
+Comment=Agentic IDE (sandboxed to ~/AntigravityWorkspace)
 Exec=/usr/bin/antigravity %U
 Terminal=false
 Type=Application

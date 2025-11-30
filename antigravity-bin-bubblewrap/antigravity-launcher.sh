@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Google Antigravity Sandbox
+# Antigravity Sandbox
 
 # Configuration
 APP_DIR="/opt/antigravity"
@@ -61,7 +61,7 @@ ELECTRON_FLAGS=(
 )
 
 echo "Starting Antigravity using bubblewrap as sandbox"
-echo "Shield VSCode and Plugins from accessing real /home"
+echo "Shield $HOME access for Antigravity/VSCode/Plugins/Electron"
 echo "Writeable Workspace at: $WORK_DIR"
 
 exec bwrap "${BWRAP_ARGS[@]}" "$APP_BIN" "${ELECTRON_FLAGS[@]}" "$@"
