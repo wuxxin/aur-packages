@@ -2,7 +2,7 @@
 Type=Application
 Name=Goose
 Comment=An open-source, extensible AI agent that goes beyond code suggestions
-Exec=/usr/bin/goose-desktop
+Exec=/usr/bin/goose-desktop %F
 Icon=goose-desktop
 Terminal=false
 Categories=Development;Utility;

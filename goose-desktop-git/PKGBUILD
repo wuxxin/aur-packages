@@ -1,0 +1,102 @@
+# Maintainer: Wuxxin <wuxxin@gmail.com>
+# Based on aur:goose-desktop; original contributors:
+# Contributor: David Birks <david@birks.dev>
+
+pkgname=goose-desktop-git
+_pkgname=goose-desktop
+url="https://github.com/block/goose"
+pkgdesc="An open-source, extensible AI agent that goes beyond code suggestions (with UI, GIT Version)"
+arch=("x86_64")
+license=("Apache-2.0")
+
+# Get the latest tag version string
+_get_latest_tag() {
+    git ls-remote --tags --sort=-v:refname "$url" |
+        grep -E "refs/tags/v[0-9]+\.[0-9]+" |
+        head -1 | awk '{print $2}' | sed 's|refs/tags/||; s/^v//'
+}
+_latest_tag=$(_get_latest_tag)
+pkgver=$_latest_tag
+pkgrel=1
+
+depends=(
+    "uv"
+    "npm"
+)
+optdepends=()
+makedepends=(
+    "cargo"
+    "nodejs"
+    "just"
+    "oniguruma"
+    "libxml2"
+    "libxcb"
+    "git" # Still needed for ls-remote, though not for cloning
+)
+
+options=("!lto" "!debug")
+
+# This downloads only the source code for that specific tag
+source=(
+    "${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz"
+    "auto-hide-menu-bar.patch"
+)
+
+# Since the version changes dynamically, we skip the checksum for the tarball
+b2sums=('SKIP'
+    '94d5a2add73bcde850f5c0555039d71b63611e54dc896ab8b5c12165884ad4126e3298c6542a10d82ef9b84f6b191468c6ba4a7843a854c560facd3591b5bdc5')
+
+conflicts=(
+    "codename-goose"
+    "codename-goose-bin"
+)
+
+prepare() {
+    cd "goose-$pkgver"
+    # Apply patches
+    # patch -Np1 -i "$srcdir/auto-hide-menu-bar.patch"
+}
+
+build() {
+    cd "goose-$pkgver"
+
+    # Use the prebuilt oniguruma for now
+    export RUSTONIG_SYSTEM_LIBONIG=1
+
+    # Build the command-line binary
+    just release-binary
+
+    cd ui/desktop
+    # Install dependencies, ignoring the prepare script which tries to run husky
+    npm install --ignore-scripts --no-audit --no-fund
+
+    # Fixes for Forge/Rollup
+    npm i @rollup/rollup-linux-x64-gnu@4.43.0
+    npm i @esbuild/linux-x64@0.25.5
+
+    # Build the Electron app
+    npx electron-forge package
+}
+
+package() {
+    cd "goose-$pkgver"
+
+    # Install command-line binary
+    install -Dm755 "target/release/goose" "$pkgdir/usr/bin/goose"
+
+    # Install the Electron app
+    mkdir -p "$pkgdir/usr/lib/$_pkgname"
+    # Note: ensure "Goose-linux-x64" matches the output folder name exactly
+    cp -r "ui/desktop/out/Goose-linux-x64/"* "$pkgdir/usr/lib/$_pkgname/"
+
+    # Link to local uvx and npx
+    rm "$pkgdir/usr/lib/$_pkgname/resources/bin/uvx"
+    rm "$pkgdir/usr/lib/$_pkgname/resources/bin/npx"
+    ln -s /usr/bin/uvx "$pkgdir/usr/lib/$_pkgname/resources/bin/uvx"
+    ln -s /usr/bin/npx "$pkgdir/usr/lib/$_pkgname/resources/bin/npx"
+
+    # Install wrapper script, desktop file, and icons
+    install -Dm755 "$startdir/goose-desktop.sh" "$pkgdir/usr/bin/$_pkgname"
+    install -Dm644 ui/desktop/out/Goose-linux-x64/resources/images/icon.png "$pkgdir/usr/share/pixmaps/$_pkgname.png"
+    install -Dm644 "$startdir/goose-desktop.desktop" "$pkgdir/usr/share/applications/$_pkgname.desktop"
+}

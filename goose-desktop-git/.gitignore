@@ -1,0 +1,5 @@
+pkg
+src
+goose*.tar.gz
+goose*.pkg.tar.zst
+
