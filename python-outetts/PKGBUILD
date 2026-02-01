@@ -1,0 +1,92 @@
+# Maintainer: Wuxxin <wuxxin@gmail.com>
+_pkgbase=outetts
+pkgbase=python-outetts
+pkgname=('python-outetts-cpu' 'python-outetts-cuda' 'python-outetts-hip' 'python-outetts-vulkan')
+pkgver=0.4.2
+pkgrel=1
+pkgdesc="OuteAI Text-to-Speech (TTS)"
+arch=('any')
+url="https://github.com/edwko/OuteTTS"
+license=('Apache-2.0')
+makedepends=('python-build' 'python-installer' 'python-wheel' 'python-setuptools')
+# Common dependencies (excluding llama-cpp-python)
+# NOTE: The following packages are currently missing from AUR/Repos and must be created or installed manually:
+# - python-encodec
+# - python-uroman
+# - python-descript-audio-codec
+_common_depends=(
+    'python-pytorch'
+    'python-torchvision'
+    'python-torchaudio'
+    'python-scipy'
+    'python-einops'
+    'python-yaml'
+    'python-huggingface-hub'
+    'python-encodec'
+    'python-matplotlib'
+    'python-transformers'
+    'python-soundfile'
+    'python-numpy'
+    'python-inflect'
+    'python-loguru'
+    'python-polars'
+    'python-natsort'
+    'python-tqdm'
+    'python-requests'
+    'python-sounddevice'
+    'python-mecab'
+    'python-unidic-lite'
+    'python-uroman'
+    'python-openai-whisper'
+    'python-pygame'
+    'python-descript-audio-codec'
+    'python-aiohttp'
+    'python-ftfy'
+)
+source=("${pkgbase}-${pkgver}.tar.gz::https://github.com/edwko/OuteTTS/archive/refs/tags/${pkgver}.tar.gz")
+sha256sums=('17fa31f50f9d7151462bb213451fca0b54bf329951ca64664c2c33a2c925d55c')
+
+build() {
+    cd "OuteTTS-${pkgver}"
+    python -m build --wheel --no-isolation
+}
+
+package_python-outetts-cpu() {
+    pkgdesc="OuteAI Text-to-Speech (TTS) - CPU version"
+    depends=("${_common_depends[@]}" 'python-llama-cpp')
+    provides=('python-outetts')
+    conflicts=('python-outetts')
+
+    cd "OuteTTS-${pkgver}"
+    python -m installer --destdir="$pkgdir" dist/*.whl
+}
+
+package_python-outetts-cuda() {
+    pkgdesc="OuteAI Text-to-Speech (TTS) - CUDA version"
+    depends=("${_common_depends[@]}" 'python-llama-cpp-cuda')
+    provides=('python-outetts')
+    conflicts=('python-outetts')
+
+    cd "OuteTTS-${pkgver}"
+    python -m installer --destdir="$pkgdir" dist/*.whl
+}
+
+package_python-outetts-hip() {
+    pkgdesc="OuteAI Text-to-Speech (TTS) - HIP version"
+    depends=("${_common_depends[@]}" 'python-llama-cpp-hip')
+    provides=('python-outetts')
+    conflicts=('python-outetts')
+
+    cd "OuteTTS-${pkgver}"
+    python -m installer --destdir="$pkgdir" dist/*.whl
+}
+
+package_python-outetts-vulkan() {
+    pkgdesc="OuteAI Text-to-Speech (TTS) - Vulkan version"
+    depends=("${_common_depends[@]}" 'python-llama-cpp-vulkan')
+    provides=('python-outetts')
+    conflicts=('python-outetts')
+
+    cd "OuteTTS-${pkgver}"
+    python -m installer --destdir="$pkgdir" dist/*.whl
+}
