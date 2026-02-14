@@ -1,0 +1,190 @@
+# Maintainer: Wuxxin <wuxxin@gmail.com>
+
+pkgbase=libggml-git-hip
+pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip')
+pkgver=7974.r6.g262364e
+pkgrel=1
+pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp - HIP accelerated, shared library, git version"
+arch=('x86_64')
+url="https://github.com/ggml-org/llama.cpp"
+license=('MIT' 'Apache-2.0' 'GPL-3.0-or-later')
+options=('!lto' '!debug' '!buildflags')
+makedepends=(
+    'cmake' 'git' 'ninja'
+    'rocm-hip-sdk' 'rocm-toolchain'
+    'python-build' 'python-installer' 'python-wheel' 'python-setuptools' 'python-scikit-build-core'
+    'sdl2-compat'
+    'curl'
+)
+
+source=(
+    "llama.cpp::git+https://github.com/ggml-org/llama.cpp.git"
+    "whisper.cpp::git+https://github.com/ggerganov/whisper.cpp.git"
+    "llama-cpp-python::git+https://github.com/abetlen/llama-cpp-python.git"
+    "vec-wmma-boost.patch"
+    "README.md"
+    "cache_test.py"
+)
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+
+pkgver() {
+    cd llama.cpp
+    git describe --long --tags --abbrev=7 | sed -E 's/^[^0-9]*//;s/([^-]*-g)/r\1/;s/-/./g'
+}
+
+prepare() {
+    # Patch ggml inside llama.cpp (patch path is ggml/src/...)
+    cd "${srcdir}/llama.cpp"
+    git submodule update --init --recursive
+    patch -p1 <"${srcdir}/vec-wmma-boost.patch"
+
+    # Manually create ggml.pc.in if it's missing
+    if [ ! -f "ggml/ggml.pc.in" ]; then
+        echo "Creating missing ggml/ggml.pc.in"
+        cat >"ggml/ggml.pc.in" <<'EOF'
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: ggml
+Description: ggml is a tensor library for machine learning
+Version: @PROJECT_VERSION@
+Libs: -L${libdir} -lggml -lggml-base -lggml-cpu -lggml-hip
+Cflags: -I${includedir}
+EOF
+    fi
+
+    # Prepare python binding to use system library path
+    cd "${srcdir}/llama-cpp-python"
+    sed -i 's|pathlib.Path(os.path.abspath(os.path.dirname(__file__))) / "lib"|pathlib.Path("/usr/lib")|' llama_cpp/llama_cpp.py
+}
+
+build() {
+    local _GPU_TARGETS
+    local _BLACKLIST="gfx1103"
+    _GPU_TARGETS=$(rocm-supported-gfx | tr ';' '\n' |
+        grep -vFf <(echo "${_BLACKLIST//;/\\n}") | tr '\n' ';' | sed 's/;$//')
+    if [[ -n "$AMDGPU_TARGETS" ]]; then _GPU_TARGETS="$AMDGPU_TARGETS"; fi
+    if [[ -z "$_GPU_TARGETS" ]]; then _GPU_TARGETS="gfx1030"; fi
+
+    export GPU_TARGETS="${_GPU_TARGETS}"
+    export ROCM_HOME="${ROCM_HOME:-/opt/rocm}"
+    export ROCM_PATH="$ROCM_HOME"
+    export HIP_ROOT_DIR="$ROCM_HOME"
+    export HIP_PLATFORM=amd
+    export CC=/opt/rocm/bin/hipcc
+    export CXX=/opt/rocm/bin/hipcc
+
+    # Clear flags that interfere with HIP/device compilation
+    unset CFLAGS CXXFLAGS LDFLAGS CPPFLAGS
+    export CFLAGS=""
+    export CXXFLAGS=""
+    export LDFLAGS=""
+    export CPPFLAGS=""
+
+    echo "Building HEAD for ROCm architectures: ${GPU_TARGETS}"
+
+    # --- Build ggml FIRST (from llama.cpp/ggml subdir) ---
+    # We use GGML_STANDALONE=OFF to bypass tests/examples that might be missing
+    echo "--- Building libggml (HIP) from llama.cpp/ggml ---"
+    cmake -B build_ggml_hip -S llama.cpp/ggml -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="/usr" \
+        -DGGML_STANDALONE=OFF \
+        -DGGML_BUILD_TESTS=OFF \
+        -DGGML_BUILD_EXAMPLES=OFF \
+        -DGGML_HIP=ON \
+        -DGGML_HIPBLAS=ON \
+        -DGGML_HIP_ROCWMMA_FATTN=ON \
+        -DGGML_CUDA_FA_ALL_QUANTS=ON \
+        -DAMDGPU_TARGETS="${GPU_TARGETS}" \
+        -DBUILD_SHARED_LIBS=ON \
+        -DGGML_NATIVE=ON
+
+    cmake --build build_ggml_hip
+
+    # Install ggml to staging directory
+    DESTDIR="${srcdir}/staging_hip" cmake --install build_ggml_hip
+
+    # --- Build llama.cpp using system ggml ---
+    echo "--- Building llama.cpp (HIP) with system ggml ---"
+    export CMAKE_PREFIX_PATH="${srcdir}/staging_hip/usr"
+    cmake -B build_llama_hip -S llama.cpp -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="/usr" \
+        -DBUILD_SHARED_LIBS=ON \
+        -DLLAMA_USE_SYSTEM_GGML=ON \
+        -DLLAMA_BUILD_SERVER=ON \
+        -DGGML_HIP=ON \
+        -DGGML_HIPBLAS=ON \
+        -DHIP_PLATFORM=amd \
+        -DAMDGPU_TARGETS="${GPU_TARGETS}" \
+        -DGGML_NATIVE=ON
+    cmake --build build_llama_hip
+
+    # --- Build whisper.cpp using system ggml ---
+    echo "--- Building whisper.cpp (HIP) ---"
+    cmake -B build_whisper_hip -S whisper.cpp -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="/usr" \
+        -DWHISPER_SDL2=1 \
+        -DWHISPER_USE_SYSTEM_GGML=1 \
+        -DGGML_HIP=ON \
+        -DGGML_HIPBLAS=ON \
+        -DAMDGPU_TARGETS="${GPU_TARGETS}"
+    cmake --build build_whisper_hip
+
+    # --- Build python-llama-cpp ---
+    echo "--- Building python-llama-cpp (HIP) ---"
+    cd llama-cpp-python
+    export CMAKE_ARGS="-DLLAMA_BUILD=OFF"
+    rm -rf build dist llama_cpp_python.egg-info
+    python -m build --wheel --no-isolation
+    mkdir -p "${srcdir}/dist_hip"
+    mv dist/*.whl "${srcdir}/dist_hip/"
+    cd ..
+}
+
+package_libggml-git-hip() {
+    pkgdesc="Tensor library for machine learning (HIP/ROCm optimized) - HEAD"
+    provides=("libggml" "libggml-git" "libggml-git-hip")
+    conflicts=("libggml" "libggml-git" "libggml-git-vulkan")
+    depends=('hip-runtime-amd' 'hipblas' 'rocblas')
+
+    # Install from ggml build staging
+    mkdir -p "${pkgdir}/usr"
+    cp -r "${srcdir}/staging_hip/usr/"* "${pkgdir}/usr/"
+}
+
+package_llama.cpp-git-ggml-hip() {
+    pkgdesc="Port of Facebook's LLaMA model in C/C++ (git shared library build)"
+    depends=('libggml-git-hip' 'curl' 'hip-runtime-amd' 'hipblas' 'rocblas')
+    provides=('llama.cpp' 'llama.cpp-hip')
+    conflicts=('llama.cpp' 'llama.cpp-hip')
+
+    DESTDIR="$pkgdir" cmake --install build_llama_hip
+
+    # Install Arch-specific README
+    install -Dm644 "${srcdir}/README.md" "${pkgdir}/usr/share/doc/${pkgname}/README-arch.md"
+
+    # Install performance test utility
+    install -Dm755 "${srcdir}/cache_test.py" "${pkgdir}/usr/share/doc/${pkgname}/examples/cache_test.py"
+}
+
+package_whisper.cpp-git-ggml-hip() {
+    pkgdesc="Port of OpenAI's Whisper model (git shared library build)"
+    depends=('libggml-git-hip' 'sdl2-compat' 'hip-runtime-amd')
+    provides=('whisper.cpp' 'whisper.cpp-hip')
+
+    DESTDIR="$pkgdir" cmake --install build_whisper_hip
+}
+
+package_python-llama-cpp-git-ggml-hip() {
+    pkgdesc="Python bindings for llama.cpp (git shared library build)"
+    depends=('llama.cpp-git-ggml-hip' 'libggml-git-hip' 'python-numpy')
+    provides=('python-llama-cpp' 'python-llama-cpp-hip')
+
+    cd llama-cpp-python
+    python -m installer --destdir="$pkgdir" "${srcdir}/dist_hip/"*.whl
+}

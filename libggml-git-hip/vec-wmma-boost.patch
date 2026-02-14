@@ -1,0 +1,68 @@
+diff --git a/ggml/src/ggml-cuda/fattn-tile.cuh b/ggml/src/ggml-cuda/fattn-tile.cuh
+index b6db582281..efd84669d6 100644
+--- a/ggml/src/ggml-cuda/fattn-tile.cuh
++++ b/ggml/src/ggml-cuda/fattn-tile.cuh
+@@ -241,9 +241,9 @@ static constexpr __host__ __device__ uint32_t ggml_cuda_fattn_tile_get_config_am
+     GGML_CUDA_FATTN_TILE_CONFIG_CASE(128, 128,  2,  64, 8,  32,  64)
+     GGML_CUDA_FATTN_TILE_CONFIG_CASE(128, 128,  4, 128, 8,  64,  64)
+     GGML_CUDA_FATTN_TILE_CONFIG_CASE(128, 128,  8, 128, 8,  64,  64)
+-    GGML_CUDA_FATTN_TILE_CONFIG_CASE(128, 128, 16, 256, 3, 128, 128)
+-    GGML_CUDA_FATTN_TILE_CONFIG_CASE(128, 128, 32, 256, 3, 128,  64)
+-    GGML_CUDA_FATTN_TILE_CONFIG_CASE(128, 128, 64, 256, 3,  64,  64)
++    GGML_CUDA_FATTN_TILE_CONFIG_CASE(128, 128, 16, 128, 3, 128, 128)
++    GGML_CUDA_FATTN_TILE_CONFIG_CASE(128, 128, 32, 128, 3, 128,  64)
++    GGML_CUDA_FATTN_TILE_CONFIG_CASE(128, 128, 64, 128, 3,  64,  64)
+ 
+     GGML_CUDA_FATTN_TILE_CONFIG_CASE(256, 256,  2,  64, 8,  32,  64)
+     GGML_CUDA_FATTN_TILE_CONFIG_CASE(256, 256,  4, 128, 6,  32, 256)
+diff --git a/ggml/src/ggml-cuda/fattn.cu b/ggml/src/ggml-cuda/fattn.cu
+index 721edd9994..341b0beee2 100644
+--- a/ggml/src/ggml-cuda/fattn.cu
++++ b/ggml/src/ggml-cuda/fattn.cu
+@@ -278,6 +278,7 @@ enum best_fattn_kernel {
+ };
+ 
+ static best_fattn_kernel ggml_cuda_get_best_fattn_kernel(const int device, const ggml_tensor * dst) {
++    const int cc = ggml_cuda_info().devices[device].cc;
+ #ifndef FLASH_ATTN_AVAILABLE
+     GGML_UNUSED(device); GGML_UNUSED(dst);
+     return BEST_FATTN_KERNEL_NONE;
+@@ -297,7 +298,7 @@ static best_fattn_kernel ggml_cuda_get_best_fattn_kernel(const int device, const
+ 
+     // The effective batch size for the kernel can be increased by gqa_ratio.
+     // The kernel versions without this optimization are also used for ALiBi, if there is no mask, or if the KV cache is not padded,
+-    bool gqa_opt_applies = gqa_ratio >= 2 && mask && max_bias == 0.0f && K->ne[1] % FATTN_KQ_STRIDE == 0;
++    bool gqa_opt_applies = gqa_ratio >= 2 && mask && max_bias == 0.0f && (K->ne[1] % FATTN_KQ_STRIDE == 0 || GGML_CUDA_CC_IS_RDNA2(cc));
+     for (const ggml_tensor * t : {Q, K, V, mask}) {
+         if (t == nullptr || ggml_is_quantized(t->type)) {
+             continue;
+@@ -310,7 +311,6 @@ static best_fattn_kernel ggml_cuda_get_best_fattn_kernel(const int device, const
+         }
+     }
+ 
+-    const int cc = ggml_cuda_info().devices[device].cc;
+ 
+     switch (K->ne[0]) {
+         case  40:
+@@ -365,7 +365,7 @@ static best_fattn_kernel ggml_cuda_get_best_fattn_kernel(const int device, const
+     }
+ 
+     // For small batch sizes the vector kernel may be preferable over the kernels optimized for large batch sizes:
+-    const bool can_use_vector_kernel = Q->ne[0] <= 256 && Q->ne[0] % 64 == 0 && K->ne[1] % FATTN_KQ_STRIDE == 0;
++    const bool can_use_vector_kernel = Q->ne[0] <= 256 && Q->ne[0] % 64 == 0 && (K->ne[1] % FATTN_KQ_STRIDE == 0 || GGML_CUDA_CC_IS_RDNA2(cc));
+ 
+     // If Turing tensor cores are available, use them:
+     if (turing_mma_available(cc) && Q->ne[0] != 40 && Q->ne[0] != 72) {
+@@ -407,6 +407,12 @@ static best_fattn_kernel ggml_cuda_get_best_fattn_kernel(const int device, const
+         return BEST_FATTN_KERNEL_MMA_F16;
+     }
+ 
++    // Use VEC kernel for RDNA2 to avoid slow TILE fallback:
++    if (GGML_CUDA_CC_IS_RDNA2(cc) && Q->ne[0] <= 256 && Q->ne[0] % 64 == 0 && Q->ne[1] <= 4096 && Q->ne[0] != 40 &&
++        Q->ne[0] != 72 && Q->ne[0] != 576) {
++        return BEST_FATTN_KERNEL_VEC;
++    }
++
+     // Use the WMMA kernel if possible:
+     if (ggml_cuda_should_use_wmma_fattn(cc) && K->ne[1] % FATTN_KQ_STRIDE == 0 && Q->ne[0] != 40 && Q->ne[0] != 72 && Q->ne[0] != 576) {
+         if (can_use_vector_kernel && Q->ne[1] <= 2) {

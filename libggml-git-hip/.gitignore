@@ -1,0 +1,8 @@
+llama-cpp-python/
+llama.cpp/
+whisper.cpp/
+libggml-git*.pkg.tar*
+llama.cpp*.pkg.tar*
+python-llama-cpp*.pkg.tar*
+whisper.cpp*.pkg.tar*
+
