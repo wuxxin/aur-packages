@@ -9,11 +9,11 @@ Archlinux [AUR packages](https://aur.archlinux.org/) i currently maintain:
 - [pulumi-git](pulumi-git) - Modern Infrastructure as Code
     - build from the latest git tag with enabled python and nodejs dynamic provider
 - [python-torchaudio-rocm](python-torchaudio-rocm)
-    - Data manipulation and transformation for audio signal processing (with ROCM support)
+    - PyTorch Data manipulation and transformation for audio signal processing (with ROCM support)
 - [python-torchao-rocm](python-torchao-rocm)
     - PyTorch native quantization and sparsity for training and inference (with ROCM support)
 - [python-torchvision-rocm](python-torchvision-rocm)
-    - Datasets, transforms, and models specific to computer vision (with ROCM support)
+    - PyTorch Datasets, transforms, and models specific to computer vision (with ROCM support)
 - [solo1](solo1)
     - Python tool and library for SoloKeys Solo 1
 - [salt](salt)
