@@ -35,7 +35,10 @@ Can be **broken or bitrotten at anytime**.
 
 - Private Fork (from libggml-git, llamap.cpp-hip, whisper.cpp-hip, python-llama-cpp-hip)
     - [libggml-git-hip](libggml-git-hip) - HIP libggml git version shared library
-      - builds libggml, llama.cpp, whisper.cpp, python-llama-cpp with hip/rocm accel (with patches for RDNA2)  
+      - builds libggml, llama.cpp, whisper.cpp, python-llama-cpp with hip/rocm accel from latest git
+      - with patches for RDNA2, OuteTTS 1.0 Support, Python Bindings to support the latest git version,
+      - `llama.cpp`, `whisper.cpp`, and `python-llama-cpp` all link dynamically against a single system-wide `libggml-git-hip`.
+          - This ensures consistent backend behavior / bug compatibility across all tools.
 
 - Not ready Yet
     - [goose-desktop-git](goose-desktop-git) - An open-source, extensible AI agent that goes beyond code suggestions
