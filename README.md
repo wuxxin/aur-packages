@@ -33,6 +33,10 @@ Can be **broken or bitrotten at anytime**.
     - [python-bitsandbytes-rocm-git](python-bitsandbytes-rocm-git) - Lightweight wrapper around CUDA/HIP custom functions, in particular 8-bit optimizers, matrix multiplication (LLM.int8()), and quantization functions
     - switched to main branch, other branch is stale
 
+- Private Fork
+    - [piper-tts-shared](piper-tts-shared) - Fast and local neural text-to-speech engine 
+    - build with shared system espeak-ng library
+
 - Private Fork (from libggml-git, llamap.cpp-hip, whisper.cpp-hip, python-llama-cpp-hip)
     - [libggml-git-hip](libggml-git-hip) - HIP libggml git version shared library
       - builds libggml, llama.cpp, whisper.cpp, python-llama-cpp with hip/rocm accel from latest git
@@ -40,7 +44,7 @@ Can be **broken or bitrotten at anytime**.
       - `llama.cpp`, `whisper.cpp`, and `python-llama-cpp` all link dynamically against a single system-wide `libggml-git-hip`.
           - This ensures consistent backend behavior / bug compatibility across all tools.
 
-- Not ready Yet
+- Bitrotten
     - [goose-desktop-git](goose-desktop-git) - An open-source, extensible AI agent that goes beyond code suggestions
     - [python-outetts](python-outetts) - OuteAI Text-to-Speech (TTS)
     
