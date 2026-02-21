@@ -1,0 +1,281 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 04dd613..6e3ad5c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -9,46 +9,14 @@ include(ExternalProject)
+ # scikit-build-core will forward Python_* variables
+ find_package(Python COMPONENTS Development.Module Development.SABIModule REQUIRED)
+ 
+-# Install location for espeak-ng
+-set(ESPEAKNG_BUILD_DIR ${CMAKE_BINARY_DIR}/espeak_ng)
+-set(ESPEAKNG_INSTALL_DIR ${CMAKE_BINARY_DIR}/espeak_ng-install)
++# scikit-build-core will forward Python_* variables
++find_package(Python COMPONENTS Development.Module Development.SABIModule REQUIRED)
+ 
+-if(WIN32)
+-    # Special handling for Windows
+-    set(ESPEAKNG_STATIC_LIB ${ESPEAKNG_INSTALL_DIR}/lib/espeak-ng.lib)
+-    set(UCD_STATIC_LIB ${ESPEAKNG_BUILD_DIR}/src/espeak_ng_external-build/src/ucd-tools/ucd.lib)
+-else()
+-    set(ESPEAKNG_STATIC_LIB ${ESPEAKNG_INSTALL_DIR}/lib/libespeak-ng.a)
+-    set(UCD_STATIC_LIB ${ESPEAKNG_BUILD_DIR}/src/espeak_ng_external-build/src/ucd-tools/libucd.a)
+-endif()
+-
+-ExternalProject_Add(espeak_ng_external
+-    GIT_REPOSITORY https://github.com/espeak-ng/espeak-ng.git
+-    GIT_TAG 212928b394a96e8fd2096616bfd54e17845c48f6  # 2025-Mar-22
+-    PREFIX ${ESPEAKNG_BUILD_DIR}
+-    CMAKE_ARGS
+-        -DCMAKE_INSTALL_PREFIX=${ESPEAKNG_INSTALL_DIR}
+-        -DBUILD_SHARED_LIBS:BOOL=OFF
+-        -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
+-        -DUSE_ASYNC:BOOL=OFF
+-        -DUSE_MBROLA:BOOL=OFF
+-        -DUSE_LIBSONIC:BOOL=OFF
+-        -DUSE_LIBPCAUDIO:BOOL=OFF
+-        -DUSE_KLATT:BOOL=OFF
+-        -DUSE_SPEECHPLAYER:BOOL=OFF
+-        -DEXTRA_cmn:BOOL=ON
+-        -DEXTRA_ru:BOOL=ON
+-        # Need to explicitly add ucd include directory for CI
+-        "-DCMAKE_C_FLAGS=-D_FILE_OFFSET_BITS=64 -I${ESPEAKNG_BUILD_DIR}/src/espeak_ng_external/src/ucd-tools/src/include"
+-        "-DCMAKE_CXX_FLAGS=-D_FILE_OFFSET_BITS=64 -I${ESPEAKNG_BUILD_DIR}/src/espeak_ng_external/src/ucd-tools/src/include"
+-    BUILD_BYPRODUCTS
+-        ${ESPEAKNG_STATIC_LIB}
+-        ${UCD_STATIC_LIB}
+-    UPDATE_DISCONNECTED TRUE
+-)
++find_package(PkgConfig REQUIRED)
++pkg_check_modules(ESPEAKNG REQUIRED espeak-ng)
+ 
+ include_directories(
+-    ${ESPEAKNG_INSTALL_DIR}/include
++    ${ESPEAKNG_INCLUDE_DIRS}
+ )
+ 
+ # espeak bridge
+@@ -56,14 +24,13 @@ add_library(espeakbridge MODULE
+     src/piper/espeakbridge.c
+ )
+ 
+-add_dependencies(espeakbridge espeak_ng_external)
+ target_link_libraries(espeakbridge
+-    ${ESPEAKNG_STATIC_LIB}
+-    ${UCD_STATIC_LIB}
++    ${ESPEAKNG_LIBRARIES}
+     Python::SABIModule
+ )
++
+ target_include_directories(espeakbridge PRIVATE
+-    ${ESPEAKNG_INSTALL_DIR}/include
++    ${ESPEAKNG_INCLUDE_DIRS}
+ )
+ 
+ if(WIN32)
+@@ -85,13 +52,3 @@ install(TARGETS espeakbridge
+     LIBRARY DESTINATION .
+     RUNTIME DESTINATION .
+ )
+-
+-# Copy espeak-ng-data
+-set(DATA_SRC ${CMAKE_BINARY_DIR}/espeak_ng-install/share/espeak-ng-data)
+-set(DATA_DST ${CMAKE_CURRENT_SOURCE_DIR}/src/piper/espeak-ng-data)
+-
+-add_custom_target(copy_espeak_ng_data ALL
+-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${DATA_SRC} ${DATA_DST}
+-    DEPENDS espeak_ng_external
+-    COMMENT "Copying espeak-ng-data after espeak-ng external project builds"
+-)
+diff --git a/setup.py b/setup.py
+index 5d37a8e..4fc7852 100644
+--- a/setup.py
++++ b/setup.py
+@@ -7,10 +7,6 @@ from skbuild import setup
+ 
+ MODULE_DIR = Path(__file__).parent / "src" / "piper"
+ PIPER_DATA_FILES = ["py.typed", "espeakbridge.pyi"]
+-ESPEAK_NG_DATA_DIR = MODULE_DIR / "espeak-ng-data"
+-ESPEAK_NG_DATA_FILES = [
+-    f.relative_to(MODULE_DIR) for f in ESPEAK_NG_DATA_DIR.rglob("*") if f.is_file()
+-]
+ TASHKEEL_DATA_DIR = MODULE_DIR / "tashkeel"
+ TASHKEEL_DATA_FILES = [
+     (TASHKEEL_DATA_DIR / f_name).relative_to(MODULE_DIR)
+@@ -89,9 +85,7 @@ setup(
+     package_data={
+         "piper": [
+             str(p)
+-            for p in itertools.chain(
+-                PIPER_DATA_FILES, ESPEAK_NG_DATA_FILES, TASHKEEL_DATA_FILES
+-            )
++            for p in itertools.chain(PIPER_DATA_FILES, TASHKEEL_DATA_FILES)
+         ],
+     },
+     cmake_install_dir="src/piper",
+diff --git a/src/piper/espeakbridge.c b/src/piper/espeakbridge.c
+index 0da0254..effa8f5 100644
+--- a/src/piper/espeakbridge.c
++++ b/src/piper/espeakbridge.c
+@@ -16,80 +16,91 @@
+ #define CLAUSE_COMMA (20 | CLAUSE_INTONATION_COMMA | CLAUSE_TYPE_CLAUSE)
+ #define CLAUSE_QUESTION (40 | CLAUSE_INTONATION_QUESTION | CLAUSE_TYPE_SENTENCE)
+ #define CLAUSE_EXCLAMATION                                                     \
+-    (45 | CLAUSE_INTONATION_EXCLAMATION | CLAUSE_TYPE_SENTENCE)
++  (45 | CLAUSE_INTONATION_EXCLAMATION | CLAUSE_TYPE_SENTENCE)
+ #define CLAUSE_COLON (30 | CLAUSE_INTONATION_FULL_STOP | CLAUSE_TYPE_CLAUSE)
+ #define CLAUSE_SEMICOLON (30 | CLAUSE_INTONATION_COMMA | CLAUSE_TYPE_CLAUSE)
+ 
++// Shim for missing function in standard espeak-ng
++const char *espeak_TextToPhonemesWithTerminator(const void **textptr,
++                                                int textmode, int phonememode,
++                                                int *terminator) {
++  const char *phonemes = espeak_TextToPhonemes(textptr, textmode, phonememode);
++  if (terminator) {
++    *terminator = CLAUSE_PERIOD; // Default to full stop
++  }
++  return phonemes;
++}
++
+ static PyObject *py_initialize(PyObject *self, PyObject *args) {
+-    const char *data_dir;
+-    if (!PyArg_ParseTuple(args, "s", &data_dir)) {
+-        return NULL;
+-    }
++  const char *data_dir;
++  if (!PyArg_ParseTuple(args, "s", &data_dir)) {
++    return NULL;
++  }
+ 
+-    if (espeak_Initialize(AUDIO_OUTPUT_SYNCHRONOUS, 0, data_dir, 0) < 0) {
+-        PyErr_SetString(PyExc_RuntimeError, "Failed to initialize espeak-ng");
+-        return NULL;
+-    }
++  if (espeak_Initialize(AUDIO_OUTPUT_SYNCHRONOUS, 0, data_dir, 0) < 0) {
++    PyErr_SetString(PyExc_RuntimeError, "Failed to initialize espeak-ng");
++    return NULL;
++  }
+ 
+-    Py_RETURN_NONE;
++  Py_RETURN_NONE;
+ }
+ 
+ static PyObject *py_set_voice(PyObject *self, PyObject *args) {
+-    const char *voice;
+-    if (!PyArg_ParseTuple(args, "s", &voice)) {
+-        return NULL;
+-    }
++  const char *voice;
++  if (!PyArg_ParseTuple(args, "s", &voice)) {
++    return NULL;
++  }
+ 
+-    if (espeak_SetVoiceByName(voice) != EE_OK) {
+-        PyErr_Format(PyExc_RuntimeError, "Failed to set voice: %s", voice);
+-        return NULL;
+-    }
++  if (espeak_SetVoiceByName(voice) != EE_OK) {
++    PyErr_Format(PyExc_RuntimeError, "Failed to set voice: %s", voice);
++    return NULL;
++  }
+ 
+-    Py_RETURN_NONE;
++  Py_RETURN_NONE;
+ }
+ 
+ static PyObject *py_get_phonemes(PyObject *self, PyObject *args) {
+-    const char *text;
+-    if (!PyArg_ParseTuple(args, "s", &text)) {
+-        return NULL;
++  const char *text;
++  if (!PyArg_ParseTuple(args, "s", &text)) {
++    return NULL;
++  }
++
++  PyObject *phonemes_and_terminators = PyList_New(0);
++
++  while (text != NULL) {
++    int terminator = 0;
++    char *terminator_str = "";
++
++    const char *phonemes = espeak_TextToPhonemesWithTerminator(
++        (const void **)&text, espeakCHARS_AUTO, espeakPHONEMES_IPA,
++        &terminator);
++
++    // Categorize terminator
++    terminator &= 0x000FFFFF;
++
++    if (terminator == CLAUSE_PERIOD) {
++      terminator_str = ".";
++    } else if (terminator == CLAUSE_QUESTION) {
++      terminator_str = "?";
++    } else if (terminator == CLAUSE_EXCLAMATION) {
++      terminator_str = "!";
++    } else if (terminator == CLAUSE_COMMA) {
++      terminator_str = ",";
++    } else if (terminator == CLAUSE_COLON) {
++      terminator_str = ":";
++    } else if (terminator == CLAUSE_SEMICOLON) {
++      terminator_str = ";";
+     }
+ 
+-    PyObject *phonemes_and_terminators = PyList_New(0);
+-
+-    while (text != NULL) {
+-        int terminator = 0;
+-        char *terminator_str = "";
+-
+-        const char *phonemes = espeak_TextToPhonemesWithTerminator(
+-            (const void **)&text, espeakCHARS_AUTO, espeakPHONEMES_IPA,
+-            &terminator);
+-
+-        // Categorize terminator
+-        terminator &= 0x000FFFFF;
+-
+-        if (terminator == CLAUSE_PERIOD) {
+-            terminator_str = ".";
+-        } else if (terminator == CLAUSE_QUESTION) {
+-            terminator_str = "?";
+-        } else if (terminator == CLAUSE_EXCLAMATION) {
+-            terminator_str = "!";
+-        } else if (terminator == CLAUSE_COMMA) {
+-            terminator_str = ",";
+-        } else if (terminator == CLAUSE_COLON) {
+-            terminator_str = ":";
+-        } else if (terminator == CLAUSE_SEMICOLON) {
+-            terminator_str = ";";
+-        }
+-
+-        PyList_Append(phonemes_and_terminators,
+-                      Py_BuildValue("(ssO)", phonemes, terminator_str,
+-                                    (terminator & CLAUSE_TYPE_SENTENCE) ==
+-                                            CLAUSE_TYPE_SENTENCE
+-                                        ? Py_True
+-                                        : Py_False));
+-    }
++    PyList_Append(phonemes_and_terminators,
++                  Py_BuildValue("(ssO)", phonemes, terminator_str,
++                                (terminator & CLAUSE_TYPE_SENTENCE) ==
++                                        CLAUSE_TYPE_SENTENCE
++                                    ? Py_True
++                                    : Py_False));
++  }
+ 
+-    return phonemes_and_terminators;
++  return phonemes_and_terminators;
+ }
+ 
+ static PyMethodDef methods[] = {
+diff --git a/src/piper/phonemize_espeak.py b/src/piper/phonemize_espeak.py
+index 1eab943..41dea4f 100644
+--- a/src/piper/phonemize_espeak.py
++++ b/src/piper/phonemize_espeak.py
+@@ -5,8 +5,7 @@ import unicodedata
+ from pathlib import Path
+ from typing import Union
+ 
+-_DIR = Path(__file__).parent
+-ESPEAK_DATA_DIR = _DIR / "espeak-ng-data"
++ESPEAK_DATA_DIR = Path("/usr/share/espeak-ng-data")
+ 
+ 
+ class EspeakPhonemizer:

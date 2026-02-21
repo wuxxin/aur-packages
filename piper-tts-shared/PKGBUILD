@@ -1,0 +1,64 @@
+# Maintainer: wuxxin - wuxxin@gmail.com
+# Contributor: memchr
+
+pkgname="piper-tts"
+_pkgname="piper1-gpl"
+pkgver=1.4.1
+pkgrel=2
+pkgdesc="Fast and local neural text-to-speech engine (system espeak-ng build)"
+arch=('x86_64')
+url="https://github.com/OHF-Voice/piper1-gpl"
+license=('GPL-3.0-or-later')
+provides=('piper-tts')
+conflicts=('piper-tts' 'piper')
+arch=('x86_64' 'aarch64')
+
+depends=(
+    'python'
+    'python-onnxruntime'
+    'espeak-ng'
+    'python-pathvalidate' # AUR
+)
+makedepends=(
+    'cmake'
+    'git'
+    'ninja'
+    'pkgconf'
+    'python-build'
+    'python-installer'
+    'python-scikit-build'
+    'python-wheel'
+)
+optdepends=(
+    'python-flask: http serving'
+)
+
+source=(
+    "git+https://github.com/OHF-Voice/piper1-gpl.git#tag=v$pkgver"
+    "pr-160.patch"
+    "system-espeak-ng.patch"
+)
+sha256sums=('df1aa63504633df54e625c2a83997bba83d4c3d36504e431fb47964bc2aa4d0e'
+            'be315ca108e3a755eb6b5b23de7eeb00ff95ae235ef7ed87074a078ea046ff1c'
+            '84af5d0b3a4852c7a2c239c7e1e6524fc43bc7b588e2b1f07a7d9e05ebd8e654')
+
+prepare() {
+    cd "$_pkgname"
+    sed -i 's/"cmake", "ninja"//' pyproject.toml
+    patch -p1 <"$srcdir/pr-160.patch"
+    patch -p1 <"$srcdir/system-espeak-ng.patch"
+}
+
+build() {
+    export CMAKE_BUILD_PARALLEL_LEVEL=1
+    cd "$_pkgname"
+    python -m build --wheel --no-isolation
+}
+
+package() {
+    cd "$_pkgname"
+    python -m installer --destdir="$pkgdir" dist/*.whl
+    # avoid conflict with GTK application 'piper'
+    mv "$pkgdir"/usr/bin/piper "$pkgdir"/usr/bin/piper-tts
+    rm "$pkgdir"/usr/COPYING
+}
