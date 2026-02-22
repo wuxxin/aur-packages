@@ -1,0 +1,43 @@
+--- ggml/src/ggml-cpu/ops.cpp
++++ ggml/src/ggml-cpu/ops.cpp
+@@ -6148,4 +6148,37 @@
+     GGML_ASSERT(nb10 == sizeof(float));
++    GGML_ASSERT(nb00 == sizeof(float));
+ 
+-    // im2col: [N, IC, IH, IW] => [N, OH, OW, IC*KH*KW]
++    // im2col: [N, IC, IH, IW] => [N, OH, OW, IC*KH*KW]
+     {
+-        static bool warned = false;
+-        if (!warned) {
+-            warned = true;
+-            GGML_ABORT("fatal error");
+-        }
++        float * const wdata = (float *) dst->data;
++
++        for (int64_t in = 0; in < N; in++) {
++            for (int64_t ioh = 0; ioh < OH; ioh++) { // 1
++                for (int64_t iow = 0; iow < OW; iow++) {
++                    for (int64_t iic = ith; iic < IC; iic += nth) {
++
++                        // micro kernel
++                        float * dst_data = wdata + (in*OH*OW + ioh*OW + iow)*(IC*KH*KW); // [IC, KH, KW]
++                        const float * const src_data = (float *) ((char *) src1->data + in*ofs0 + iic*ofs1); // [IH, IW]
++
++                        for (int64_t ikh = 0; ikh < KH; ikh++) { // 1
++                            for (int64_t ikw = 0; ikw < KW; ikw++) {
++                                const int64_t iiw = iow*s0 + ikw*d0 - p0;
++                                const int64_t iih = ioh*s1 + ikh*d1 - p1;
++
++                                if (iih < 0 || iih >= IH || iiw < 0 || iiw >= IW) {
++                                    dst_data[iic*(KH*KW) + ikh*KW + ikw] = 0;
++                                } else {
++                                    dst_data[iic*(KH*KW) + ikh*KW + ikw] = src_data[iih*IW + iiw];
++                                }
++                            }
++                        }
++                    }
++                }
++            }
++        }
+     }
+ }

@@ -262,8 +262,8 @@ def incremental_prefill(args, full_text):
     """Incremental prefill with fail-fast support and granular reporting."""
     print(f"\n### Incremental Prefill & Warmup\n")
     print(f"**Step size:** {args.step} chars\n")
-    print(f"| Chars | Tokens | Delta (ms) | Char/s | Tok/s |")
-    print(f"| ---: | ---: | ---: | ---: | ---: |")
+    print(f"| Chars | Delta (ms) | Char/s |")
+    print(f"| ---: | ---: | ---: |")
 
     step_chars = args.step
     current_len = step_chars
@@ -315,7 +315,7 @@ def incremental_prefill(args, full_text):
         step_char_s = delta_chars / delta_time_s if delta_time_s > 0.0001 else 0
 
         print(
-            f"| {len(subset)} | {current_tokens} | {delta_time_s * 1000:.0f} | {step_char_s:.2f} | {step_tok_s:.2f} |"
+            f"| {len(subset)} | {delta_time_s * 1000:.0f} | {step_char_s:.2f} |"
         )
         
         # Fail-fast check

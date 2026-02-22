@@ -1,0 +1,843 @@
+--- tools/tts/tts.cpp	2026-02-16 19:22:23.014657910 +0100
++++ tools/tts/tts.cpp	2026-02-16 19:22:49.554706911 +0100
+@@ -2,9 +2,9 @@
+ 
+ #include "arg.h"
+ #include "common.h"
+-#include "sampling.h"
+-#include "log.h"
+ #include "llama.h"
++#include "log.h"
++#include "sampling.h"
+ 
+ #define JSON_ASSERT GGML_ASSERT
+ #include <nlohmann/json.hpp>
+@@ -24,6 +24,7 @@
+ enum outetts_version {
+     OUTETTS_V0_2,
+     OUTETTS_V0_3,
++  OUTETTS_V1_0,
+ };
+ 
+ //
+@@ -89,16 +90,19 @@
+     uint32_t data_size;
+ };
+ 
+-static bool save_wav16(const std::string & fname, const std::vector<float> & data, int sample_rate) {
++static bool save_wav16(const std::string &fname, const std::vector<float> &data,
++                       int sample_rate) {
+     std::ofstream file(fname, std::ios::binary);
+     if (!file) {
+-        LOG_ERR("%s: Failed to open file '%s' for writing.\n", __func__, fname.c_str());
++    LOG_ERR("%s: Failed to open file '%s' for writing.\n", __func__,
++            fname.c_str());
+         return false;
+     }
+ 
+     wav_header header;
+     header.sample_rate = sample_rate;
+-    header.byte_rate = header.sample_rate * header.num_channels * (header.bits_per_sample / 8);
++  header.byte_rate =
++      header.sample_rate * header.num_channels * (header.bits_per_sample / 8);
+     header.block_align = header.num_channels * (header.bits_per_sample / 8);
+     header.data_size = data.size() * (header.bits_per_sample / 8);
+     header.chunk_size = 36 + header.data_size;
+@@ -106,7 +110,8 @@
+     file.write(reinterpret_cast<const char*>(&header), sizeof(header));
+ 
+     for (const auto & sample : data) {
+-        int16_t pcm_sample = static_cast<int16_t>(std::clamp(sample * 32767.0, -32768.0, 32767.0));
++    int16_t pcm_sample =
++        static_cast<int16_t>(std::clamp(sample * 32767.0, -32768.0, 32767.0));
+         file.write(reinterpret_cast<const char*>(&pcm_sample), sizeof(pcm_sample));
+     }
+ 
+@@ -152,8 +157,10 @@
+ 
+             twiddle(&twiddle_real, &twiddle_imag, k * m, n);
+ 
+-            real_output[k] += real_input[m] * twiddle_real - imag_input[m] * twiddle_imag;
+-            imag_output[k] += real_input[m] * twiddle_imag + imag_input[m] * twiddle_real;
++      real_output[k] +=
++          real_input[m] * twiddle_real - imag_input[m] * twiddle_imag;
++      imag_output[k] +=
++          real_input[m] * twiddle_imag + imag_input[m] * twiddle_real;
+         }
+     }
+ 
+@@ -164,7 +171,8 @@
+ 
+ //
+ //  y = torch.nn.functional.fold(
+-//       data, output_size=(1, output_size), kernel_size=(1, self.win_length), stride=(1, self.hop_length),
++//       data, output_size=(1, output_size), kernel_size=(1, self.win_length),
++//       stride=(1, self.hop_length),
+ //  )[:, 0, 0, pad:-pad]
+ //
+ // data.shape =  torch.Size([1, 1280, 261])
+@@ -173,7 +181,8 @@
+ // hop_length =  320
+ // pad =  480
+ //
+-static void fold(const std::vector<float> & data, int64_t n_out, int64_t n_win, int64_t n_hop, int64_t n_pad, std::vector<float> & output) {
++static void fold(const std::vector<float> &data, int64_t n_out, int64_t n_win,
++                 int64_t n_hop, int64_t n_pad, std::vector<float> &output) {
+     int64_t output_height = n_out;
+     int64_t kernel_w = n_win;
+     int64_t stride_w = n_hop;
+@@ -198,11 +207,8 @@
+ }
+ 
+ // TODO: not optimized at all
+-static std::vector<float> embd_to_audio(
+-        const float * embd,
+-        const int n_codes,
+-        const int n_embd,
+-        const int n_thread) {
++static std::vector<float> embd_to_audio(const float *embd, const int n_codes,
++                                        const int n_embd, const int n_thread) {
+     const int n_fft = 1280;
+     const int n_hop = 320;
+     const int n_win = 1280;
+@@ -280,16 +286,15 @@
+ }
+ 
+ static const std::map<int, std::string> ones = {
+-    {0, "zero"}, {1, "one"}, {2, "two"}, {3, "three"}, {4, "four"},
+-    {5, "five"}, {6, "six"}, {7, "seven"}, {8, "eight"}, {9, "nine"},
+-    {10, "ten"}, {11, "eleven"}, {12, "twelve"}, {13, "thirteen"}, {14, "fourteen"},
+-    {15, "fifteen"}, {16, "sixteen"}, {17, "seventeen"}, {18, "eighteen"}, {19, "nineteen"}
+-};
++    {0, "zero"},     {1, "one"},        {2, "two"},       {3, "three"},
++    {4, "four"},     {5, "five"},       {6, "six"},       {7, "seven"},
++    {8, "eight"},    {9, "nine"},       {10, "ten"},      {11, "eleven"},
++    {12, "twelve"},  {13, "thirteen"},  {14, "fourteen"}, {15, "fifteen"},
++    {16, "sixteen"}, {17, "seventeen"}, {18, "eighteen"}, {19, "nineteen"}};
+ 
+ static const std::map<int, std::string> tens = {
+     {2, "twenty"}, {3, "thirty"}, {4, "forty"}, {5, "fifty"},
+-    {6, "sixty"}, {7, "seventy"}, {8, "eighty"}, {9, "ninety"}
+-};
++    {6, "sixty"},  {7, "seventy"}, {8, "eighty"}, {9, "ninety"}};
+ 
+ // Convert a number less than 1000 to words
+ static std::string convert_less_than_thousand(int num) {
+@@ -365,7 +370,8 @@
+ static std::string replace_numbers_with_words(const std::string & input_text) {
+     std::regex number_pattern(R"(\d+(\.\d+)?)");
+     std::string result;
+-    auto it = std::sregex_iterator(input_text.begin(), input_text.end(), number_pattern);
++  auto it = std::sregex_iterator(input_text.begin(), input_text.end(),
++                                 number_pattern);
+     auto end = std::sregex_iterator();
+ 
+     size_t last_pos = 0;
+@@ -380,8 +386,11 @@
+     return result;
+ }
+ 
+-// Based on: https://github.com/edwko/OuteTTS/blob/a613e79c489d8256dd657ea9168d78de75895d82/outetts/version/v1/prompt_processor.py#L39
+-static std::string process_text(const std::string & text, const outetts_version tts_version = OUTETTS_V0_2) {
++// Based on:
++// https://github.com/edwko/OuteTTS/blob/a613e79c489d8256dd657ea9168d78de75895d82/outetts/version/v1/prompt_processor.py#L39
++static std::string
++process_text(const std::string &text,
++             const outetts_version tts_version = OUTETTS_V0_2) {
+ 
+     // For now I skipped text romanization as I am unsure how to handle
+     // uroman and MeCab implementations in C++
+@@ -402,7 +411,8 @@
+     std::regex multiple_spaces(R"(\s+)");
+     processed_text = std::regex_replace(processed_text, multiple_spaces, " ");
+ 
+-    processed_text = std::regex_replace(processed_text, std::regex(R"(^\s+|\s+$)"), "");
++  processed_text =
++      std::regex_replace(processed_text, std::regex(R"(^\s+|\s+$)"), "");
+ 
+     /*
+         Replace spaces with the separator token same as in line 365
+@@ -411,8 +421,10 @@
+         if (c == ' ') {
+             prompt_clean += "<|text_sep|>";
+     */
+-    std::string separator = (tts_version == OUTETTS_V0_3) ? "<|space|>" : "<|text_sep|>";
+-    processed_text = std::regex_replace(processed_text, std::regex(R"(\s)"), separator);
++  std::string separator =
++      (tts_version == OUTETTS_V0_3) ? "<|space|>" : "<|text_sep|>";
++  processed_text =
++      std::regex_replace(processed_text, std::regex(R"(\s)"), separator);
+ 
+     return processed_text;
+ }
+@@ -425,7 +437,9 @@
+     prompt.insert(prompt.end(), tokens.begin(), tokens.end());
+ }
+ 
+-static void prompt_add(llama_tokens & prompt, const llama_vocab * vocab, const std::string & txt, bool add_special, bool parse_special) {
++static void prompt_add(llama_tokens &prompt, const llama_vocab *vocab,
++                       const std::string &txt, bool add_special,
++                       bool parse_special) {
+     auto tmp = common_tokenize(vocab, txt, add_special, parse_special);
+     prompt_add(prompt, tmp);
+ }
+@@ -436,8 +450,11 @@
+     prompt_add(prompt, vocab, "<|im_start|>\n", true, true);
+ }
+ 
+-static std::vector<llama_token> prepare_guide_tokens(const llama_vocab * vocab, const std::string & str, const outetts_version tts_version = OUTETTS_V0_2) {
+-    const std::string& delimiter = (tts_version == OUTETTS_V0_3 ? "<|space|>" : "<|text_sep|>");
++static std::vector<llama_token>
++prepare_guide_tokens(const llama_vocab *vocab, const std::string &str,
++                     const outetts_version tts_version = OUTETTS_V0_2) {
++  const std::string &delimiter =
++      (tts_version == OUTETTS_V0_3 ? "<|space|>" : "<|text_sep|>");
+ 
+     std::vector<llama_token> result;
+     size_t start = 0;
+@@ -466,7 +483,8 @@
+ static json speaker_from_file(const std::string & speaker_file) {
+     std::ifstream file(speaker_file);
+     if (!file) {
+-        LOG_ERR("%s: Failed to open file '%s' for reading\n", __func__, speaker_file.c_str());
++    LOG_ERR("%s: Failed to open file '%s' for reading\n", __func__,
++            speaker_file.c_str());
+         return json();
+     }
+ 
+@@ -474,33 +492,56 @@
+     return speaker;
+ }
+ 
+-static outetts_version get_tts_version(llama_model *model, json speaker = json::object()) {
++static outetts_version get_tts_version(llama_model *model,
++                                       json speaker = json::object()) {
+     if (speaker.contains("version")) {
+         std::string version = speaker["version"].get<std::string>();
+         if (version == "0.2") {
+             return OUTETTS_V0_2;
+         } else if (version == "0.3") {
+             return OUTETTS_V0_3;
++    } else if (version == "1.0" || version == "3") {
++      return OUTETTS_V1_0;
+         } else {
+-            LOG_ERR("%s: Unsupported speaker version '%s'\n", __func__, version.c_str());
++      LOG_ERR("%s: Unsupported speaker version '%s'\n", __func__,
++              version.c_str());
+         }
+     }
+ 
+     // Also could get version from model itself
+     const char *chat_template = llama_model_chat_template(model, nullptr);
+-    if (chat_template && std::string(chat_template) == "outetts-0.3") {
++  if (chat_template) {
++    std::string tmpl(chat_template);
++    if (tmpl.find("outetts-0.3") != std::string::npos) {
+         return OUTETTS_V0_3;
+     }
++    if (tmpl.find("outetts-1.0") != std::string::npos) {
++      return OUTETTS_V1_0;
++    }
++  }
+ 
+     // Use 0.2 as the default version
+     return OUTETTS_V0_2;
+ }
+ 
+-static std::string audio_text_from_speaker(json speaker, const outetts_version tts_version = OUTETTS_V0_2) {
++static std::string
++audio_text_from_speaker(json speaker, const std::string &user_prompt,
++                        const outetts_version tts_version = OUTETTS_V0_2) {
+     std::string audio_text = "<|text_start|>";
+ 
+-    if (tts_version == OUTETTS_V0_2 || tts_version == OUTETTS_V0_3) {
+-        std::string separator = (tts_version == OUTETTS_V0_3) ? "<|space|>" : "<|text_sep|>";
++  if (tts_version == OUTETTS_V1_0) {
++    std::string speaker_text = "";
++    if (speaker.contains("text")) {
++      speaker_text = speaker["text"].get<std::string>();
++    } else {
++      for (const auto &word : speaker["words"]) {
++        speaker_text += word["word"].get<std::string>() + " ";
++      }
++    }
++    audio_text += speaker_text + ". " + user_prompt + "<|text_end|>";
++  } else if (tts_version == OUTETTS_V0_2 || tts_version == OUTETTS_V0_3) {
++    std::string separator =
++        (tts_version == OUTETTS_V0_3) ? "<|space|>" : "<|text_sep|>";
+         for (const auto &word : speaker["words"]) {
+             audio_text += word["word"].get<std::string>() + separator;
+         }
+@@ -509,12 +550,58 @@
+     return audio_text;
+ }
+ 
+-static std::string audio_data_from_speaker(json speaker, const outetts_version tts_version = OUTETTS_V0_2) {
++static std::string
++audio_data_from_speaker(json speaker,
++                        const outetts_version tts_version = OUTETTS_V0_2) {
+     std::string audio_data = "<|audio_start|>\n";
+ 
+-    if (tts_version == OUTETTS_V0_2 || tts_version == OUTETTS_V0_3) {
+-        std::string code_start = (tts_version == OUTETTS_V0_3) ? "" : "<|code_start|>";
+-        std::string code_end = (tts_version == OUTETTS_V0_3) ? "<|space|>" : "<|code_end|>";
++  if (tts_version == OUTETTS_V1_0) {
++    if (speaker.contains("global_features")) {
++      auto gf = speaker["global_features"];
++      audio_data += "<|global_features_start|>";
++      audio_data +=
++          "<|energy_" + std::to_string(gf["energy"].get<int>()) + "|>";
++      audio_data += "<|spectral_centroid_" +
++                    std::to_string(gf["spectral_centroid"].get<int>()) + "|>";
++      audio_data += "<|pitch_" + std::to_string(gf["pitch"].get<int>()) + "|>";
++      audio_data += "<|global_features_end|>\n";
++    }
++
++    for (const auto &word : speaker["words"]) {
++      std::string word_text = word["word"].get<std::string>();
++      double duration = word["duration"].get<double>();
++
++      audio_data += "<|word_start|>" + word_text + "<|features|><|t_" +
++                    (std::ostringstream()
++                     << std::fixed << std::setprecision(2) << duration)
++                        .str() +
++                    "|>";
++
++      if (word.contains("features")) {
++        auto f = word["features"];
++        audio_data +=
++            "<|energy_" + std::to_string(f["energy"].get<int>()) + "|>";
++        audio_data += "<|spectral_centroid_" +
++                      std::to_string(f["spectral_centroid"].get<int>()) + "|>";
++        audio_data += "<|pitch_" + std::to_string(f["pitch"].get<int>()) + "|>";
++      }
++
++      audio_data += "<|code|>";
++
++      std::vector<int> c1 = word["c1"].get<std::vector<int>>();
++      std::vector<int> c2 = word["c2"].get<std::vector<int>>();
++
++      for (size_t i = 0; i < c1.size(); ++i) {
++        audio_data += "<|c1_" + std::to_string(c1[i]) + "|>";
++        audio_data += "<|c2_" + std::to_string(c2[i]) + "|>";
++      }
++      audio_data += "<|word_end|>\n";
++    }
++  } else if (tts_version == OUTETTS_V0_2 || tts_version == OUTETTS_V0_3) {
++    std::string code_start =
++        (tts_version == OUTETTS_V0_3) ? "" : "<|code_start|>";
++    std::string code_end =
++        (tts_version == OUTETTS_V0_3) ? "<|space|>" : "<|code_end|>";
+         for (const auto &word : speaker["words"]) {
+             std::string word_text = word["word"].get<std::string>();
+             double duration = word["duration"].get<double>();
+@@ -546,9 +633,12 @@
+     params.n_ctx     = 8192;
+ 
+-    params.sampling.top_k = 4;
+-    params.sampling.samplers = { COMMON_SAMPLER_TYPE_TOP_K, };
++    params.sampling.temp = 0.4f;
++    params.sampling.penalty_repeat = 1.1f;
++    params.sampling.penalty_last_n = 64;
++    params.sampling.top_k = 40;
++    params.sampling.top_p = 0.9f;
++    params.sampling.min_p = 0.05f;
++    params.sampling.samplers = {
++        COMMON_SAMPLER_TYPE_PENALTIES,
++        COMMON_SAMPLER_TYPE_TOP_K,
++        COMMON_SAMPLER_TYPE_TOP_P,
++        COMMON_SAMPLER_TYPE_MIN_P,
++        COMMON_SAMPLER_TYPE_TEMPERATURE,
++    };
+ 
+-    if (!common_params_parse(argc, argv, params, LLAMA_EXAMPLE_TTS, print_usage)) {
++  if (!common_params_parse(argc, argv, params, LLAMA_EXAMPLE_TTS,
++                           print_usage)) {
+         return 1;
+     }
+ 
+@@ -611,8 +701,17 @@
+     std::vector<llama_token> codes;
+     std::vector<llama_token> guide_tokens;
+ 
+-    // the default speaker profile is from: https://github.com/edwko/OuteTTS/blob/main/outetts/version/v1/default_speakers/en_male_1.json
+-    std::string audio_text = "<|text_start|>the<|text_sep|>overall<|text_sep|>package<|text_sep|>from<|text_sep|>just<|text_sep|>two<|text_sep|>people<|text_sep|>is<|text_sep|>pretty<|text_sep|>remarkable<|text_sep|>sure<|text_sep|>i<|text_sep|>have<|text_sep|>some<|text_sep|>critiques<|text_sep|>about<|text_sep|>some<|text_sep|>of<|text_sep|>the<|text_sep|>gameplay<|text_sep|>aspects<|text_sep|>but<|text_sep|>its<|text_sep|>still<|text_sep|>really<|text_sep|>enjoyable<|text_sep|>and<|text_sep|>it<|text_sep|>looks<|text_sep|>lovely<|text_sep|>";
++  // the default speaker profile is from:
++  // https://github.com/edwko/OuteTTS/blob/main/outetts/version/v1/default_speakers/en_male_1.json
++  std::string audio_text =
++      "<|text_start|>the<|text_sep|>overall<|text_sep|>package<|text_sep|>from<"
++      "|text_sep|>just<|text_sep|>two<|text_sep|>people<|text_sep|>is<|text_"
++      "sep|>pretty<|text_sep|>remarkable<|text_sep|>sure<|text_sep|>i<|text_"
++      "sep|>have<|text_sep|>some<|text_sep|>critiques<|text_sep|>about<|text_"
++      "sep|>some<|text_sep|>of<|text_sep|>the<|text_sep|>gameplay<|text_sep|>"
++      "aspects<|text_sep|>but<|text_sep|>its<|text_sep|>still<|text_sep|>"
++      "really<|text_sep|>enjoyable<|text_sep|>and<|text_sep|>it<|text_sep|>"
++      "looks<|text_sep|>lovely<|text_sep|>";
+     std::string audio_data = R"(<|audio_start|>
+ the<|t_0.08|><|code_start|><|257|><|740|><|636|><|913|><|788|><|1703|><|code_end|>
+ overall<|t_0.36|><|code_start|><|127|><|201|><|191|><|774|><|700|><|532|><|1056|><|557|><|798|><|298|><|1741|><|747|><|1662|><|1617|><|1702|><|1527|><|368|><|1588|><|1049|><|1008|><|1625|><|747|><|1576|><|728|><|1019|><|1696|><|1765|><|code_end|>
+@@ -648,9 +747,12 @@
+     // audio data for 0.3 version
+     outetts_version tts_version = get_tts_version(model_ttc);
+     if (tts_version == OUTETTS_V0_3) {
+-        audio_text = std::regex_replace(audio_text, std::regex(R"(<\|text_sep\|>)"), "<|space|>");
+-        audio_data = std::regex_replace(audio_data, std::regex(R"(<\|code_start\|>)"), "");
+-        audio_data = std::regex_replace(audio_data, std::regex(R"(<\|code_end\|>)"), "<|space|>");
++    audio_text = std::regex_replace(audio_text, std::regex(R"(<\|text_sep\|>)"),
++                                    "<|space|>");
++    audio_data =
++        std::regex_replace(audio_data, std::regex(R"(<\|code_start\|>)"), "");
++    audio_data = std::regex_replace(audio_data, std::regex(R"(<\|code_end\|>)"),
++                                    "<|space|>");
+     }
+ 
+     // load speaker if given
+@@ -658,10 +760,11 @@
+         LOG_INF("%s: loading speaker ..\n", __func__);
+         json speaker = speaker_from_file(params.vocoder.speaker_file);
+         if (speaker.empty()) {
+-            LOG_ERR("%s: Failed to load speaker file '%s'\n", __func__, params.vocoder.speaker_file.c_str());
++      LOG_ERR("%s: Failed to load speaker file '%s'\n", __func__,
++              params.vocoder.speaker_file.c_str());
+             return 1;
+         }
+-        audio_text = audio_text_from_speaker(speaker, tts_version);
++    audio_text = audio_text_from_speaker(speaker, params.prompt, tts_version);
+         audio_data = audio_data_from_speaker(speaker, tts_version);
+     }
+ 
+@@ -671,8 +774,14 @@
+ 
+         std::vector<llama_token> prompt_inp;
+ 
++    if (tts_version == OUTETTS_V1_0) {
++      prompt_init(prompt_inp, vocab);
++      prompt_add(prompt_inp, vocab, audio_text, false, true);
++      prompt_add(prompt_inp, vocab, "\n", false, true);
++      prompt_add(prompt_inp, vocab, audio_data, false, true);
++      prompt_add(prompt_inp, vocab, "\n<|word_start|>", false, true);
++    } else {
+         prompt_init(prompt_inp, vocab);
+-
+         prompt_add(prompt_inp, vocab, audio_text, false, true);
+ 
+         // convert the input text into the necessary format expected by OuteTTS
+@@ -688,6 +797,7 @@
+         }
+ 
+         prompt_add(prompt_inp, vocab, "<|text_end|>\n", false, true);
++    }
+ 
+         if (!params.vocoder.speaker_file.empty()) {
+             prompt_add(prompt_inp, vocab, audio_data, false, true);
+@@ -702,113 +812,117 @@
+             for (size_t i = 0; i < tmp.size(); ++i) {
+                 tokens_oss << tmp[i] << ", ";
+             }
+-            LOG_INF("\n\n%s: llama tokens: %s\n\n", __func__, tokens_oss.str().c_str());
++      LOG_INF("\n\n%s: llama tokens: %s\n\n", __func__,
++              tokens_oss.str().c_str());
+ 
+             prompt_add(prompt_inp, tmp);
+ #else
+-            prompt_add(prompt_inp, llama_tokens {
+-                151667, 198, 1782, 155780, 151669, 151929, 152412, 152308, 152585,
+-                152460, 153375, 151670, 198, 74455, 155808, 151669, 151799,
+-                151873, 151863, 152446, 152372, 152204, 152728, 152229, 152470,
+-                151970, 153413, 152419, 153334, 153289, 153374, 153199, 152040,
+-                153260, 152721, 152680, 153297, 152419, 153248, 152400, 152691,
+-                153368, 153437, 151670, 198, 1722, 155828, 151669, 152607,
+-                152256, 152991, 152299, 152688, 153163, 153016, 152789, 153198,
+-                152712, 151911, 153107, 152623, 152170, 152395, 152852, 152207,
+-                152461, 153321, 153309, 151750, 152137, 153340, 152573, 152267,
+-                153347, 151789, 152681, 153339, 151992, 152512, 151751, 152179,
+-                153434, 153180, 152900, 153440, 152474, 153122, 153129, 151904,
+-                152311, 151670, 198, 1499, 155791, 151669, 152276, 152454,
+-                153354, 152544, 153204, 153272, 152708, 153433, 152319, 153226,
+-                153043, 152325, 153267, 152622, 151670, 198, 4250, 155797,
+-                151669, 153454, 153342, 151989, 152458, 153420, 152303, 152271,
+-                152827, 153036, 153196, 151708, 153263, 152561, 153207, 152213,
+-                152112, 153204, 151722, 152542, 151670, 198, 19789, 155796,
+-                151669, 153353, 153182, 152345, 152471, 152477, 153014, 152002,
+-                152191, 151734, 152312, 152810, 152237, 153224, 153169, 153224,
+-                152244, 153387, 153404, 151670, 198, 16069, 155811, 151669,
+-                152265, 151946, 151808, 152412, 152363, 152305, 153156, 152733,
+-                152810, 153157, 152016, 152100, 152069, 153234, 152317, 152589,
+-                152707, 153121, 153341, 152159, 152114, 153156, 153001, 153504,
+-                153376, 152272, 152433, 152325, 151941, 151670, 198, 285,
+-                155788, 151669, 152238, 152255, 153427, 152318, 153009, 152381,
+-                152474, 152680, 152157, 153255, 152324, 151682, 151670, 198,
+-                32955, 155804, 151669, 153490, 153419, 152364, 152405, 152682,
+-                152206, 152078, 153369, 152725, 153193, 153027, 152946, 152488,
+-                153070, 151883, 152890, 152489, 153144, 153375, 152358, 151685,
+-                152494, 152117, 152740, 151670, 198, 37448, 480, 155840, 151669,
+-                151902, 152720, 153377, 152027, 152378, 152821, 153207, 153459,
+-                153028, 153068, 152507, 153255, 152158, 152921, 151958, 152609,
+-                152748, 152822, 152286, 151714, 152730, 152377, 152353, 152470,
+-                152606, 152162, 152186, 153071, 152244, 153118, 153375, 153018,
+-                152712, 153098, 152976, 152336, 151843, 153202, 152297, 151736,
+-                153380, 153502, 152702, 152115, 153181, 152735, 153277, 153457,
+-                152393, 153112, 152595, 151670, 198, 19098, 155808, 151669,
+-                152464, 153452, 152595, 153312, 151937, 151933, 153197, 152239,
+-                153163, 152922, 153402, 152034, 152591, 153438, 152215, 151673,
+-                152005, 151785, 152642, 151924, 153278, 151805, 151974, 153482,
+-                152718, 152862, 153347, 151670, 198, 72, 155780, 151669, 151795,
+-                152111, 152746, 152377, 153471, 152309, 151670, 198, 19016,
+-                155788, 151669, 153181, 152271, 152190, 152842, 152224, 152701,
+-                152939, 152536, 152091, 151815, 152733, 151672, 151670, 198,
+-                14689, 155788, 151669, 152291, 152072, 152942, 151734, 153042,
+-                153504, 152589, 153333, 151839, 151941, 153038, 153180, 151670,
+-                198, 36996, 8303, 155832, 151669, 152231, 152256, 152835,
+-                152801, 152985, 153400, 152393, 152818, 152765, 152249, 152600,
+-                151699, 152302, 152752, 153018, 153009, 151992, 153054, 152847,
+-                153354, 153228, 152662, 153355, 152532, 153393, 151782, 152458,
+-                152048, 152757, 152428, 153195, 151906, 153006, 153178, 153250,
+-                152331, 152284, 152780, 153138, 153319, 151980, 153142, 152418,
+-                152228, 152733, 151670, 198, 9096, 155801, 151669, 151698,
+-                153321, 152217, 153039, 152935, 153400, 152122, 152531, 153106,
+-                152169, 152892, 152957, 151851, 152427, 152826, 152451, 151851,
+-                152901, 152885, 152594, 153446, 153080, 151670, 198, 14689,
+-                155795, 151669, 152658, 151700, 153321, 152450, 152530, 153191,
+-                151673, 151690, 151698, 152714, 152846, 152981, 153171, 153384,
+-                153364, 153188, 153246, 151670, 198, 1055, 155779, 151669,
+-                151869, 152388, 152711, 153334, 151736, 151670, 198, 1782,
+-                155780, 151669, 153483, 153240, 152241, 152558, 152697, 153046,
+-                151670, 198, 5804, 1363, 155820, 151669, 152941, 152764, 152605,
+-                153034, 153434, 153372, 153347, 151887, 152453, 152758, 152133,
+-                152510, 152694, 152431, 152321, 153088, 152676, 152223, 152581,
+-                152459, 152015, 152502, 153063, 152712, 153294, 153451, 153032,
+-                152903, 152859, 152989, 151748, 152669, 152661, 152650, 152409,
+-                151861, 151670, 198, 300, 7973, 155828, 151669, 153095, 152469,
+-                152988, 152894, 151819, 152391, 153019, 152058, 153062, 153230,
+-                151826, 152112, 152306, 152264, 152769, 153390, 152384, 152435,
+-                152790, 153393, 152983, 152540, 152252, 152034, 153107, 152540,
+-                151919, 151893, 152558, 152817, 152946, 152956, 152129, 152715,
+-                153131, 153490, 151734, 152271, 152707, 151734, 153321, 152450,
+-                151670, 198, 8088, 155792, 151669, 152452, 153497, 153353,
+-                152679, 152533, 152382, 152374, 152611, 153341, 153163, 152285,
+-                153411, 152495, 153141, 152320, 151670, 198, 1199, 155781,
+-                151669, 151764, 152360, 153295, 152634, 153342, 152199, 152271,
+-                151670, 198, 43366, 155799, 151669, 152308, 151682, 152889,
+-                152016, 152385, 152629, 152495, 151826, 153321, 152958, 152180,
+-                151886, 153432, 152922, 152128, 153024, 153040, 152593, 152287,
+-                151677, 151670, 198, 53660, 155808, 151669, 151727, 152092,
+-                152680, 153331, 151699, 152316, 152938, 152289, 152433, 153384,
+-                151781, 153137, 153259, 152175, 153213, 152291, 151869, 152691,
+-                152489, 151941, 152049, 152034, 153053, 152179, 153160, 151676,
+-                153367, 151670, 198, 268, 4123, 480, 155821, 151669, 152350,
+-                152173, 152536, 151991, 151960, 153144, 153013, 152358, 152234,
+-                153135, 152291, 153235, 152143, 152583, 152402, 153483, 152678,
+-                152192, 152533, 152946, 151797, 153103, 152310, 152293, 151825,
+-                152548, 153442, 152109, 152659, 153325, 152781, 152570, 152957,
+-                151752, 152265, 153381, 152515, 151670, 198, 437, 155787,
+-                151669, 152957, 152659, 151975, 152709, 152402, 152836, 152174,
+-                151792, 153409, 153327, 152990, 151670, 198, 275, 155781,
+-                151669, 152520, 153038, 152067, 153273, 153185, 152265, 152974,
+-                151670, 198, 94273, 155799, 151669, 152953, 152938, 153427,
+-                152244, 151920, 153423, 152929, 152367, 153052, 152129, 152331,
+-                152257, 152987, 152777, 153448, 152408, 151696, 152408, 152326,
+-                152699, 151670, 198, 385, 16239, 155828, 151669, 152306, 152268,
+-                153438, 153228, 152978, 152957, 153153, 153393, 152795, 152110,
+-                152918, 152923, 152467, 152331, 153053, 153330, 151889, 153444,
+-                152234, 152624, 151779, 152801, 152784, 152139, 152222, 152751,
+-                152512, 153287, 153141, 153052, 151840, 152589, 152508, 153499,
+-                152109, 152255, 151739, 152267, 152759, 153318, 153165, 153349,
+-                151670,});
++      prompt_add(
++          prompt_inp,
++          llama_tokens{
++              151667, 198,    1782,   155780, 151669, 151929, 152412, 152308,
++              152585, 152460, 153375, 151670, 198,    74455,  155808, 151669,
++              151799, 151873, 151863, 152446, 152372, 152204, 152728, 152229,
++              152470, 151970, 153413, 152419, 153334, 153289, 153374, 153199,
++              152040, 153260, 152721, 152680, 153297, 152419, 153248, 152400,
++              152691, 153368, 153437, 151670, 198,    1722,   155828, 151669,
++              152607, 152256, 152991, 152299, 152688, 153163, 153016, 152789,
++              153198, 152712, 151911, 153107, 152623, 152170, 152395, 152852,
++              152207, 152461, 153321, 153309, 151750, 152137, 153340, 152573,
++              152267, 153347, 151789, 152681, 153339, 151992, 152512, 151751,
++              152179, 153434, 153180, 152900, 153440, 152474, 153122, 153129,
++              151904, 152311, 151670, 198,    1499,   155791, 151669, 152276,
++              152454, 153354, 152544, 153204, 153272, 152708, 153433, 152319,
++              153226, 153043, 152325, 153267, 152622, 151670, 198,    4250,
++              155797, 151669, 153454, 153342, 151989, 152458, 153420, 152303,
++              152271, 152827, 153036, 153196, 151708, 153263, 152561, 153207,
++              152213, 152112, 153204, 151722, 152542, 151670, 198,    19789,
++              155796, 151669, 153353, 153182, 152345, 152471, 152477, 153014,
++              152002, 152191, 151734, 152312, 152810, 152237, 153224, 153169,
++              153224, 152244, 153387, 153404, 151670, 198,    16069,  155811,
++              151669, 152265, 151946, 151808, 152412, 152363, 152305, 153156,
++              152733, 152810, 153157, 152016, 152100, 152069, 153234, 152317,
++              152589, 152707, 153121, 153341, 152159, 152114, 153156, 153001,
++              153504, 153376, 152272, 152433, 152325, 151941, 151670, 198,
++              285,    155788, 151669, 152238, 152255, 153427, 152318, 153009,
++              152381, 152474, 152680, 152157, 153255, 152324, 151682, 151670,
++              198,    32955,  155804, 151669, 153490, 153419, 152364, 152405,
++              152682, 152206, 152078, 153369, 152725, 153193, 153027, 152946,
++              152488, 153070, 151883, 152890, 152489, 153144, 153375, 152358,
++              151685, 152494, 152117, 152740, 151670, 198,    37448,  480,
++              155840, 151669, 151902, 152720, 153377, 152027, 152378, 152821,
++              153207, 153459, 153028, 153068, 152507, 153255, 152158, 152921,
++              151958, 152609, 152748, 152822, 152286, 151714, 152730, 152377,
++              152353, 152470, 152606, 152162, 152186, 153071, 152244, 153118,
++              153375, 153018, 152712, 153098, 152976, 152336, 151843, 153202,
++              152297, 151736, 153380, 153502, 152702, 152115, 153181, 152735,
++              153277, 153457, 152393, 153112, 152595, 151670, 198,    19098,
++              155808, 151669, 152464, 153452, 152595, 153312, 151937, 151933,
++              153197, 152239, 153163, 152922, 153402, 152034, 152591, 153438,
++              152215, 151673, 152005, 151785, 152642, 151924, 153278, 151805,
++              151974, 153482, 152718, 152862, 153347, 151670, 198,    72,
++              155780, 151669, 151795, 152111, 152746, 152377, 153471, 152309,
++              151670, 198,    19016,  155788, 151669, 153181, 152271, 152190,
++              152842, 152224, 152701, 152939, 152536, 152091, 151815, 152733,
++              151672, 151670, 198,    14689,  155788, 151669, 152291, 152072,
++              152942, 151734, 153042, 153504, 152589, 153333, 151839, 151941,
++              153038, 153180, 151670, 198,    36996,  8303,   155832, 151669,
++              152231, 152256, 152835, 152801, 152985, 153400, 152393, 152818,
++              152765, 152249, 152600, 151699, 152302, 152752, 153018, 153009,
++              151992, 153054, 152847, 153354, 153228, 152662, 153355, 152532,
++              153393, 151782, 152458, 152048, 152757, 152428, 153195, 151906,
++              153006, 153178, 153250, 152331, 152284, 152780, 153138, 153319,
++              151980, 153142, 152418, 152228, 152733, 151670, 198,    9096,
++              155801, 151669, 151698, 153321, 152217, 153039, 152935, 153400,
++              152122, 152531, 153106, 152169, 152892, 152957, 151851, 152427,
++              152826, 152451, 151851, 152901, 152885, 152594, 153446, 153080,
++              151670, 198,    14689,  155795, 151669, 152658, 151700, 153321,
++              152450, 152530, 153191, 151673, 151690, 151698, 152714, 152846,
++              152981, 153171, 153384, 153364, 153188, 153246, 151670, 198,
++              1055,   155779, 151669, 151869, 152388, 152711, 153334, 151736,
++              151670, 198,    1782,   155780, 151669, 153483, 153240, 152241,
++              152558, 152697, 153046, 151670, 198,    5804,   1363,   155820,
++              151669, 152941, 152764, 152605, 153034, 153434, 153372, 153347,
++              151887, 152453, 152758, 152133, 152510, 152694, 152431, 152321,
++              153088, 152676, 152223, 152581, 152459, 152015, 152502, 153063,
++              152712, 153294, 153451, 153032, 152903, 152859, 152989, 151748,
++              152669, 152661, 152650, 152409, 151861, 151670, 198,    300,
++              7973,   155828, 151669, 153095, 152469, 152988, 152894, 151819,
++              152391, 153019, 152058, 153062, 153230, 151826, 152112, 152306,
++              152264, 152769, 153390, 152384, 152435, 152790, 153393, 152983,
++              152540, 152252, 152034, 153107, 152540, 151919, 151893, 152558,
++              152817, 152946, 152956, 152129, 152715, 153131, 153490, 151734,
++              152271, 152707, 151734, 153321, 152450, 151670, 198,    8088,
++              155792, 151669, 152452, 153497, 153353, 152679, 152533, 152382,
++              152374, 152611, 153341, 153163, 152285, 153411, 152495, 153141,
++              152320, 151670, 198,    1199,   155781, 151669, 151764, 152360,
++              153295, 152634, 153342, 152199, 152271, 151670, 198,    43366,
++              155799, 151669, 152308, 151682, 152889, 152016, 152385, 152629,
++              152495, 151826, 153321, 152958, 152180, 151886, 153432, 152922,
++              152128, 153024, 153040, 152593, 152287, 151677, 151670, 198,
++              53660,  155808, 151669, 151727, 152092, 152680, 153331, 151699,
++              152316, 152938, 152289, 152433, 153384, 151781, 153137, 153259,
++              152175, 153213, 152291, 151869, 152691, 152489, 151941, 152049,
++              152034, 153053, 152179, 153160, 151676, 153367, 151670, 198,
++              268,    4123,   480,    155821, 151669, 152350, 152173, 152536,
++              151991, 151960, 153144, 153013, 152358, 152234, 153135, 152291,
++              153235, 152143, 152583, 152402, 153483, 152678, 152192, 152533,
++              152946, 151797, 153103, 152310, 152293, 151825, 152548, 153442,
++              152109, 152659, 153325, 152781, 152570, 152957, 151752, 152265,
++              153381, 152515, 151670, 198,    437,    155787, 151669, 152957,
++              152659, 151975, 152709, 152402, 152836, 152174, 151792, 153409,
++              153327, 152990, 151670, 198,    275,    155781, 151669, 152520,
++              153038, 152067, 153273, 153185, 152265, 152974, 151670, 198,
++              94273,  155799, 151669, 152953, 152938, 153427, 152244, 151920,
++              153423, 152929, 152367, 153052, 152129, 152331, 152257, 152987,
++              152777, 153448, 152408, 151696, 152408, 152326, 152699, 151670,
++              198,    385,    16239,  155828, 151669, 152306, 152268, 153438,
++              153228, 152978, 152957, 153153, 153393, 152795, 152110, 152918,
++              152923, 152467, 152331, 153053, 153330, 151889, 153444, 152234,
++              152624, 151779, 152801, 152784, 152139, 152222, 152751, 152512,
++              153287, 153141, 153052, 151840, 152589, 152508, 153499, 152109,
++              152255, 151739, 152267, 152759, 153318, 153165, 153349, 151670,
++          });
+ #endif
+         }
+ 
+@@ -826,7 +940,8 @@
+ 
+         // create a llama_batch
+         // we use this object to submit token data for decoding
+-        llama_batch batch = llama_batch_init(std::max(prompt_inp.size(), (size_t) n_parallel), 0, n_parallel);
++    llama_batch batch = llama_batch_init(
++        std::max(prompt_inp.size(), (size_t)n_parallel), 0, n_parallel);
+ 
+         std::vector<llama_seq_id> seq_ids(n_parallel, 0);
+         for (int32_t i = 0; i < n_parallel; ++i) {
+@@ -853,7 +968,8 @@
+ 
+         llama_synchronize(ctx_ttc);
+ 
+-        LOG_INF("%s: time for prompt: %.3f ms\n\n", __func__, (ggml_time_us() - t_main_start) / 1000.0f);
++    LOG_INF("%s: time for prompt: %.3f ms\n\n", __func__,
++            (ggml_time_us() - t_main_start) / 1000.0f);
+ 
+         const auto t_dec_start = ggml_time_us();
+ 
+@@ -879,10 +995,14 @@
+                     continue;
+                 }
+ 
+-                llama_token new_token_id = common_sampler_sample(smpl[i], ctx_ttc, i_batch[i]);
++        llama_token new_token_id =
++            common_sampler_sample(smpl[i], ctx_ttc, i_batch[i]);
+ 
+-                //guide tokens help prevent hallucinations by forcing the TTS to use the correct word
+-                if (!guide_tokens.empty() && next_token_uses_guide_token && !llama_vocab_is_control(vocab, new_token_id) && !llama_vocab_is_eog(vocab, new_token_id)) {
++        // guide tokens help prevent hallucinations by forcing the TTS to use
++        // the correct word
++        if (!guide_tokens.empty() && next_token_uses_guide_token &&
++            !llama_vocab_is_control(vocab, new_token_id) &&
++            !llama_vocab_is_eog(vocab, new_token_id)) {
+                     llama_token guide_token = guide_tokens[0];
+                     guide_tokens.erase(guide_tokens.begin());
+                     new_token_id = guide_token; //ensure correct word fragment is used
+@@ -911,7 +1031,8 @@
+                     LOG("\n");
+                     if (n_parallel > 1) {
+                         LOG_CNT("\n");
+-                        LOG_INF("%s: stream %d finished at n_past = %d, reason = '%s'\n", __func__, i, n_past, reason.c_str());
++            LOG_INF("%s: stream %d finished at n_past = %d, reason = '%s'\n",
++                    __func__, i, n_past, reason.c_str());
+                     }
+ 
+                     continue;
+@@ -920,7 +1041,9 @@
+                 {
+                     const float p = cands->data[cands->selected].p;
+ 
+-                    const int col = std::max(0, std::min((int) k_colors.size() - 1, (int) ((3*p)*float(k_colors.size()))));
++          const int col =
++              std::max(0, std::min((int)k_colors.size() - 1,
++                                   (int)((3 * p) * float(k_colors.size()))));
+ 
+                     LOG_CNT("%s%d%s", k_colors[col].c_str(), i, "\033[0m");
+                     //LOG_CNT("%d", i);
+@@ -950,7 +1073,8 @@
+         llama_batch_free(batch);
+ 
+         LOG("\n");
+-        LOG_INF("%s: time for decoder:       %.3f ms\n", __func__, (ggml_time_us() - t_dec_start) / 1000.0f);
++    LOG_INF("%s: time for decoder:       %.3f ms\n", __func__,
++            (ggml_time_us() - t_dec_start) / 1000.0f);
+     }
+ 
+     common_perf_print(ctx_ttc, smpl[0]);
+@@ -971,25 +1095,26 @@
+     //    198, 285, 155784, 151669, 152226, 152126, 152638, 153215, 151729,
+     //    152959, 153479, 153059, 151838, 151670, 198, 1782, 155783, 151669,
+     //    153288, 153055, 153314, 152497, 152962, 152741, 152076, 153253, 151670,
+-    //    198, 471, 16488, 155825, 151669, 152060, 152916, 151893, 153469, 152501,
+-    //    152080, 152743, 151932, 153161, 152096, 152761, 152698, 153401, 153242,
+-    //    153336, 152441, 152838, 153467, 152706, 153496, 153310, 152422, 153360,
+-    //    153115, 152763, 151998, 152373, 153450, 152554, 151968, 153323, 152055,
+-    //    152468, 153111, 153358, 152813, 152010, 151770, 152823, 152960, 151670,
+-    //    198, 22627, 155823, 151669, 152814, 152366, 153484, 152931, 153441,
+-    //    152164, 152877, 152915, 153463, 151692, 152911, 152747, 152776, 151831,
+-    //    153449, 151882, 152975, 152031, 152513, 153150, 152448, 152667, 153133,
+-    //    153189, 152619, 153466, 152054, 152106, 153119, 152277, 152439, 153109,
+-    //    152997, 152141, 153154, 153256, 153311, 151922, 151670, 198, 1055,
+-    //    155781, 151669, 152633, 151850, 153060, 153270, 152560, 153348, 152729,
+-    //    151670, 198, 25312, 155803, 151669, 152521, 153403, 152561, 153337,
+-    //    153383, 152199, 153493, 153326, 151830, 152254, 152248, 152349, 152153,
+-    //    153007, 151823, 153037, 152575, 152457, 152406, 152592, 153116, 153365,
+-    //    153456, 151670, 198, 88225, 155817, 151669, 153271, 151925, 152218,
+-    //    152418, 152253, 153140, 151903, 153151, 152626, 152338, 152647, 153464,
+-    //    152785, 152768, 151711, 152037, 152033, 151804, 152216, 151701, 151855,
+-    //    152348, 152995, 152955, 152905, 152342, 152340, 153391, 153453, 152418,
+-    //    153415, 151990, 153083, 152884, 151670, 198, 151668, 198, 151645};
++  //     198, 471, 16488, 155825, 151669, 152060, 152916, 151893, 153469,
++  //     152501, 152080, 152743, 151932, 153161, 152096, 152761, 152698, 153401,
++  //     153242, 153336, 152441, 152838, 153467, 152706, 153496, 153310, 152422,
++  //     153360, 153115, 152763, 151998, 152373, 153450, 152554, 151968, 153323,
++  //     152055, 152468, 153111, 153358, 152813, 152010, 151770, 152823, 152960,
++  //     151670, 198, 22627, 155823, 151669, 152814, 152366, 153484, 152931,
++  //     153441, 152164, 152877, 152915, 153463, 151692, 152911, 152747, 152776,
++  //     151831, 153449, 151882, 152975, 152031, 152513, 153150, 152448, 152667,
++  //     153133, 153189, 152619, 153466, 152054, 152106, 153119, 152277, 152439,
++  //     153109, 152997, 152141, 153154, 153256, 153311, 151922, 151670, 198,
++  //     1055, 155781, 151669, 152633, 151850, 153060, 153270, 152560, 153348,
++  //     152729, 151670, 198, 25312, 155803, 151669, 152521, 153403, 152561,
++  //     153337, 153383, 152199, 153493, 153326, 151830, 152254, 152248, 152349,
++  //     152153, 153007, 151823, 153037, 152575, 152457, 152406, 152592, 153116,
++  //     153365, 153456, 151670, 198, 88225, 155817, 151669, 153271, 151925,
++  //     152218, 152418, 152253, 153140, 151903, 153151, 152626, 152338, 152647,
++  //     153464, 152785, 152768, 151711, 152037, 152033, 151804, 152216, 151701,
++  //     151855, 152348, 152995, 152955, 152905, 152342, 152340, 153391, 153453,
++  //     152418, 153415, 151990, 153083, 152884, 151670, 198, 151668, 198,
++  //     151645};
+ 
+     {
+         const std::string inp_txt = common_detokenize(ctx_ttc, codes, true);
+@@ -999,8 +1124,24 @@
+         LOG_INF("%s: codes size: %d\n", __func__, (int) codes.size());
+     }
+ 
+-    // remove all non-audio tokens (i.e. < 151672 || > 155772)
+-    codes.erase(std::remove_if(codes.begin(), codes.end(), [](llama_token t) { return t < 151672 || t > 155772; }), codes.end());
++  // remove all non-audio tokens
++  if (tts_version == OUTETTS_V1_0) {
++    codes.erase(
++        std::remove_if(codes.begin(), codes.end(),
++                       [&](llama_token t) {
++                         std::string piece = common_token_to_piece(ctx_ttc, t);
++                         return piece.find("<|") != std::string::npos &&
++                                piece.find("audio") == std::string::npos &&
++                                piece.find("t_") == std::string::npos;
++                       }),
++        codes.end());
++  } else {
++    // legacy range filter (i.e. < 151672 || > 155772)
++    codes.erase(
++        std::remove_if(codes.begin(), codes.end(),
++                       [](llama_token t) { return t < 151672 || t > 155772; }),
++        codes.end());
++  }
+ 
+     {
+         const std::string inp_txt = common_detokenize(ctx_ttc, codes, true);
+@@ -1030,7 +1171,8 @@
+ 
+     llama_synchronize(ctx_cts);
+ 
+-    LOG_INF("%s: time for vocoder:      %.3f ms\n", __func__, (ggml_time_us() - t_voc_start) / 1000.0f);
++  LOG_INF("%s: time for vocoder:      %.3f ms\n", __func__,
++          (ggml_time_us() - t_voc_start) / 1000.0f);
+ 
+     const auto t_spec_start = ggml_time_us();
+ 
+@@ -1060,12 +1202,14 @@
+         fin.read(reinterpret_cast<char *>(&n_embd), sizeof(int));
+ 
+         embd.resize(n_codes * n_embd);
+-        fin.read(reinterpret_cast<char *>(embd.data()), n_codes * n_embd * sizeof(float));
++    fin.read(reinterpret_cast<char *>(embd.data()),
++             n_codes * n_embd * sizeof(float));
+         fin.close();
+ 
+         LOG_INF("%s: n_codes: %d, n_embd: %d\n", __func__, n_codes, n_embd);
+ 
+-        audio = embd_to_audio(embd.data(), n_codes, n_embd, params.cpuparams.n_threads);
++    audio =
++        embd_to_audio(embd.data(), n_codes, n_embd, params.cpuparams.n_threads);
+     }
+ #endif
+ 
+@@ -1076,13 +1220,16 @@
+         audio[i] = 0.0f;
+     }
+ 
+-    LOG_INF("%s: time for spectral ops: %.3f ms\n", __func__, (ggml_time_us() - t_spec_start) / 1000.0f);
+-    LOG_INF("%s: total time:            %.3f ms\n", __func__, (ggml_time_us() - t_main_start) / 1000.0f);
++  LOG_INF("%s: time for spectral ops: %.3f ms\n", __func__,
++          (ggml_time_us() - t_spec_start) / 1000.0f);
++  LOG_INF("%s: total time:            %.3f ms\n", __func__,
++          (ggml_time_us() - t_main_start) / 1000.0f);
+ 
+     int retval = 0;
+ 
+     if (save_wav16(params.out_file, audio, n_sr)) {
+-        LOG_INF("%s: audio written to file '%s'\n", __func__, params.out_file.c_str());
++    LOG_INF("%s: audio written to file '%s'\n", __func__,
++            params.out_file.c_str());
+     } else {
+         retval = ENOENT;
+     }

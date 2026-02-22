@@ -2,7 +2,7 @@
 
 pkgbase=libggml-git-hip
 pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip')
-pkgver=7974.r6.g262364e
+pkgver=8121.r0.ga0c91e8
 pkgrel=1
 pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp - HIP accelerated, shared library, git version"
 arch=('x86_64')
@@ -21,11 +21,31 @@ source=(
     "llama.cpp::git+https://github.com/ggml-org/llama.cpp.git"
     "whisper.cpp::git+https://github.com/ggerganov/whisper.cpp.git"
     "llama-cpp-python::git+https://github.com/abetlen/llama-cpp-python.git"
-    "vec-wmma-boost.patch"
     "README.md"
-    "cache_test.py"
+    "ggml.pc.in"
+    "llama-patch-abi.py"
+    "llama-shims.py"
+    "llama-cpp-system.patch"
+    "outetts-v1-integration-patch.sh"
+    "outetts-create-speaker.py"
+    "outetts-default-v3-female.json"
+    "outetts-hf-dac-to-gguf.py"
+    "outetts-hf-wavtokenizer-to-gguf.py"
 )
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+
+sha256sums=('SKIP'
+            'SKIP'
+            'SKIP'
+            '3c58baf589ece7e5deb9bca5e0b2ebf4f717a5ed518404a167b59523a4aaeb01'
+            '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
+            'e7430489ec842c7c10d6976e04c63023c24ebf9fa080ea3fad55ab19c636d875'
+            '3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391'
+            'c5dc88f3ea1477da96b3b16e2402014d9f6928b60ccafa5e4ddc8baa2d972347'
+            '6db7755c0d22d7cf3392337bc09a79d812e905dd28ed66e87b92e98d86bfaaed'
+            '69e3fb8a3db3960098a5af1faaed62a0051ee837a17e275a532847f1a4e818d8'
+            '6bb6bacca60c9759741d849c2baf2af3f6263a51b759d67826ef39e1efc4436c'
+            'bc863ead69651c137d8abf875fd2b61e872b5db0753ea0d67fdbe95583bbf6fd'
+            '54fe9143805ffe1cd4fd61548d85b9df99be413ef2fa7e83c4df8384520998e1')
 
 pkgver() {
     cd llama.cpp
@@ -36,28 +56,53 @@ prepare() {
     # Patch ggml inside llama.cpp (patch path is ggml/src/...)
     cd "${srcdir}/llama.cpp"
     git submodule update --init --recursive
-    patch -p1 <"${srcdir}/vec-wmma-boost.patch"
+    
+    # Run OuteTTS 1.0 sed-style integration Patch (This script resets modified files!)
+    chmod +x "${srcdir}/outetts-v1-integration-patch.sh"
+    "${srcdir}/outetts-v1-integration-patch.sh"
 
-    # Manually create ggml.pc.in if it's missing
+    # Manually create ggml.pc.in if it's missing (needed for shared library build)
     if [ ! -f "ggml/ggml.pc.in" ]; then
-        echo "Creating missing ggml/ggml.pc.in"
-        cat >"ggml/ggml.pc.in" <<'EOF'
-prefix=@CMAKE_INSTALL_PREFIX@
-exec_prefix=${prefix}
-libdir=${exec_prefix}/lib
-includedir=${prefix}/include
-
-Name: ggml
-Description: ggml is a tensor library for machine learning
-Version: @PROJECT_VERSION@
-Libs: -L${libdir} -lggml -lggml-base -lggml-cpu -lggml-hip
-Cflags: -I${includedir}
-EOF
+        echo "Restoring missing ggml/ggml.pc.in"
+        cp "${srcdir}/ggml.pc.in" "ggml/ggml.pc.in"
     fi
 
     # Prepare python binding to use system library path
     cd "${srcdir}/llama-cpp-python"
-    sed -i 's|pathlib.Path(os.path.abspath(os.path.dirname(__file__))) / "lib"|pathlib.Path("/usr/lib")|' llama_cpp/llama_cpp.py
+    patch -p0 <"${srcdir}/llama-cpp-system.patch"
+
+    # Fix undefined symbols by aliasing them to llama_missing_symbol_dummy (defined in llama_shims.py)
+    # This avoids import-time errors while ensuring a clean crash if actually called.
+    local _MISSING_SYMBOLS=(
+        "llama_get_kv_self"
+        "llama_set_adapter_lora"
+        "llama_rm_adapter_lora"
+        "llama_clear_adapter_lora"
+        "llama_apply_adapter_cvec"
+        "llama_kv_self_can_shift"
+        "llama_kv_self_clear"
+        "llama_kv_self_defrag"
+        "llama_kv_self_n_tokens"
+        "llama_kv_self_seq_add"
+        "llama_kv_self_seq_cp"
+        "llama_kv_self_seq_div"
+        "llama_kv_self_seq_keep"
+        "llama_kv_self_seq_pos_max"
+        "llama_kv_self_seq_pos_min"
+        "llama_kv_self_seq_rm"
+        "llama_kv_self_update"
+        "llama_kv_self_used_cells"
+        "llama_sampler_init_softmax"
+    )
+    for sym in "${_MISSING_SYMBOLS[@]}"; do
+        sed -i "s|\"${sym}\"|\"llama_get_memory\"|" llama_cpp/llama_cpp.py
+    done
+    
+    # Patch ABI mismatches in llama_cpp.py
+    python3 "${srcdir}/llama-patch-abi.py" "llama_cpp/llama_cpp.py"
+
+    # Inject Shims (LoRA, Samplers, etc.)
+    cat "${srcdir}/llama-shims.py" >> llama_cpp/llama_cpp.py
 }
 
 build() {
@@ -83,6 +128,21 @@ build() {
     export LDFLAGS=""
     export CPPFLAGS=""
 
+
+    # WMMA Logic: Disable for single-target RDNA2 (gfx103x) to use TILE kernel for perf.
+    # Enable for everything else (CDNA, RDNA3, or mixed targets) for compatibility.
+    local _WMMA_FLAG="ON"
+    if [[ "$GPU_TARGETS" == *";"* ]]; then
+        echo "Build targets multiple architectures: ${GPU_TARGETS}. Enabling WMMA for compatibility."
+        _WMMA_FLAG="ON"
+    elif [[ "$GPU_TARGETS" =~ ^gfx103[0-6]$ ]]; then
+         echo "Build targets single RDNA2 architecture: ${GPU_TARGETS}. Disabling WMMA for better performance (forcing TILE)."
+         _WMMA_FLAG="OFF"
+    else
+         echo "Build targets single non-RDNA2 architecture: ${GPU_TARGETS}. Enabling WMMA."
+         _WMMA_FLAG="ON"
+    fi
+
     echo "Building HEAD for ROCm architectures: ${GPU_TARGETS}"
 
     # --- Build ggml FIRST (from llama.cpp/ggml subdir) ---
@@ -96,12 +156,12 @@ build() {
         -DGGML_BUILD_EXAMPLES=OFF \
         -DGGML_HIP=ON \
         -DGGML_HIPBLAS=ON \
-        -DGGML_HIP_ROCWMMA_FATTN=ON \
+        -DGGML_HIP_ROCWMMA_FATTN=${_WMMA_FLAG} \
         -DGGML_CUDA_FA_ALL_QUANTS=ON \
         -DAMDGPU_TARGETS="${GPU_TARGETS}" \
         -DBUILD_SHARED_LIBS=ON \
         -DGGML_NATIVE=ON
-
+    
     cmake --build build_ggml_hip
 
     # Install ggml to staging directory
@@ -160,16 +220,30 @@ package_libggml-git-hip() {
 package_llama.cpp-git-ggml-hip() {
     pkgdesc="Port of Facebook's LLaMA model in C/C++ (git shared library build)"
     depends=('libggml-git-hip' 'curl' 'hip-runtime-amd' 'hipblas' 'rocblas')
+    optdepends=(
+        'python-huggingface-hub: for DAC and WavTokenizer conversion'
+        'python-gguf: for DAC and WavTokenizer conversion'
+        'python-numpy: for speaker creation, DAC and WavTokenizer conversion'
+        'python-pytorch: for speaker creation, DAC and WavTokenizer conversion'
+        'python-torchaudio: for speaker creation'
+        'python-torchcodec: for speaker creation'
+        'python-transformers: for speaker creation'
+    )
     provides=('llama.cpp' 'llama.cpp-hip')
     conflicts=('llama.cpp' 'llama.cpp-hip')
 
     DESTDIR="$pkgdir" cmake --install build_llama_hip
+    
+    # Install OuteTTS tools
+    install -Dm755 "${srcdir}/outetts-hf-dac-to-gguf.py" "${pkgdir}/usr/bin/outetts-hf-dac-to-gguf"
+    install -Dm755 "${srcdir}/outetts-hf-wavtokenizer-to-gguf.py" "${pkgdir}/usr/bin/outetts-hf-wavtokenizer-to-gguf"
+    install -Dm755 "${srcdir}/outetts-create-speaker.py" "${pkgdir}/usr/bin/outetts-create-speaker"
 
     # Install Arch-specific README
     install -Dm644 "${srcdir}/README.md" "${pkgdir}/usr/share/doc/${pkgname}/README-arch.md"
 
-    # Install performance test utility
-    install -Dm755 "${srcdir}/cache_test.py" "${pkgdir}/usr/share/doc/${pkgname}/examples/cache_test.py"
+    # Install default OuteTTS v3 female speaker
+    install -Dm644 "${srcdir}/outetts-default-v3-female.json" "${pkgdir}/usr/share/llama.cpp/outetts-default-v3-female.json"
 }
 
 package_whisper.cpp-git-ggml-hip() {

@@ -1,0 +1,178 @@
+--- ggml/include/ggml.h
++++ ggml/include/ggml.h
+@@ -541,6 +541,7 @@
+         GGML_OP_CROSS_ENTROPY_LOSS_BACK,
+         GGML_OP_OPT_STEP_ADAMW,
+         GGML_OP_OPT_STEP_SGD,
++        GGML_OP_SNAKE,
+ 
+         GGML_OP_GLU,
+ 
+@@ -1032,6 +1033,9 @@
+     GGML_API struct ggml_tensor * ggml_leaky_relu(
+             struct ggml_context * ctx,
+             struct ggml_tensor  * a,
+             float                 negative_slope,
+             bool                  inplace);
++
++    GGML_API struct ggml_tensor * ggml_snake(struct ggml_context * ctx, struct ggml_tensor * a, struct ggml_tensor * b);
++    GGML_API struct ggml_tensor * ggml_snake_inplace(struct ggml_context * ctx, struct ggml_tensor * a, struct ggml_tensor * b);
+ 
+     GGML_API struct ggml_tensor * ggml_sigmoid(
+             struct ggml_context * ctx,
+--- ggml/src/ggml.c
++++ ggml/src/ggml.c
+@@ -1015,6 +1015,7 @@
+     "CROSS_ENTROPY_LOSS_BACK",
+     "OPT_STEP_ADAMW",
+     "OPT_STEP_SGD",
++    "SNAKE",
+ 
+     "GLU",
+ };
+@@ -1047,7 +1048,7 @@
+     "GLU",
+ };
+ 
+-static_assert(GGML_OP_COUNT == 95, "GGML_OP_COUNT != 95");
++static_assert(GGML_OP_COUNT == 96, "GGML_OP_COUNT != 96");
+ 
+ static const char * GGML_OP_SYMBOL[GGML_OP_COUNT] = {
+     "none",
+@@ -1125,6 +1126,7 @@
+     "cross_entropy_loss_back",
+     "adamw",
+     "sgd",
++    "snake",
+ 
+     "glu",
+ };
+@@ -2518,6 +2520,31 @@
+ 
+     return result;
+ }
++
++static struct ggml_tensor * ggml_snake_impl(
++        struct ggml_context * ctx,
++        struct ggml_tensor  * a,
++        struct ggml_tensor  * b,
++        bool                  inplace) {
++    struct ggml_tensor * result = inplace ? ggml_view_tensor(ctx, a) : ggml_dup_tensor(ctx, a);
++
++    result->op     = GGML_OP_SNAKE;
++    result->src[0] = a;
++    result->src[1] = b;
++
++    return result;
++}
++
++struct ggml_tensor * ggml_snake(
++        struct ggml_context * ctx,
++        struct ggml_tensor  * a,
++        struct ggml_tensor  * b) {
++    return ggml_snake_impl(ctx, a, b, false);
++}
++
++struct ggml_tensor * ggml_snake_inplace(
++        struct ggml_context * ctx,
++        struct ggml_tensor  * a,
++        struct ggml_tensor  * b) {
++    return ggml_snake_impl(ctx, a, b, true);
++}
+ 
+ // ggml_sigmoid
+ 
+--- ggml/src/ggml-cpu/ops.h
++++ ggml/src/ggml-cpu/ops.h
+@@ -83,6 +83,7 @@
+ void ggml_compute_forward_argsort(const struct ggml_compute_params * params, struct ggml_tensor * dst);
+ void ggml_compute_forward_top_k(const struct ggml_compute_params * params, struct ggml_tensor * dst);
+ void ggml_compute_forward_leaky_relu(const struct ggml_compute_params * params, struct ggml_tensor * dst);
++void ggml_compute_forward_snake(const struct ggml_compute_params * params, struct ggml_tensor * dst);
+ void ggml_compute_forward_tri(const struct ggml_compute_params * params, struct ggml_tensor * dst);
+ void ggml_compute_forward_fill(const struct ggml_compute_params * params, struct ggml_tensor * dst);
+ void ggml_compute_forward_flash_attn_ext(const struct ggml_compute_params * params, struct ggml_tensor * dst);
+--- ggml/src/ggml-cpu/ops.cpp
++++ ggml/src/ggml-cpu/ops.cpp
+@@ -2725,6 +2725,59 @@
+     }
+ }
+ 
++static void ggml_compute_forward_snake_f32(
++        const ggml_compute_params * params,
++        ggml_tensor * dst) {
++
++    const ggml_tensor * src0 = dst->src[0];
++    const ggml_tensor * src1 = dst->src[1];
++
++    if (params->ith != 0) {
++        return;
++    }
++
++    assert(ggml_is_contiguous(src0));
++    assert(ggml_is_contiguous(dst));
++    assert(ggml_are_same_shape(src0, dst));
++
++    const int n  = ggml_nrows(src0);
++    const int nc = src0->ne[0];
++    const int n_channels = src0->ne[1];
++
++    for (int i = 0; i < n; i++) {
++        float * d = (float *) ((char *) dst->data  + i*( dst->nb[1]));
++        const float * s0 = (float *) ((char *) src0->data + i*(src0->nb[1]));
++
++        const int channel_idx = i % n_channels;
++        const float alpha = *(float *) ((char *) src1->data + channel_idx * src1->nb[1]);
++        const float alpha_inv = 1.0f / (alpha + 1e-9f);
++
++        for (int j = 0; j < nc; j++) {
++            float x = s0[j];
++            float s = sinf(alpha * x);
++            d[j] = x + alpha_inv * (s * s);
++        }
++    }
++}
++
++void ggml_compute_forward_snake(
++        const ggml_compute_params * params,
++        ggml_tensor * dst) {
++
++    const ggml_tensor * src0 = dst->src[0];
++
++    switch (src0->type) {
++        case GGML_TYPE_F32:
++            {
++                ggml_compute_forward_snake_f32(params, dst);
++            } break;
++        default:
++            {
++                GGML_ABORT("fatal error: snake only supports F32 today");
++            }
++    }
++}
++
+ // ggml_compute_forward_silu_back
+ 
+ static void ggml_compute_forward_silu_back_f32(
+--- ggml/src/ggml-cpu/ggml-cpu.c
++++ ggml/src/ggml-cpu/ggml-cpu.c
+@@ -1953,6 +1953,10 @@
+             {
+                 ggml_compute_forward_leaky_relu(params, tensor);
+             } break;
++        case GGML_OP_SNAKE:
++            {
++                ggml_compute_forward_snake(params, tensor);
++            } break;
+         case GGML_OP_TRI:
+             {
+                 ggml_compute_forward_tri(params, tensor);
+@@ -2206,6 +2210,7 @@
+             } break;
+         case GGML_OP_REPEAT:
+         case GGML_OP_REPEAT_BACK:
+         case GGML_OP_LEAKY_RELU:
++        case GGML_OP_SNAKE:
+             {
+                 n_tasks = 1;
+             } break;
