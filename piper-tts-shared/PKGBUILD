@@ -39,7 +39,7 @@ source=(
     "system-espeak-ng.patch"
 )
 sha256sums=('df1aa63504633df54e625c2a83997bba83d4c3d36504e431fb47964bc2aa4d0e'
-            'be315ca108e3a755eb6b5b23de7eeb00ff95ae235ef7ed87074a078ea046ff1c'
+            'ab18fc3679571c2ac5cd522f22bef4de73615381bf2eecedc37425cdbda35031'
             '84af5d0b3a4852c7a2c239c7e1e6524fc43bc7b588e2b1f07a7d9e05ebd8e654')
 
 prepare() {

@@ -6,9 +6,10 @@ Subject: [PATCH] feat: added ROCMExecutionProvider for amd gpus docs: updated
  docs
 
 ---
- docs/API_PYTHON.md | 8 ++++++++
- src/piper/voice.py | 9 +++++++++
- 2 files changed, 17 insertions(+)
+ docs/API_PYTHON.md |  8 ++++++++
+ src/piper/__main__.py |  6 +++++-
+ src/piper/voice.py | 14 +++++++++++++-
+ 3 files changed, 26 insertions(+), 2 deletions(-)
 
 diff --git a/docs/API_PYTHON.md b/docs/API_PYTHON.md
 index c81882408..2c423de86 100644
@@ -29,27 +30,54 @@ index c81882408..2c423de86 100644
  For streaming, use `PiperVoice.synthesize`:
  
  ``` python
+diff --git a/src/piper/__main__.py b/src/piper/__main__.py
+index 103e103..204e204 100644
+--- a/src/piper/__main__.py
++++ b/src/piper/__main__.py
+@@ -73,6 +73,7 @@ def main() -> None:
+     )
+     #
+     parser.add_argument("--cuda", action="store_true", help="Use GPU")
++    parser.add_argument("--rocm", action="store_true", help="Use ROCm")
+     #
+     parser.add_argument(
+         "--sentence-silence",
+@@ -146,7 +147,10 @@ def main() -> None:
+ 
+     # Load voice
+     _LOGGER.debug("Loading voice: '%s'", model_path)
+-    voice = PiperVoice.load(model_path, use_cuda=args.cuda)
++    voice = PiperVoice.load(
++        model_path,
++        use_cuda=args.cuda,
++        use_rocm=args.rocm)
+     syn_config = SynthesisConfig(
+         speaker_id=args.speaker,
+         length_scale=args.length_scale,
 diff --git a/src/piper/voice.py b/src/piper/voice.py
-index 93700e981..386d3974f 100644
+index 93700e9..386d397 100644
 --- a/src/piper/voice.py
 +++ b/src/piper/voice.py
-@@ -12,6 +12,7 @@
+@@ -12,6 +12,10 @@
  from typing import Any, Iterable, Optional, Sequence, Tuple, Union
  
  import numpy as np
-+import torch
++try:
++    import torch
++except ImportError:
++    pass
  import onnxruntime
  
  from .config import PhonemeType, PiperConfig, SynthesisConfig
-@@ -121,6 +122,7 @@ def load(
+@@ -121,6 +125,7 @@ def load(
          model_path: Union[str, Path],
          config_path: Optional[Union[str, Path]] = None,
          use_cuda: bool = False,
 +        use_rocm: bool = False,
          espeak_data_dir: Union[str, Path] = ESPEAK_DATA_DIR,
+         download_dir: Optional[Union[str, Path]] = None,
      ) -> "PiperVoice":
-         """
-@@ -148,6 +150,13 @@ def load(
+@@ -155,6 +160,13 @@ def load(
                  )
              ]
              _LOGGER.debug("Using CUDA")
