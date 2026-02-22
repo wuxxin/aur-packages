@@ -7,9 +7,9 @@ Subject: [PATCH] feat: added ROCMExecutionProvider for amd gpus docs: updated
 
 ---
  docs/API_PYTHON.md |  8 ++++++++
- src/piper/__main__.py |  6 +++++-
+ src/piper/__main__.py | 25 ++++++++++++++++++++++---
  src/piper/voice.py | 14 +++++++++++++-
- 3 files changed, 26 insertions(+), 2 deletions(-)
+ 3 files changed, 43 insertions(+), 4 deletions(-)
 
 diff --git a/docs/API_PYTHON.md b/docs/API_PYTHON.md
 index c81882408..2c423de86 100644
@@ -42,7 +42,44 @@ index 103e103..204e204 100644
      #
      parser.add_argument(
          "--sentence-silence",
-@@ -146,7 +147,10 @@ def main() -> None:
+@@ -93,7 +94,7 @@ def main() -> None:
+         "--data-dir",
+         "--data_dir",
+         action="append",
+-        default=[str(Path.cwd())],
++        default=[str(Path.cwd()), "/usr/share/piper-voices"],
+         help="Data directory to check for voice models (default: current directory)",
+     )
+     #
+@@ -135,18 +136,36 @@ def main() -> None:
+         voice_name = args.model
+         for data_dir in args.data_dir:
+             maybe_model_path = Path(data_dir) / f"{voice_name}.onnx"
+-            _LOGGER.debug("Checking '%s'", maybe_model_path)
+             if maybe_model_path.exists():
+                 model_path = maybe_model_path
+                 break
+ 
++            # Check for /usr/share/piper-voices/de/de_DE/thorsten/high/thorsten.onnx
++            # where voice_name is "de_DE-thorsten-high" or similar
++            if data_dir == "/usr/share/piper-voices":
++                parts = voice_name.split("-")
++                if len(parts) >= 3:
++                    lang_family = parts[0].split("_")[0]
++                    lang_region = parts[0]
++                    speaker = parts[1]
++                    quality = parts[2]
++                    maybe_model_path = (
++                        Path(data_dir) / lang_family / lang_region / speaker / quality / f"{voice_name}.onnx"
++                    )
++                    if maybe_model_path.exists():
++                        model_path = maybe_model_path
++                        break
++
+     if not model_path.exists():
+         raise ValueError(
+             f"Unable to find voice: {model_path} (use piper.download_voices)"
+         )
  
      # Load voice
      _LOGGER.debug("Loading voice: '%s'", model_path)
