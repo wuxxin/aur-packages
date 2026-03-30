@@ -26,7 +26,7 @@ aur-packages/
 updpkgsums && makepkg -Co
 
 # Force a full rebuild
-makepkg -Cfs
+makepkg -Cf
 
 # Run namcap on built package
 namcap <package>.pkg.tar.zst
@@ -120,7 +120,7 @@ build() {
 ### ROCm/HIP Builds
 - Set `HIP_PLATFORM=amd` for AMD GPUs
 - Use `rocm-supported-gfx` to detect GPU architectures
-- Handle `AMDGPU_TARGETS` environment variable
+- Handle `GPU_TARGETS` environment variable
 
 ## Working with This Repository
 1. Test PKGBUILDs with `makepkg --nobuild` first
@@ -133,3 +133,4 @@ build() {
 - Many packages have HIP/ROCm acceleration requirements
 - Some packages are experimental or personal forks
 - Always verify dependencies when modifying PKGBUILDs
+
