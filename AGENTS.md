@@ -13,7 +13,6 @@ aur-packages/
 ├── README.md             # Human targeted README.md , list of currently available pkgs
 ├── scripts/              # Utility scripts (antigravity-launcher.sh, aurupgrade.sh, ...)
 ├── libggml-git-hip/      # HIP/ROCm accelerated GGML + llama.cpp + whisper.cpp
-├── openclaw-git/         # OpenClaw AI assistant
 ├── python-torch*-rocm/   # PyTorch ROCm builds
 └── ...                   # Other AUR packages
 ```
