@@ -2,7 +2,7 @@
 
 pkgbase=libggml-git-hip
 pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip')
-pkgver=8121.r0.ga0c91e8
+pkgver=9119.r4.g927dada
 pkgrel=1
 pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp - HIP accelerated, shared library, git version"
 arch=('x86_64')
@@ -26,11 +26,6 @@ source=(
     "llama-patch-abi.py"
     "llama-shims.py"
     "llama-cpp-system.patch"
-    "outetts-v1-integration-patch.sh"
-    "outetts-create-speaker.py"
-    "outetts-default-v3-female.json"
-    "outetts-hf-dac-to-gguf.py"
-    "outetts-hf-wavtokenizer-to-gguf.py"
 )
 
 sha256sums=('SKIP'
@@ -40,12 +35,7 @@ sha256sums=('SKIP'
             '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
             'e7430489ec842c7c10d6976e04c63023c24ebf9fa080ea3fad55ab19c636d875'
             '3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391'
-            'c5dc88f3ea1477da96b3b16e2402014d9f6928b60ccafa5e4ddc8baa2d972347'
-            '6db7755c0d22d7cf3392337bc09a79d812e905dd28ed66e87b92e98d86bfaaed'
-            '69e3fb8a3db3960098a5af1faaed62a0051ee837a17e275a532847f1a4e818d8'
-            '6bb6bacca60c9759741d849c2baf2af3f6263a51b759d67826ef39e1efc4436c'
-            'bc863ead69651c137d8abf875fd2b61e872b5db0753ea0d67fdbe95583bbf6fd'
-            '54fe9143805ffe1cd4fd61548d85b9df99be413ef2fa7e83c4df8384520998e1')
+            '4247b582ffdd3ef1c48981efef417c3ee54d8cc48a627b89138162bdc3bbf5be')
 
 pkgver() {
     cd llama.cpp
@@ -56,10 +46,6 @@ prepare() {
     # Patch ggml inside llama.cpp (patch path is ggml/src/...)
     cd "${srcdir}/llama.cpp"
     git submodule update --init --recursive
-    
-    # Run OuteTTS 1.0 sed-style integration Patch (This script resets modified files!)
-    chmod +x "${srcdir}/outetts-v1-integration-patch.sh"
-    "${srcdir}/outetts-v1-integration-patch.sh"
 
     # Manually create ggml.pc.in if it's missing (needed for shared library build)
     if [ ! -f "ggml/ggml.pc.in" ]; then
@@ -220,30 +206,13 @@ package_libggml-git-hip() {
 package_llama.cpp-git-ggml-hip() {
     pkgdesc="Port of Facebook's LLaMA model in C/C++ (git shared library build)"
     depends=('libggml-git-hip' 'curl' 'hip-runtime-amd' 'hipblas' 'rocblas')
-    optdepends=(
-        'python-huggingface-hub: for DAC and WavTokenizer conversion'
-        'python-gguf: for DAC and WavTokenizer conversion'
-        'python-numpy: for speaker creation, DAC and WavTokenizer conversion'
-        'python-pytorch: for speaker creation, DAC and WavTokenizer conversion'
-        'python-torchaudio: for speaker creation'
-        'python-torchcodec: for speaker creation'
-        'python-transformers: for speaker creation'
-    )
     provides=('llama.cpp' 'llama.cpp-hip')
     conflicts=('llama.cpp' 'llama.cpp-hip')
 
     DESTDIR="$pkgdir" cmake --install build_llama_hip
     
-    # Install OuteTTS tools
-    install -Dm755 "${srcdir}/outetts-hf-dac-to-gguf.py" "${pkgdir}/usr/bin/outetts-hf-dac-to-gguf"
-    install -Dm755 "${srcdir}/outetts-hf-wavtokenizer-to-gguf.py" "${pkgdir}/usr/bin/outetts-hf-wavtokenizer-to-gguf"
-    install -Dm755 "${srcdir}/outetts-create-speaker.py" "${pkgdir}/usr/bin/outetts-create-speaker"
-
     # Install Arch-specific README
     install -Dm644 "${srcdir}/README.md" "${pkgdir}/usr/share/doc/${pkgname}/README-arch.md"
-
-    # Install default OuteTTS v3 female speaker
-    install -Dm644 "${srcdir}/outetts-default-v3-female.json" "${pkgdir}/usr/share/llama.cpp/outetts-default-v3-female.json"
 }
 
 package_whisper.cpp-git-ggml-hip() {
