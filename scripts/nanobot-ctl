@@ -1,0 +1,261 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# nanobot-ctl - installation and management wrapper for nanobot
+
+VENV_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/nanobot/venv"
+SERVICE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/nanobot.service"
+NANOBOT_HOME="$HOME/.nanobot"
+CONFIG_FILE="$NANOBOT_HOME/config.json"
+PACKAGE="nanobot-ai"
+
+require_uv() {
+    if ! command -v uv &> /dev/null; then
+        echo "Error: 'uv' is not installed or not in PATH."
+        exit 1
+    fi
+}
+
+cmd_install() {
+    require_uv
+    echo "Installing nanobot and its virtual environment..."
+    
+    mkdir -p "$(dirname "$VENV_DIR")"
+    uv venv --clear --python /usr/bin/python3 "$VENV_DIR"
+    
+    echo "Installing package into virtual environment..."
+    uv pip install --python "$VENV_DIR" "$PACKAGE"
+
+    if [ ! -d "$NANOBOT_HOME" ]; then
+        mkdir -p "$NANOBOT_HOME"
+        echo "Created $NANOBOT_HOME"
+    fi
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo "{}" > "$CONFIG_FILE"
+        echo "Created empty config at $CONFIG_FILE"
+    fi
+
+    echo "Generating systemd user service..."
+    mkdir -p "$(dirname "$SERVICE_FILE")"
+    
+    cat > "$SERVICE_FILE" << EOF
+[Unit]
+Description=Nanobot Service
+After=network.target
+
+[Service]
+Type=simple
+Environment=HOME=%h
+Environment=NANOBOT_CONFIG=$CONFIG_FILE
+# Allow user to override variables
+EnvironmentFile=-%h/.config/systemd/user/nanobot.env
+WorkingDirectory=%h
+ExecStart=$VENV_DIR/bin/nanobot gateway --config $CONFIG_FILE
+Restart=on-failure
+RestartSec=5s
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nanobot
+
+# Security measures (similar to picoclaw, but modified to permit bwrap unprivileged user namespace usage)
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+# Filesystem hiding
+ProtectSystem=strict
+TemporaryFileSystem=%h
+BindPaths=%h/.nanobot:%h/.nanobot
+BindPaths=%h/.local/share/nanobot:%h/.local/share/nanobot
+BindPaths=%h/agent-shared:%h/agent-shared
+ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateMounts=yes
+
+# Kernel and IPC constraints
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=no
+SystemCallArchitectures=native
+PrivateIPC=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+KeyringMode=private
+UMask=0077
+
+# Note: ProtectProc=invisible and ProcSubset=pid are omitted 
+# because they can cause bwrap's /proc bind to fail.
+# RestrictNamespaces=yes is also omitted since bwrap fundamentally relies on CLONE_NEWUSER and CLONE_NEWNS.
+
+[Install]
+WantedBy=default.target
+EOF
+
+    echo "Reloading systemd and enabling service..."
+    systemctl --user daemon-reload
+    systemctl --user enable nanobot.service
+    
+    if [ "$(wc -c < "$CONFIG_FILE")" -le 5 ]; then
+        echo ""
+        echo "Configuration appears to be uninitialized!"
+        echo "Please initialize the system by running:"
+        echo "  $0 exec onboard --wizard"
+        echo "Once finished, start the service manually using:"
+        echo "  $0 start"
+    else
+        echo "Starting service automatically..."
+        systemctl --user start nanobot.service
+    fi
+    
+    echo "Done! Type '$0 logs' to see the output."
+}
+
+cmd_uninstall() {
+    echo "Uninstalling nanobot..."
+    systemctl --user stop nanobot.service || true
+    systemctl --user disable nanobot.service || true
+    
+    if [ -f "$SERVICE_FILE" ]; then
+        rm "$SERVICE_FILE"
+        systemctl --user daemon-reload
+        echo "Removed service file."
+    fi
+
+    if [ -d "$VENV_DIR" ]; then
+        rm -rf "$VENV_DIR"
+        echo "Removed virtual environment."
+    fi
+    echo "Uninstalled successfully."
+}
+
+cmd_start() { systemctl --user start nanobot.service; }
+cmd_stop() { systemctl --user stop nanobot.service; }
+cmd_restart() { systemctl --user restart nanobot.service; }
+cmd_status() { systemctl --user status nanobot.service; }
+cmd_enable() { systemctl --user enable nanobot.service; }
+cmd_disable() { systemctl --user disable nanobot.service; }
+cmd_logs() { journalctl --user -u nanobot.service -f; }
+
+cmd_config() {
+    if [ ! -f "$CONFIG_FILE" ]; then
+        mkdir -p "$(dirname "$CONFIG_FILE")"
+        echo "{}" > "$CONFIG_FILE"
+        echo "Created empty config at $CONFIG_FILE"
+    fi
+    ${EDITOR:-nano} "$CONFIG_FILE"
+}
+
+cmd_exec() {
+    if [ ! -d "$VENV_DIR" ]; then
+        echo "Virtual environment not found. Please run 'nanobot-ctl install' first."
+        exit 1
+    fi
+    echo "Starting nanobot as a transient systemd service with args: $@"
+    
+    local opts=(
+        --user
+        --pty
+        --wait
+        --collect
+        --quiet
+        -p "Type=exec"
+        -p "Environment=HOME=$HOME"
+        -p "Environment=NANOBOT_CONFIG=$CONFIG_FILE"
+        -p "EnvironmentFile=-$HOME/.config/systemd/user/nanobot.env"
+        -p "WorkingDirectory=$HOME"
+        -p "NoNewPrivileges=yes"
+        -p "CapabilityBoundingSet="
+        -p "AmbientCapabilities="
+        -p "ProtectSystem=strict"
+        -p "TemporaryFileSystem=$HOME"
+        -p "BindPaths=$HOME/.nanobot:$HOME/.nanobot"
+        -p "BindPaths=$HOME/.local/share/nanobot:$HOME/.local/share/nanobot"
+        -p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
+        -p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
+        -p "PrivateTmp=yes"
+        -p "PrivateDevices=yes"
+        -p "PrivateMounts=yes"
+        -p "ProtectKernelTunables=yes"
+        -p "ProtectKernelModules=yes"
+        -p "ProtectKernelLogs=yes"
+        -p "ProtectControlGroups=yes"
+        -p "ProtectClock=yes"
+        -p "ProtectHostname=yes"
+        -p "LockPersonality=yes"
+        -p "MemoryDenyWriteExecute=no"
+        -p "SystemCallArchitectures=native"
+        -p "PrivateIPC=yes"
+        -p "RestrictSUIDSGID=yes"
+        -p "RestrictRealtime=yes"
+        -p "KeyringMode=private"
+        -p "UMask=0077"
+    )
+
+    # Use the full path to the binary in the VENV
+    systemd-run "${opts[@]}" "$VENV_DIR/bin/nanobot" "$@"
+}
+
+cmd_update() {
+    require_uv
+    if [ ! -d "$VENV_DIR" ]; then
+        echo "Virtual environment not found. Please run 'nanobot-ctl install' first."
+        exit 1
+    fi
+    echo "Updating nanobot..."
+    uv pip install --upgrade --python "$VENV_DIR" "$PACKAGE"
+    echo "Restarting service..."
+    cmd_restart
+    echo "Updated."
+}
+
+usage() {
+    echo "Usage: $0 <command>"
+    echo "Commands:"
+    echo "  install   - Create virtual environment with uv, install nanobot, setup and start systemd service"
+    echo "  uninstall - Stop service, remove systemd service and virtual environment"
+    echo "  start     - Start the systemd service"
+    echo "  stop      - Stop the systemd service"
+    echo "  restart   - Restart the systemd service"
+    echo "  status    - View systemd service status"
+    echo "  enable    - Enable systemd service on boot"
+    echo "  disable   - Disable systemd service on boot"
+    echo "  logs      - Tail the systemd service logs"
+    echo "  config    - Open nanobot config file in \$EDITOR"
+    echo "  update    - Upgrade the nanobot package via uv and restart the service"
+    echo "  exec      - Run nanobot as a transient systemd user service with args"
+}
+
+if [ $# -lt 1 ]; then
+    usage
+    exit 1
+fi
+
+COMMAND="$1"
+shift
+
+case "$COMMAND" in
+    install) cmd_install ;;
+    uninstall) cmd_uninstall ;;
+    start) cmd_start ;;
+    stop) cmd_stop ;;
+    restart) cmd_restart ;;
+    status) cmd_status ;;
+    enable) cmd_enable ;;
+    disable) cmd_disable ;;
+    logs) cmd_logs ;;
+    config) cmd_config ;;
+    update) cmd_update ;;
+    exec) cmd_exec "$@" ;;
+    *)
+        echo "Unknown command: $COMMAND"
+        usage
+        exit 1
+        ;;
+esac
