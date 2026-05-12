@@ -31,7 +31,7 @@ source=(
 sha256sums=('SKIP'
             'SKIP'
             'SKIP'
-            '3c58baf589ece7e5deb9bca5e0b2ebf4f717a5ed518404a167b59523a4aaeb01'
+            'f1b24bbece9871b29a3964a4756d5742e93545ff4e4a3121dbbad46c3ef70648'
             '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
             'e7430489ec842c7c10d6976e04c63023c24ebf9fa080ea3fad55ab19c636d875'
             '3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391'
