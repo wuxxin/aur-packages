@@ -35,3 +35,5 @@ Can be **broken or bitrotten at anytime**.
       - `llama.cpp`, `whisper.cpp`, and `python-llama-cpp` all link dynamically against a single system-wide `libggml-git-hip`.
           - This ensures consistent backend behavior / bug compatibility across all tools.
 
+- custom pkg (currently not in AUR)
+    - [signal-cli-rest-api-git](signal-cli-rest-api-git) - A small REST API around signal-cli (Go implementation) with polling support
