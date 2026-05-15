@@ -1,0 +1,273 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# moltis-ctl - installation and management wrapper for moltis
+# Inspired by openfang-ctl
+
+SERVICE_NAME="moltis"
+SERVICE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/${SERVICE_NAME}.service"
+ENV_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/${SERVICE_NAME}.env"
+MOLTIS_HOME="$HOME/.moltis"
+
+cmd_install() {
+	echo "Setting up Moltis home directory at $MOLTIS_HOME..."
+	mkdir -p "$MOLTIS_HOME"
+
+	echo "Generating systemd user service..."
+	mkdir -p "$(dirname "$SERVICE_FILE")"
+
+	# Write default env file if it doesn't exist
+	if [ ! -f "$ENV_FILE" ]; then
+		cat >"$ENV_FILE" <<'EOF'
+# Moltis Environment Configuration
+# ---------------------------------------------------------------------------
+# Set your password or other configuration here.
+# For unattended deployment, set these before first boot:
+# MOLTIS_PASSWORD=your_secure_password
+# MOLTIS_PROVIDER=openai
+# MOLTIS_API_KEY=sk-...
+# ---------------------------------------------------------------------------
+
+# Bind address and ports
+# MOLTIS_BIND=0.0.0.0
+# MOLTIS_PORT=13131
+
+# Directories (defaults to ~/.moltis)
+MOLTIS_DATA_DIR=%h/.moltis
+MOLTIS_CONFIG_DIR=%h/.moltis
+EOF
+		chmod 600 "$ENV_FILE"
+		echo "Created default environment file at $ENV_FILE"
+	fi
+
+	cat >"$SERVICE_FILE" <<EOF
+[Unit]
+Description=Moltis Agent Server
+Documentation=https://docs.moltis.org
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=-%h/.config/systemd/user/moltis.env
+WorkingDirectory=%h/.moltis
+ExecStart=/usr/bin/moltis --bind 0.0.0.0
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=moltis
+
+# Security measures
+NoNewPrivileges=yes
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+# Filesystem isolation
+ProtectSystem=strict
+TemporaryFileSystem=%h
+# Retain changes by bind mounting the explicit moltis home directory
+BindPaths=%h/.moltis:%h/.moltis
+# Allow access to agent-shared as requested for integration
+BindPaths=%h/agent-shared:%h/agent-shared
+ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf
+PrivateTmp=yes
+PrivateDevices=no
+PrivateMounts=yes
+
+# Kernel and IPC constraints
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=no
+SystemCallArchitectures=native
+PrivateIPC=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+KeyringMode=private
+UMask=0077
+
+[Install]
+WantedBy=default.target
+EOF
+
+	echo "Reloading systemd and enabling service..."
+	systemctl --user daemon-reload
+	systemctl --user enable "${SERVICE_NAME}.service"
+
+	echo "Starting service automatically..."
+	systemctl --user start "${SERVICE_NAME}.service"
+
+	echo "---------------------------------------------------------------------------"
+	echo "Moltis installation complete!"
+	echo "---------------------------------------------------------------------------"
+	echo "IMPORTANT: On the first run, Moltis prints a setup code to the journal."
+	echo "Run '$0 logs' to see the setup code, then visit http://localhost:13131"
+	echo "to complete the setup."
+	echo "---------------------------------------------------------------------------"
+	echo "Done! Type '$0 logs' to see the output."
+}
+
+cmd_uninstall() {
+	echo "Uninstalling moltis systemd service..."
+	systemctl --user stop "${SERVICE_NAME}.service" || true
+	systemctl --user disable "${SERVICE_NAME}.service" || true
+
+	if [ -f "$SERVICE_FILE" ]; then
+		rm "$SERVICE_FILE"
+		systemctl --user daemon-reload
+		echo "Removed service file."
+	fi
+	echo "Uninstalled successfully. Data in $MOLTIS_HOME and configuration in $ENV_FILE are preserved."
+}
+
+cmd_start() { systemctl --user start "${SERVICE_NAME}.service"; }
+cmd_stop() { systemctl --user stop "${SERVICE_NAME}.service"; }
+cmd_restart() { systemctl --user restart "${SERVICE_NAME}.service"; }
+cmd_status() { systemctl --user status "${SERVICE_NAME}.service"; }
+cmd_enable() { systemctl --user enable "${SERVICE_NAME}.service"; }
+cmd_disable() { systemctl --user disable "${SERVICE_NAME}.service"; }
+cmd_logs() { journalctl --user -u "${SERVICE_NAME}.service" -f; }
+
+cmd_edit() {
+	mkdir -p "$(dirname "$ENV_FILE")"
+	touch "$ENV_FILE"
+	${EDITOR:-nano} "$ENV_FILE"
+	echo "Restarting service to apply updated environment..."
+	cmd_restart
+}
+
+cmd_exec() {
+	echo "Starting moltis as a transient systemd service with args: $*"
+
+	local opts=(
+		--user
+		--pty
+		--wait
+		--collect
+		--quiet
+		-p "Type=exec"
+		-p "EnvironmentFile=-$ENV_FILE"
+		-p "WorkingDirectory=$MOLTIS_HOME"
+		-p "NoNewPrivileges=yes"
+		-p "CapabilityBoundingSet=CAP_NET_BIND_SERVICE"
+		-p "AmbientCapabilities=CAP_NET_BIND_SERVICE"
+		-p "ProtectSystem=strict"
+		-p "TemporaryFileSystem=$HOME"
+		-p "BindPaths=$MOLTIS_HOME:$MOLTIS_HOME"
+		-p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
+		-p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
+		-p "PrivateTmp=yes"
+		-p "PrivateDevices=no"
+		-p "PrivateMounts=yes"
+		-p "ProtectKernelTunables=yes"
+		-p "ProtectKernelModules=yes"
+		-p "ProtectKernelLogs=yes"
+		-p "ProtectControlGroups=yes"
+		-p "ProtectClock=yes"
+		-p "ProtectHostname=yes"
+		-p "LockPersonality=yes"
+		-p "MemoryDenyWriteExecute=no"
+		-p "SystemCallArchitectures=native"
+		-p "PrivateIPC=yes"
+		-p "RestrictSUIDSGID=yes"
+		-p "RestrictRealtime=yes"
+		-p "KeyringMode=private"
+		-p "UMask=0077"
+	)
+
+	systemd-run "${opts[@]}" /usr/bin/moltis "$@"
+}
+
+cmd_shell() {
+	echo "Starting interactive shell in the moltis systemd environment..."
+
+	local opts=(
+		--user
+		--pty
+		--wait
+		--collect
+		--quiet
+		-p "Type=exec"
+		-p "EnvironmentFile=-$ENV_FILE"
+		-p "WorkingDirectory=$MOLTIS_HOME"
+		-p "NoNewPrivileges=yes"
+		-p "CapabilityBoundingSet=CAP_NET_BIND_SERVICE"
+		-p "AmbientCapabilities=CAP_NET_BIND_SERVICE"
+		-p "ProtectSystem=strict"
+		-p "TemporaryFileSystem=$HOME"
+		-p "BindPaths=$MOLTIS_HOME:$MOLTIS_HOME"
+		-p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
+		-p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
+		-p "PrivateTmp=yes"
+		-p "PrivateDevices=no"
+		-p "PrivateMounts=yes"
+		-p "ProtectKernelTunables=yes"
+		-p "ProtectKernelModules=yes"
+		-p "ProtectKernelLogs=yes"
+		-p "ProtectControlGroups=yes"
+		-p "ProtectClock=yes"
+		-p "ProtectHostname=yes"
+		-p "LockPersonality=yes"
+		-p "MemoryDenyWriteExecute=no"
+		-p "SystemCallArchitectures=native"
+		-p "PrivateIPC=yes"
+		-p "RestrictSUIDSGID=yes"
+		-p "RestrictRealtime=yes"
+		-p "KeyringMode=private"
+		-p "UMask=0077"
+	)
+
+	systemd-run "${opts[@]}" "${SHELL:-/bin/bash}" "$@"
+}
+
+usage() {
+	echo "Usage: $0 <command>"
+	echo "Commands:"
+	echo "  install   - Setup service and moltis home directory"
+	echo "  uninstall - Stop and remove systemd service"
+	echo "  start     - Start the systemd service"
+	echo "  stop      - Stop the systemd service"
+	echo "  restart   - Restart the systemd service"
+	echo "  status    - View systemd service status"
+	echo "  enable    - Enable systemd service on boot"
+	echo "  disable   - Disable systemd service on boot"
+	echo "  logs      - Tail the systemd service logs"
+	echo "  edit      - Edit the .env file and restart the service upon exit"
+	echo "  exec      - Run moltis as a transient systemd user service with args"
+	echo "  shell     - Spawn an interactive shell in the moltis systemd environment"
+}
+
+if [ $# -lt 1 ]; then
+	usage
+	exit 1
+fi
+
+COMMAND="$1"
+shift
+
+case "$COMMAND" in
+install) cmd_install ;;
+uninstall) cmd_uninstall ;;
+start) cmd_start ;;
+stop) cmd_stop ;;
+restart) cmd_restart ;;
+status) cmd_status ;;
+enable) cmd_enable ;;
+disable) cmd_disable ;;
+logs) cmd_logs ;;
+edit) cmd_edit ;;
+exec) cmd_exec "$@" ;;
+shell) cmd_shell "$@" ;;
+*)
+	echo "Unknown command: $COMMAND"
+	usage
+	exit 1
+	;;
+esac
