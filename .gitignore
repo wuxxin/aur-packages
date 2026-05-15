@@ -1,4 +1,7 @@
 pkg
 src
 .ruff-cache/
+.fresh/
+scratch/
+benchmarking/
 big-skill-context.md
