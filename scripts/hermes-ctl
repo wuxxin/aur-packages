@@ -7,7 +7,7 @@ set -euo pipefail
 SERVICE_NAME="hermes-gateway"
 SERVICE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/${SERVICE_NAME}.service"
 ENV_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/${SERVICE_NAME}.env"
-HERMES_HOME="$HOME/.hermes"
+HERMES_HOME="$HOME/.local/share/hermes"
 
 cmd_install() {
     echo "Setting up Hermes home directory at $HERMES_HOME..."
@@ -25,7 +25,7 @@ cmd_install() {
 # ---------------------------------------------------------------------------
 
 # Path to the hermes home directory
-HERMES_HOME=%h/.hermes
+HERMES_HOME=%h/.local/share/hermes
 
 # Example API keys (uncomment and fill)
 # OPENROUTER_API_KEY=sk-or-v1-...
@@ -56,9 +56,9 @@ StartLimitIntervalSec=0
 [Service]
 Type=simple
 EnvironmentFile=-$ENV_FILE
-Environment=HOME=%h/.hermes
-Environment=HERMES_HOME=%h/.hermes
-WorkingDirectory=%h/.hermes
+Environment=HOME=%h/.local/share/hermes
+Environment=HERMES_HOME=%h/.local/share/hermes
+WorkingDirectory=%h/.local/share/hermes
 ExecStart=/usr/bin/hermes gateway run --replace
 Restart=always
 RestartSec=60
@@ -91,7 +91,7 @@ AmbientCapabilities=
 ProtectSystem=strict
 TemporaryFileSystem=%h
 # Retain changes by bind mounting the explicit hermes home directory
-BindPaths=%h/.hermes:%h/.hermes
+BindPaths=%h/.local/share/hermes:%h/.local/share/hermes
 # Allow access to agent-shared as requested for integration
 BindPaths=%h/agent-shared:%h/agent-shared
 ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf

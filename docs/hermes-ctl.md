@@ -9,7 +9,7 @@
 ```
 
 This command will:
-1. Create the `~/.hermes` home directory.
+1. Create the `~/.local/share/hermes` home directory.
 2. Generate a default environment file at `~/.config/systemd/user/hermes-gateway.env`.
 3. Create and enable the `hermes-gateway.service` systemd user unit.
 
@@ -38,11 +38,11 @@ Hermes uses a graceful drain mechanism. The service is configured with:
 
 ### Security and Sandboxing
 The service runs with `ProtectSystem=strict` and `TemporaryFileSystem=%h`. Only the following paths are writable:
-- `~/.hermes`: The persistent home for config, logs, and state.
+- `~/.local/share/hermes`: The persistent home for config, logs, and state.
 - `~/agent-shared`: Shared directory for agent-to-agent or agent-to-human integration.
 
 ### Environment and Isolation
-- **Isolated HOME**: The `HOME` environment variable is redirected to `~/.hermes` within the service to ensure that any tools called by the agent (pip, git, etc.) do not leak state into the user's real home.
+- **Isolated HOME**: The `HOME` environment variable is redirected to `~/.local/share/hermes` within the service to ensure that any tools called by the agent (pip, git, etc.) do not leak state into the user's real home.
 - **Secrets Management**: API keys and secrets are stored in `~/.config/systemd/user/hermes-gateway.env` and loaded via `EnvironmentFile`.
 
 ### Container Backend Support

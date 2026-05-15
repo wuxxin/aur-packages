@@ -4,7 +4,7 @@
 # Configuration
 app_bin="/opt/Antigravity/antigravity"
 app_dir="/opt/Antigravity"
-persistent_home="$HOME/.antigravity"
+persistent_home="$HOME/.local/share/antigravity"
 work_dir="$HOME/AntigravityWorkspace"
 agent_shared_dir="$HOME/agent-shared"
 download_dir="/data/download"
@@ -56,7 +56,7 @@ bwrap_args=(
     --dev-bind /dev /dev
     --ro-bind /sys /sys
     --proc /proc
-    # bind the .antigravity folder to $HOME
+    # bind the .local/share/antigravity folder to $HOME
     --bind "$persistent_home" "$HOME"
     # --- OVERRIDES ---
     # Map: $HOME/AntigravityWorkspace -> $persistent_home/AntigravityWorkspace

@@ -13,7 +13,7 @@ Ensure you have `uv` installed, then simply run the script's `install` command:
 During installation, `nanobot-ctl` will:
 1. Create a dedicated isolated virtual environment at `~/.local/share/nanobot/venv`.
 2. Install the `nanobot-ai` package into that environment using `uv pip`.
-3. Create the `~/.nanobot` configuration directory.
+3. Create the `~/.local/share/nanobot` configuration directory.
 4. Generate a secured `systemd` user service unit (`nanobot.service`).
 5. Automatically enable and start the service (if initialized).
 
@@ -29,7 +29,7 @@ The `nanobot-ctl` wrapper acts as your primary entry point for managing the serv
 | `start` / `stop` / `restart` | standard `systemctl --user` commands for managing the daemon. |
 | `status` | View service health and journal status. |
 | `logs` | Tail service logs using `journalctl --user -f`. |
-| `config` | Opens `~/.nanobot/config.json` inside your `$EDITOR`. |
+| `config` | Opens `~/.local/share/nanobot/config.json` inside your `$EDITOR`. |
 | `shell` | Spawns an interactive shell with the nanobot virtual environment and sandbox environment. |
 | `exec` | Run `nanobot` CLI commands in the transient sandboxed service. |
 
@@ -42,10 +42,10 @@ If the configuration is empty, the installer will prompt you to run the onboardi
 ```
 
 ### Security and Isolation
-- **Isolated HOME**: `HOME` is redirected to `~/.nanobot` within the service.
+- **Isolated HOME**: `HOME` is redirected to `~/.local/share/nanobot` within the service.
 - **Sandboxing**: Uses `ProtectSystem=strict` and `TemporaryFileSystem=%h` to prevent unauthorized home directory access.
 - **Persistent Bindings**:
-    - `~/.nanobot`: Primary configuration and state.
+    - `~/.local/share/nanobot`: Primary configuration and state.
     - `~/.local/share/nanobot`: Virtual environment and transient data.
     - `~/agent-shared`: Shared integration directory.
 

@@ -5,8 +5,8 @@ After=network.target
 
 [Service]
 Type=simple
-Environment=PICOCLAW_HOME=%h/.picoclaw
-Environment=PICOCLAW_CONFIG=%h/.picoclaw/config.json
+Environment=PICOCLAW_HOME=%h/.local/share/picoclaw
+Environment=PICOCLAW_CONFIG=%h/.local/share/picoclaw/config.json
 Environment=PICOCLAW_BINARY=/usr/bin/picoclaw
 Environment=HOME=%h
 EnvironmentFile=%h/.config/systemd/user/picoclaw.env
@@ -25,7 +25,7 @@ AmbientCapabilities=
 
 ProtectSystem=strict
 TemporaryFileSystem=%h
-BindPaths=%h/.picoclaw-service:%h/.picoclaw
+BindPaths=%h/.local/share/picoclaw-service:%h/.local/share/picoclaw
 BindPaths=%h/agent-shared:%h/agent-shared
 ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf
 PrivateTmp=yes

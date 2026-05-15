@@ -5,7 +5,7 @@ set -euo pipefail
 
 VENV_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/nanobot/venv"
 SERVICE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/nanobot.service"
-NANOBOT_HOME="$HOME/.nanobot"
+NANOBOT_HOME="$HOME/.local/share/nanobot"
 CONFIG_FILE="$NANOBOT_HOME/config.json"
 PACKAGE="nanobot-ai"
 
@@ -45,11 +45,11 @@ After=network.target
 
 [Service]
 Type=simple
-Environment=HOME=%h/.nanobot
+Environment=HOME=%h/.local/share/nanobot
 Environment=NANOBOT_CONFIG=$CONFIG_FILE
 # Allow user to override variables
 EnvironmentFile=-%h/.config/systemd/user/nanobot.env
-WorkingDirectory=%h/.nanobot
+WorkingDirectory=%h/.local/share/nanobot
 ExecStart=$VENV_DIR/bin/nanobot gateway --config $CONFIG_FILE
 Restart=on-failure
 RestartSec=5s
@@ -66,7 +66,6 @@ AmbientCapabilities=
 # Filesystem hiding
 ProtectSystem=strict
 TemporaryFileSystem=%h
-BindPaths=%h/.nanobot:%h/.nanobot
 BindPaths=%h/.local/share/nanobot:%h/.local/share/nanobot
 BindPaths=%h/agent-shared:%h/agent-shared
 ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf

@@ -4,7 +4,7 @@
 
 ## Features
 
-- **Persistent Home**: Redirects `$HOME` to `~/.antigravity` within the sandbox.
+- **Persistent Home**: Redirects `$HOME` to `~/.local/share/antigravity` within the sandbox.
 - **Filesystem Isolation**: Mounts the host root as read-only and uses a `tmpfs` for `/tmp`.
 - **Workspace Integration**: Explicitly binds `~/AntigravityWorkspace` and `~/agent-shared` into the sandbox.
 - **X11/Wayland Support**: Securely shares display sockets and environment variables.
@@ -12,7 +12,7 @@
 
 ## Configuration
 
-The launcher reads flags from the following files inside `~/.antigravity`:
+The launcher reads flags from the following files inside `~/.local/share/antigravity`:
 - `.config/electron-flags.conf`: Arguments passed to the Electron runtime (e.g. `--disable-gpu`).
 - `.config/antigravity-flags.conf`: Arguments passed directly to the Antigravity application.
 
@@ -38,4 +38,4 @@ You can use the launcher to run *any* binary inside the same hardened Antigravit
 
 ### Directory Mapping
 - **Downloads**: Symlinks `~/download` inside the sandbox to `/data/download` on the host (if available).
-- **Home**: The host's `~/.antigravity` is presented as `$HOME` inside the sandbox, ensuring that configuration files (like `.gitconfig` or `.ssh`) created within the app are persistent but isolated from the real host home.
+- **Home**: The host's `~/.local/share/antigravity` is presented as `$HOME` inside the sandbox, ensuring that configuration files (like `.gitconfig` or `.ssh`) created within the app are persistent but isolated from the real host home.

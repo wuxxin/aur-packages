@@ -19,7 +19,7 @@ Then visit `http://localhost:13131` to enter the code and create your admin acco
 
 | Command | Description |
 |---|---|
-| `install` | Initializes `~/.moltis` and the systemd service. |
+| `install` | Initializes `~/.local/share/moltis` and the systemd service. |
 | `uninstall` | Tears down the service (preserves data and env). |
 | `edit` | Edit `moltis.env` (passwords, providers, etc.). |
 | `logs` | View server output and setup codes. |
@@ -33,8 +33,8 @@ Then visit `http://localhost:13131` to enter the code and create your admin acco
 - **Bind Address**: The default `ExecStart` uses `--bind 0.0.0.0`, making the server accessible across the local network.
 
 ### Storage and Isolation
-- **Persistent Data**: All state is stored in `~/.moltis`.
-- **HOME Redirection**: The service redirects `HOME` to `%h/.moltis` to ensure all application state stays within the designated data directory.
+- **Persistent Data**: All state is stored in `~/.local/share/moltis`.
+- **HOME Redirection**: The service redirects `HOME` to `%h/.local/share/moltis` to ensure all application state stays within the designated data directory.
 - **Integration**: Explicitly binds `~/agent-shared` to allow cross-agent data sharing.
 
 ### Security
