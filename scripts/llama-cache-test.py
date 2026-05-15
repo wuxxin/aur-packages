@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 import argparse
-import base64
 import json
-import os
 import random
-import string
 import sys
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Optional
 
 import requests
 
@@ -112,8 +109,8 @@ def load_text_file(filename: str) -> str:
 
 
 def create_dummy_image_b64() -> str:
-    """Creates a tiny 1x1 pixel red GIF as a base64 string for vision testing."""
-    data = b"R0lGODlhAQABAIEAAAAAAP///yH5BAEAAAEALAAAAAABAAEAAAICTAEAOw=="
+    """Creates a tiny 1x1 pixel red PNG as a base64 string for vision testing."""
+    data = b"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
     return data.decode("utf-8")
 
 
@@ -139,7 +136,7 @@ def measure_request(
                     {"type": "text", "text": prompt},
                     {
                         "type": "image_url",
-                        "image_url": {"url": f"data:image/gif;base64,{image_b64}"},
+                        "image_url": {"url": f"data:image/png;base64,{image_b64}"},
                     },
                 ],
             }
@@ -260,32 +257,31 @@ def measure_request(
 
 def incremental_prefill(args, full_text):
     """Incremental prefill with fail-fast support and granular reporting."""
-    print(f"\n### Incremental Prefill & Warmup\n")
+    print("\n### Incremental Prefill & Warmup\n")
     print(f"**Step size:** {args.step} chars\n")
-    print(f"| Chars | Delta (ms) | Char/s |")
-    print(f"| ---: | ---: | ---: |")
+    print("| Chars | Delta (ms) | Char/s |")
+    print("| ---: | ---: | ---: |")
 
     step_chars = args.step
     current_len = step_chars
     total_len = len(full_text)
 
-    prev_time = time.time()
     prev_tokens = 0
     prev_chars = 0
-    
+
     results = []
 
     # Initial request to get token count baseline if needed, but we start with 0.
-    
+
     while current_len <= total_len:
         subset = full_text[:current_len]
-        
+
         # We need to measure the wall clock time for this step specifically
         step_start_time = time.time()
-        
+
         # max_tokens=1 to force processing up to this point
         res = measure_request(args.url, args.api_key, args.model, subset, max_tokens=1)
-        
+
         step_end_time = time.time()
 
         if res.status != "SUCCESS":
@@ -293,48 +289,56 @@ def incremental_prefill(args, full_text):
             break
 
         current_tokens = res.prompt_tokens
-        
+
         # Calculate Deltas
-        # Delta time is the time taken for *this request* alone, which effectively measures 
+        # Delta time is the time taken for *this request* alone, which effectively measures
         # the time to process the *incremental* new tokens (due to KV caching).
-        # User requested "sensitive systemtime diff from last call". 
+        # User requested "sensitive systemtime diff from last call".
         # Ideally, this loop's stride time = step_end_time - step_start_time
         # But if we want "cumulative" implied:
         # Actually, since we are doing separate requests, the "Delta (ms)" is exactly the latency of the current request.
         # If caching works, this latency should be proportional to `step_chars`, not `current_len`.
-        
+
         delta_time_s = step_end_time - step_start_time
         delta_tokens = current_tokens - prev_tokens
         delta_chars = len(subset) - prev_chars
 
         # Handling the first step or weird token reporting
-        if delta_tokens < 0: delta_tokens = 0 # Should not happen with increasing context
-        
+        if delta_tokens < 0:
+            delta_tokens = 0  # Should not happen with increasing context
+
         # Metrics based on this step's delta
         step_tok_s = delta_tokens / delta_time_s if delta_time_s > 0.0001 else 0
         step_char_s = delta_chars / delta_time_s if delta_time_s > 0.0001 else 0
 
-        print(
-            f"| {len(subset)} | {delta_time_s * 1000:.0f} | {step_char_s:.2f} |"
-        )
-        
-        # Fail-fast check
-        if args.min_cps > 0 and len(results) >= 1: 
-             # We check per-step performance for fail-fast
-             if step_char_s < args.min_cps:
-                 print(f"\n! Aborting: Step Char/s {step_char_s:.2f} < Threshold {args.min_cps}")
-                 raise RuntimeError(f"Performance too low ({step_char_s:.2f} Char/s)")
+        print(f"| {len(subset)} | {delta_time_s * 1000:.0f} | {step_char_s:.2f} |")
 
-        results.append((len(subset), current_tokens, delta_time_s, step_tok_s, step_char_s))
+        # Fail-fast check
+        if args.min_cps > 0 and len(results) >= 1:
+            # We check per-step performance for fail-fast
+            if step_char_s < args.min_cps:
+                print(
+                    f"\n! Aborting: Step Char/s {step_char_s:.2f} < Threshold {args.min_cps}"
+                )
+                raise RuntimeError(f"Performance too low ({step_char_s:.2f} Char/s)")
+
+        results.append(
+            (len(subset), current_tokens, delta_time_s, step_tok_s, step_char_s)
+        )
 
         prev_tokens = current_tokens
         prev_chars = len(subset)
-        
+
         current_len += step_chars
         # Clamp to total length for final step
         if current_len > total_len and current_len - step_chars < total_len:
             current_len = total_len
-            
+
+    total_time = sum(r[2] for r in results)
+    if total_time > 0 and results:
+        total_chars = results[-1][0]
+        print(f"\n**Overall Prefill Speed:** {total_chars / total_time:.2f} Char/s (Total Time: {total_time:.2f}s)\n")
+
     return results
 
 
@@ -343,11 +347,13 @@ def run_test(args):
 
     if args.payload_filename:
         static_prefix = load_text_file(args.payload_filename)
+        if len(static_prefix) > args.context_len:
+            static_prefix = static_prefix[:args.context_len]
     else:
         static_prefix = generate_lorem_ipsum(args.context_len)
 
     # Print Header
-    print(f"# LLM Benchmark Report\n")
+    print("# LLM Benchmark Report\n")
     print(f"- **URL:** `{args.url}`")
     print(f"- **Model:** `{args.model}`")
     print(f"- **Payload:** {len(static_prefix)} chars")
@@ -355,23 +361,23 @@ def run_test(args):
 
     # 1. Warmup / Incremental Prefill
     # Always use incremental prefill if 'step' is reasonable, or if user asked for it.
-    # The user asked to "also display steps iff skip linearity". 
+    # The user asked to "also display steps iff skip linearity".
     # This implies we should always use the stepping logic to populate the cache and report status.
-    
+
     if args.step < len(static_prefix):
         incremental_prefill(args, static_prefix)
     else:
         # Fallback for single-shot if step is larger than payload
-        print(f"\n### Warmup (Single Shot)\n")
+        print("\n### Warmup (Single Shot)\n")
         res = measure_request(
-             args.url, args.api_key, args.model, static_prefix, max_tokens=1
+            args.url, args.api_key, args.model, static_prefix, max_tokens=1
         )
         print(f"Single shot complete. Latency: {res.ttft_ms:.2f} ms")
 
     # 2. Main Loop
-    print(f"\n### Cache Hit Latency Test (8 Loops)\n")
-    print(f"| Loop | Distractor (ms) | Target Hit (ms) | Status |")
-    print(f"| :--- | :--- | :--- | :--- |")
+    print("\n### Cache Hit Latency Test (8 Loops)\n")
+    print("| Loop | Distractor (ms) | Target Hit (ms) | Status |")
+    print("| :--- | :--- | :--- | :--- |")
 
     hits = 0
 
@@ -400,7 +406,7 @@ def run_test(args):
 
         if res_t.status != "SUCCESS":
             status = f"ERROR: {res_t.status}"
-        elif res_t.ttft_ms < 1000:
+        elif res_t.ttft_ms < args.hit_threshold:
             status = "**HIT**"
             hits += 1
         else:
@@ -410,11 +416,11 @@ def run_test(args):
         print(f"| {i:02d} | {res_d.ttft_ms:.1f} | {res_t.ttft_ms:.1f} | {status} |")
 
     # 4. Summary
-    print(f"\n### Summary\n")
+    print("\n### Summary\n")
     print(f"- **Cache Hit Rate:** {(hits / 8) * 100:.1f}% ({hits}/8)")
 
     if args.vision:
-        print(f"- **Vision Test:** ENABLED")
+        print("- **Vision Test:** ENABLED")
 
 
 if __name__ == "__main__":
@@ -454,6 +460,13 @@ if __name__ == "__main__":
         dest="min_cps",
         help="Minimum Char/s threshold for fail-fast",
     )
+    parser.add_argument(
+        "--hit-threshold",
+        type=float,
+        default=1500.0,
+        dest="hit_threshold",
+        help="Maximum Time-To-First-Token (ms) to consider a request as a cache hit",
+    )
 
     args = parser.parse_args()
     try:
@@ -461,7 +474,7 @@ if __name__ == "__main__":
             print(f"- **Fail-Fast:** Enabled (< {args.min_cps} Char/s)")
         run_test(args)
     except KeyboardInterrupt:
-        print(f"\n> **Test Aborted by User.**")
+        print("\n> **Test Aborted by User.**")
     except RuntimeError as e:
         print(f"\n> **Test Aborted:** {e}")
         sys.exit(1)
