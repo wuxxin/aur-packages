@@ -1,0 +1,256 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# openfang-ctl - installation and management wrapper for openfang
+
+SERVICE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/openfang.service"
+ENV_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/openfang.env"
+OPENFANG_HOME="$HOME/.local/share/openfang"
+
+cmd_install() {
+	echo "Setting up openfang home directory at $OPENFANG_HOME..."
+	mkdir -p "$OPENFANG_HOME"
+
+	echo "Generating systemd user service..."
+	mkdir -p "$(dirname "$SERVICE_FILE")"
+
+	# Touch env file if it doesn't exist
+	touch "$ENV_FILE"
+
+	cat >"$SERVICE_FILE" <<'EOF'
+[Unit]
+Description=OpenFang Agent OS Daemon
+Documentation=https://github.com/RightNow-AI/openfang
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=HOME=%h/.local/share/openfang
+EnvironmentFile=-%h/.config/systemd/user/openfang.env
+WorkingDirectory=%h/.local/share/openfang
+ExecStart=/usr/bin/openfang start
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=openfang
+
+# Security measures
+# Note on Podman user access:
+# To allow rootless podman inside this service, you typically need to:
+# 1. Remove/Disable NoNewPrivileges=yes (or ensure subuid/subgid mapping allows it).
+# 2. Add SystemCallFilter= (or remove restrictions) to allow clone3/unshare.
+# 3. Relax PrivateTmp, PrivateDevices, and PrivateMounts.
+# 4. Provide access to /etc/subuid, /etc/subgid, and /dev/fuse.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+# Filesystem hiding
+ProtectSystem=strict
+TemporaryFileSystem=%h
+# Retain changes by bind mounting the explicit openfang home directory
+BindPaths=%h/.local/share/openfang:%h/.local/share/openfang
+# Allow access to agent-shared as requested
+BindPaths=%h/agent-shared:%h/agent-shared
+ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateMounts=yes
+
+# Kernel and IPC constraints
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=no
+SystemCallArchitectures=native
+PrivateIPC=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+KeyringMode=private
+UMask=0077
+
+# Note: ProtectProc=invisible, ProcSubset=pid, and RestrictNamespaces=yes
+# are explicitly omitted to allow child processes to use bwrap (which needs
+# CLONE_NEWUSER and CLONE_NEWNS).
+
+[Install]
+WantedBy=default.target
+EOF
+
+	echo "Reloading systemd and enabling service..."
+	systemctl --user daemon-reload
+	systemctl --user enable openfang.service
+
+	echo "Starting service automatically..."
+	systemctl --user start openfang.service
+
+	echo "Done! Type '$0 logs' to see the output."
+}
+
+cmd_uninstall() {
+	echo "Uninstalling openfang systemd service..."
+	systemctl --user stop openfang.service || true
+	systemctl --user disable openfang.service || true
+
+	if [ -f "$SERVICE_FILE" ]; then
+		rm "$SERVICE_FILE"
+		systemctl --user daemon-reload
+		echo "Removed service file."
+	fi
+	echo "Uninstalled successfully. Data in $OPENFANG_HOME is preserved."
+}
+
+cmd_start() { systemctl --user start openfang.service; }
+cmd_stop() { systemctl --user stop openfang.service; }
+cmd_restart() { systemctl --user restart openfang.service; }
+cmd_status() { systemctl --user status openfang.service; }
+cmd_enable() { systemctl --user enable openfang.service; }
+cmd_disable() { systemctl --user disable openfang.service; }
+cmd_logs() { journalctl --user -u openfang.service -f; }
+
+cmd_edit() {
+	mkdir -p "$(dirname "$ENV_FILE")"
+	touch "$ENV_FILE"
+	${EDITOR:-nano} "$ENV_FILE"
+	echo "Restarting service to apply updated environment..."
+	cmd_restart
+}
+
+cmd_exec() {
+	echo "Starting openfang as a transient systemd service with args: $*"
+
+	local opts=(
+		--user
+		--pty
+		--wait
+		--collect
+		--quiet
+		-p "Type=exec"
+		-p "Environment=HOME=$HOME/.local/share/openfang"
+		-p "EnvironmentFile=-$HOME/.config/systemd/user/openfang.env"
+		-p "WorkingDirectory=$HOME/.local/share/openfang"
+		-p "NoNewPrivileges=yes"
+		-p "CapabilityBoundingSet="
+		-p "AmbientCapabilities="
+		-p "ProtectSystem=strict"
+		-p "TemporaryFileSystem=$HOME"
+		-p "BindPaths=$HOME/.local/share/openfang:$HOME/.local/share/openfang"
+		-p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
+		-p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
+		-p "PrivateTmp=yes"
+		-p "PrivateDevices=yes"
+		-p "PrivateMounts=yes"
+		-p "ProtectKernelTunables=yes"
+		-p "ProtectKernelModules=yes"
+		-p "ProtectKernelLogs=yes"
+		-p "ProtectControlGroups=yes"
+		-p "ProtectClock=yes"
+		-p "ProtectHostname=yes"
+		-p "LockPersonality=yes"
+		-p "MemoryDenyWriteExecute=no"
+		-p "SystemCallArchitectures=native"
+		-p "PrivateIPC=yes"
+		-p "RestrictSUIDSGID=yes"
+		-p "RestrictRealtime=yes"
+		-p "KeyringMode=private"
+		-p "UMask=0077"
+	)
+
+	systemd-run "${opts[@]}" /usr/bin/openfang "$@"
+}
+
+cmd_shell() {
+	echo "Starting interactive shell as a transient systemd service..."
+
+	local opts=(
+		--user
+		--pty
+		--wait
+		--collect
+		--quiet
+		-p "Type=exec"
+		-p "Environment=HOME=$HOME/.local/share/openfang"
+		-p "EnvironmentFile=-$HOME/.config/systemd/user/openfang.env"
+		-p "WorkingDirectory=$HOME/.local/share/openfang"
+		-p "NoNewPrivileges=yes"
+		-p "CapabilityBoundingSet="
+		-p "AmbientCapabilities="
+		-p "ProtectSystem=strict"
+		-p "TemporaryFileSystem=$HOME"
+		-p "BindPaths=$HOME/.local/share/openfang:$HOME/.local/share/openfang"
+		-p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
+		-p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
+		-p "PrivateTmp=yes"
+		-p "PrivateDevices=yes"
+		-p "PrivateMounts=yes"
+		-p "ProtectKernelTunables=yes"
+		-p "ProtectKernelModules=yes"
+		-p "ProtectKernelLogs=yes"
+		-p "ProtectControlGroups=yes"
+		-p "ProtectClock=yes"
+		-p "ProtectHostname=yes"
+		-p "LockPersonality=yes"
+		-p "MemoryDenyWriteExecute=no"
+		-p "SystemCallArchitectures=native"
+		-p "PrivateIPC=yes"
+		-p "RestrictSUIDSGID=yes"
+		-p "RestrictRealtime=yes"
+		-p "KeyringMode=private"
+		-p "UMask=0077"
+	)
+
+	systemd-run "${opts[@]}" "${SHELL:-/bin/bash}" "$@"
+}
+
+usage() {
+	echo "Usage: $0 <command>"
+	echo "Commands:"
+	echo "  install   - Setup service and openfang home directory"
+	echo "  uninstall - Stop and remove systemd service"
+	echo "  start     - Start the systemd service"
+	echo "  stop      - Stop the systemd service"
+	echo "  restart   - Restart the systemd service"
+	echo "  status    - View systemd service status"
+	echo "  enable    - Enable systemd service on boot"
+	echo "  disable   - Disable systemd service on boot"
+	echo "  logs      - Tail the systemd service logs"
+	echo "  edit      - Edit the .env file and restart the service upon exit"
+	echo "  exec      - Run openfang as a transient systemd user service with args"
+	echo "  shell     - Spawn an interactive shell in the openfang systemd environment"
+}
+
+if [ $# -lt 1 ]; then
+	usage
+	exit 1
+fi
+
+COMMAND="$1"
+shift
+
+case "$COMMAND" in
+install) cmd_install ;;
+uninstall) cmd_uninstall ;;
+start) cmd_start ;;
+stop) cmd_stop ;;
+restart) cmd_restart ;;
+status) cmd_status ;;
+enable) cmd_enable ;;
+disable) cmd_disable ;;
+logs) cmd_logs ;;
+edit) cmd_edit ;;
+exec) cmd_exec "$@" ;;
+shell) cmd_shell "$@" ;;
+*)
+	echo "Unknown command: $COMMAND"
+	usage
+	exit 1
+	;;
+esac

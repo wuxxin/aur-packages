@@ -1,0 +1,464 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# signal-cfg.sh - installation and management wrapper for signal-cli
+#
+# Manages a systemd user service (signal-cli.service) that runs signal-cli
+# in daemon mode, exposing a JSON-RPC HTTP interface at 127.0.5.1:50888.
+#
+# Register/link an account first with signal-cli directly before starting
+# the service. Configuration is read from the env file.
+
+SERVICE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/signal-cli.service"
+SERVICE_REST_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/signal-rest-api.service"
+ENV_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/signal-cli.env"
+ENV_REST_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/signal-api.env"
+SIGNAL_DATA_DIR="$HOME/.local/share/signal-cli"
+JSONRPC_CONFIG_FILE="$SIGNAL_DATA_DIR/jsonrpc2.yml"
+
+# Transient unit security options for exec/shell.
+# Signal-cli has no child isolation requirements (no bwrap/podman), so we
+# apply the tightest profile. MemoryDenyWriteExecute is omitted: the JVM
+# requires W+X pages for JIT compilation.
+# TemporaryFileSystem=$HOME creates a writable tmpfs so BindPaths can scaffold
+# mount points inside it; only the explicitly bound data dir is visible.
+
+cmd_install() {
+	echo "Setting up signal-cli data directory at $SIGNAL_DATA_DIR..."
+	mkdir -p "$SIGNAL_DATA_DIR"
+
+	echo "Generating systemd user service..."
+	mkdir -p "$(dirname "$SERVICE_FILE")"
+
+	cat >"$SERVICE_FILE" <<'EOF'
+[Unit]
+Description=Signal CLI daemon (JSON-RPC over TCP)
+Documentation=https://github.com/AsamK/signal-cli
+After=network.target
+
+[Service]
+Type=simple
+
+# Load account / runtime configuration from env file.
+EnvironmentFile=%h/.config/systemd/user/signal-cli.env
+
+# ProtectHome=yes hides $HOME before WorkingDirectory chdir; use /tmp which is
+# always accessible. signal-cli reads its data via SC_CONFIG_DIR, not the cwd.
+WorkingDirectory=/tmp
+
+# signal-cli daemon with JSON-RPC TCP endpoint.
+# SC_ACCOUNT may be empty to run in multi-account mode (all registered accounts).
+# SC_EXTRA_SUFFIXES can hold additional flags like --send-read-receipts, --ignore-stories.
+ExecStart=/bin/sh -c 'exec signal-cli \
+    ${SC_EXTRA_PREFIXES} \
+    --config "${SC_CONFIG_DIR}" \
+    ${SC_ACCOUNT:+--account "${SC_ACCOUNT}"} \
+    daemon \
+    --tcp "${SC_RPC_HOST}:${SC_RPC_PORT}" \
+    --receive-mode on-start \
+    ${SC_EXTRA_SUFFIXES}'
+
+Restart=on-failure
+RestartSec=10s
+TimeoutStopSec=30
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=signal-cli
+
+# --- Hardening ---
+# signal-cli has no child isolation requirements (no bwrap/podman).
+# Apply the tightest possible profile:
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+ProtectSystem=strict
+# TemporaryFileSystem creates a writable tmpfs at HOME so BindPaths can
+# scaffold mount points inside it. ProtectHome=yes would make HOME read-only,
+# preventing the bind mount from being applied (no mount point to attach to).
+# The tmpfs is empty except for the explicitly bound data dir — real home
+# files remain invisible to the service.
+TemporaryFileSystem=%h
+BindPaths=%h/.local/share/signal-cli:%h/.local/share/signal-cli
+ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateMounts=yes
+
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=yes
+LockPersonality=yes
+
+# Note: MemoryDenyWriteExecute is intentionally omitted.
+# The JVM requires the ability to create W+X memory mappings (JIT compilation).
+
+SystemCallArchitectures=native
+
+PrivateIPC=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+KeyringMode=private
+UMask=0077
+
+[Install]
+WantedBy=default.target
+EOF
+
+	echo "Generating Signal REST API systemd user service..."
+	cat >"$SERVICE_REST_FILE" <<EOF
+[Unit]
+Description=Signal CLI REST API Wrapper
+After=signal-cli.service
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/systemd/user/signal-api.env
+WorkingDirectory=/tmp
+ExecStart=/usr/bin/signal-cli-rest-api --signal-cli-config "$SIGNAL_DATA_DIR"
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=default.target
+EOF
+
+	if [ -f "$ENV_FILE" ]; then
+		echo "Env file already exists, skipping: $ENV_FILE"
+		echo "Remove it manually if you want to regenerate the defaults."
+	else
+		echo "Writing default env file: $ENV_FILE"
+		cat >"$ENV_FILE" <<EOF
+# signal-cli.env
+# ---------------------------------------------------------------------------
+# Configuration for the signal-cli.service daemon instance.
+# Edit this file to set your account number or adjust runtime options.
+# Reload with:  signal-cfg.sh edit   (reloads daemon and restarts automatically)
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# ACCOUNT SETTINGS
+# ---------------------------------------------------------------------------
+
+# Path where signal-cli stores its data (accounts, keys, attachments).
+# Default: \$HOME/.local/share/signal-cli
+SC_CONFIG_DIR=$HOME/.local/share/signal-cli
+
+# Your registered Signal phone number in E.164 format, e.g. +491234567890.
+# Leave empty to run in multi-account mode (serves all registered accounts).
+SC_ACCOUNT=
+
+# ---------------------------------------------------------------------------
+# NETWORK SETTINGS
+# ---------------------------------------------------------------------------
+
+# TCP bind address and port for the internal JSON-RPC interface.
+# The REST API wrapper connects here. MUST be 127.0.0.1 for the Go wrapper.
+SC_RPC_HOST=127.0.0.1
+SC_RPC_PORT=50888
+
+# ---------------------------------------------------------------------------
+# EXTRA FLAGS (optional, space-separated)
+
+# Valid options:
+#   --send-read-receipts   Send read receipts automatically
+#   --ignore-attachments   Skip downloading attachments
+#   --ignore-stories       Suppress story messages
+# ---------------------------------------------------------------------------
+SC_EXTRA_SUFFIXES=--ignore-stories
+
+# Valid options: 
+#   --verbose for debug, can be repeated for more verbosity
+# ---------------------------------------------------------------------------
+SC_EXTRA_PREFIXES=--verbose
+
+EOF
+		chmod 600 "$ENV_FILE"
+	fi
+
+	if [ -f "$ENV_REST_FILE" ]; then
+		echo "REST API env file already exists, skipping: $ENV_REST_FILE"
+	else
+		echo "Writing default REST API env file: $ENV_REST_FILE"
+		cat >"$ENV_REST_FILE" <<EOF
+# signal-api.env
+# ---------------------------------------------------------------------------
+# Configuration for the signal-cli-rest-api.service wrapper.
+# ---------------------------------------------------------------------------
+
+# Public bind address and port for the REST API.
+HOST_IP=127.0.0.1
+PORT=51888
+
+# Execution mode. 'json-rpc' connects to the external signal-cli daemon.
+MODE=json-rpc
+LOG_LEVEL=info
+
+# Webhook for incoming messages (optional)
+# RECEIVE_WEBHOOK_URL=http://localhost:port/webhook
+EOF
+		chmod 600 "$ENV_REST_FILE"
+	fi
+
+	if [ -f "$JSONRPC_CONFIG_FILE" ]; then
+		echo "JSON-RPC bridge config already exists, skipping: $JSONRPC_CONFIG_FILE"
+	else
+		echo "Writing JSON-RPC bridge config: $JSONRPC_CONFIG_FILE"
+		cat >"$JSONRPC_CONFIG_FILE" <<EOF
+config:
+  "<multi-account>":
+    tcp_port: 50888
+EOF
+	fi
+
+	echo "Reloading systemd and enabling services..."
+	systemctl --user daemon-reload
+	systemctl --user enable signal-cli.service
+	systemctl --user enable signal-rest-api.service
+
+	echo "Starting services..."
+	systemctl --user start signal-cli.service
+	systemctl --user start signal-rest-api.service
+
+	echo ""
+	echo "Done! signal-cli and signal-rest-api services are running."
+	echo ""
+	echo "  REST API endpoint: http://127.0.0.1:51888"
+	echo "  Logs: signal-cfg.sh logs"
+}
+
+cmd_uninstall() {
+	echo "Uninstalling signal-cli and REST API systemd services..."
+	systemctl --user stop signal-rest-api.service 2>/dev/null || true
+	systemctl --user stop signal-cli.service 2>/dev/null || true
+	systemctl --user disable signal-rest-api.service 2>/dev/null || true
+	systemctl --user disable signal-cli.service 2>/dev/null || true
+
+	[ -f "$SERVICE_FILE" ] && rm "$SERVICE_FILE"
+	[ -f "$SERVICE_REST_FILE" ] && rm "$SERVICE_REST_FILE"
+
+	systemctl --user daemon-reload
+	echo "Removed service files."
+
+	echo ""
+	echo "Uninstalled successfully."
+	echo "Note: Env files and signal-cli data were NOT removed."
+}
+
+cmd_start() { systemctl --user start signal-cli.service signal-rest-api.service; }
+cmd_stop() { systemctl --user stop signal-rest-api.service signal-cli.service; }
+cmd_restart() { systemctl --user restart signal-cli.service signal-rest-api.service; }
+cmd_status() { systemctl --user status signal-cli.service signal-rest-api.service; }
+cmd_enable() { systemctl --user enable signal-cli.service signal-rest-api.service; }
+cmd_disable() { systemctl --user disable signal-rest-api.service signal-cli.service; }
+cmd_logs() { journalctl --user -u signal-cli.service -u signal-rest-api.service -f; }
+
+cmd_edit() {
+	local files=("$ENV_FILE" "$ENV_REST_FILE")
+	local editor
+	editor="${VISUAL:-${EDITOR:-}}"
+	if [ -z "$editor" ]; then
+		for e in sensible-editor nano vim vi; do
+			if command -v "$e" &>/dev/null; then
+				editor="$e"
+				break
+			fi
+		done
+	fi
+	if [ -z "$editor" ]; then
+		echo "No editor found. Set \$VISUAL or \$EDITOR."
+		exit 1
+	fi
+	"$editor" "${files[@]}"
+	echo "Reloading daemon and restarting services to apply updated environment..."
+	systemctl --user daemon-reload
+	cmd_restart
+}
+
+cmd_exec() {
+	echo "Starting signal-cli as a transient systemd service with args: $*"
+	local opts=(
+		--user
+		--pty
+		--wait
+		--collect
+		--quiet
+		-p "Type=exec"
+		-p "Environment=HOME=$HOME"
+		-p "EnvironmentFile=-$HOME/.config/systemd/user/signal-cli.env"
+		-p "WorkingDirectory=/tmp"
+		-p "NoNewPrivileges=yes"
+		-p "CapabilityBoundingSet="
+		-p "AmbientCapabilities="
+		-p "ProtectSystem=strict"
+		-p "TemporaryFileSystem=$HOME"
+		-p "BindPaths=$HOME/.local/share/signal-cli:$HOME/.local/share/signal-cli"
+		-p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
+		-p "PrivateTmp=yes"
+		-p "PrivateDevices=yes"
+		-p "PrivateMounts=yes"
+		-p "ProtectKernelTunables=yes"
+		-p "ProtectKernelModules=yes"
+		-p "ProtectKernelLogs=yes"
+		-p "ProtectControlGroups=yes"
+		-p "ProtectClock=yes"
+		-p "ProtectHostname=yes"
+		-p "ProtectProc=invisible"
+		-p "ProcSubset=pid"
+		-p "RestrictNamespaces=yes"
+		-p "LockPersonality=yes"
+		-p "SystemCallArchitectures=native"
+		-p "PrivateIPC=yes"
+		-p "RestrictSUIDSGID=yes"
+		-p "RestrictRealtime=yes"
+		-p "KeyringMode=private"
+		-p "UMask=0077"
+	)
+	systemd-run "${opts[@]}" signal-cli "$@"
+}
+
+cmd_shell() {
+	echo "Starting interactive shell in the signal-cli systemd environment..."
+	local opts=(
+		--user
+		--pty
+		--wait
+		--collect
+		--quiet
+		-p "Type=exec"
+		-p "Environment=HOME=$HOME"
+		-p "EnvironmentFile=-$HOME/.config/systemd/user/signal-cli.env"
+		-p "WorkingDirectory=/tmp"
+		-p "NoNewPrivileges=yes"
+		-p "CapabilityBoundingSet="
+		-p "AmbientCapabilities="
+		-p "ProtectSystem=strict"
+		-p "TemporaryFileSystem=$HOME"
+		-p "BindPaths=$HOME/.local/share/signal-cli:$HOME/.local/share/signal-cli"
+		-p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
+		-p "PrivateTmp=yes"
+		-p "PrivateDevices=yes"
+		-p "PrivateMounts=yes"
+		-p "ProtectKernelTunables=yes"
+		-p "ProtectKernelModules=yes"
+		-p "ProtectKernelLogs=yes"
+		-p "ProtectControlGroups=yes"
+		-p "ProtectClock=yes"
+		-p "ProtectHostname=yes"
+		-p "ProtectProc=invisible"
+		-p "ProcSubset=pid"
+		-p "RestrictNamespaces=yes"
+		-p "LockPersonality=yes"
+		-p "SystemCallArchitectures=native"
+		-p "PrivateIPC=yes"
+		-p "RestrictSUIDSGID=yes"
+		-p "RestrictRealtime=yes"
+		-p "KeyringMode=private"
+		-p "UMask=0077"
+	)
+	systemd-run "${opts[@]}" "${SHELL:-/bin/bash}" "$@"
+}
+
+usage() {
+	cat <<EOF
+Usage: $(basename "$0") <command>
+
+Manage the signal-cli systemd user service (JSON-RPC daemon over HTTP).
+
+Commands:
+  install   - Install service file, create default env file (if not present),
+              enable and start the service
+  uninstall - Stop, disable and remove the service file (data preserved)
+  start     - Start the systemd service
+  stop      - Stop the systemd service
+  restart   - Restart the systemd service
+  status    - View systemd service status
+  enable    - Enable systemd service on login
+  disable   - Disable systemd service on login
+  logs      - Tail the systemd service logs
+  edit      - Edit the env files (CLI and REST) in \$VISUAL/\$EDITOR;
+              daemon-reload and restart on exit
+  exec      - Run signal-cli as a transient hardened systemd unit with args
+  shell     - Spawn an interactive shell in the signal-cli systemd environment
+
+Files managed:
+  Service:  $SERVICE_FILE
+  Env:      $ENV_FILE
+  Data:     $SIGNAL_DATA_DIR
+
+Environment variables (set in the env file):
+  SC_CONFIG_DIR   Path to signal-cli data directory
+                  (default: \$HOME/.local/share/signal-cli)
+  SC_ACCOUNT      Phone number in E.164 format (+49...) for single-account mode.
+                  Leave empty to serve all registered accounts (multi-account).
+  SC_HOST         HTTP bind address (default: 127.0.5.1)
+  SC_PORT         HTTP bind port    (default: 50888)
+  SC_EXTRA_SUFFIXES Additional daemon flags, space-separated, e.g.:
+                    --send-read-receipts
+                    --ignore-attachments
+                    --ignore-stories
+  SC_EXTRA_PREFIXES Additional daemon flags, space-separated, e.g.:
+                    --verbose
+
+Fixed parameters (hardcoded in ExecStart):
+  daemon                    Run in long-running daemon mode
+  --http HOST:PORT          JSON-RPC over HTTP
+  --receive-mode on-start   Begin receiving messages immediately on launch
+
+JSON-RPC endpoint (internal):
+  127.0.0.1:50888 (raw TCP)
+
+REST API endpoint:
+  http://127.0.0.1:51888
+
+
+Account setup (one-time, before first start):
+  signal-cfg.sh stop
+  signal-cfg.sh shell
+
+    signal-cli --config "\$SC_CONFIG_DIR" link --name "$(hostname)" | \
+        tee >(head -1 | qrencode -t ANSIUTF8 >&2)
+    signal-cli --config "\$SC_CONFIG_DIR" verify <code>
+
+    # or: signal-cli register --account +49...    # register new number
+    # then: signal-cli verify --account +49... <CODE>
+    # then set SC_ACCOUNT in $ENV_FILE
+
+  signal-cfg.sh start
+EOF
+}
+
+if [ $# -lt 1 ]; then
+	usage
+	exit 1
+fi
+
+COMMAND="$1"
+shift
+
+case "$COMMAND" in
+install) cmd_install ;;
+uninstall) cmd_uninstall ;;
+start) cmd_start ;;
+stop) cmd_stop ;;
+restart) cmd_restart ;;
+status) cmd_status ;;
+enable) cmd_enable ;;
+disable) cmd_disable ;;
+logs) cmd_logs ;;
+edit) cmd_edit ;;
+exec) cmd_exec "$@" ;;
+shell) cmd_shell "$@" ;;
+*)
+	echo "Unknown command: $COMMAND"
+	usage
+	exit 1
+	;;
+esac
