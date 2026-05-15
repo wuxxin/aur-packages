@@ -4,6 +4,8 @@ Archlinux [AUR packages](https://aur.archlinux.org/) i currently maintain:
 
 - [coreos-installer](coreos-installer)
     - Installer for CoreOS disk images
+- [moltis](moltis)
+    - A personal AI gateway written in Rust. One binary, sandboxed, secure.
 - [pulumi-git](pulumi-git) - Modern Infrastructure as Code
     - build from the latest git tag with enabled python and nodejs dynamic provider
 - [python-torchaudio-rocm](python-torchaudio-rocm)
