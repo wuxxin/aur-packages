@@ -15,20 +15,24 @@
 | `install` | Sets up `~/.local/share/openfang` and the systemd unit. |
 | `uninstall` | Tears down the service while preserving data. |
 | `logs` | Monitor the agent's background activities. |
-| `exec` / `shell` | Run commands in the same restricted sandbox as the daemon. |
+| `exec` | Run `openfang` commands in the same restricted sandbox. |
+| `shell` | Spawn an interactive shell for debugging within the daemon's sandbox. |
 
 ## Implementation Considerations
 
-### Nested Sandboxing (Bubblewrap)
-OpenFang is designed to run child agents inside their own `bwrap` sandboxes. To support this:
-- `RestrictNamespaces=yes` is **omitted**: `bwrap` requires `CLONE_NEWUSER` and `CLONE_NEWNS`.
-- `ProtectProc=invisible` and `ProcSubset=pid` are **omitted**: Allows the agent to mount its own `/proc` within the nested sandbox.
-- `NoNewPrivileges=yes`: Retained for security as it is compatible with unprivileged `bwrap` usage.
+### Nested Sandboxing (Bubblewrap Support)
+OpenFang often orchestrates sub-agents that require their own isolation. To support **bubblewrap (`bwrap`)** nested sandboxing:
+- **Namespaces**: `RestrictNamespaces=yes` is **omitted**. `bwrap` relies on unprivileged user namespaces (`CLONE_NEWUSER` and `CLONE_NEWNS`) to build its sandbox.
+- **Process Info**: `ProtectProc=invisible` and `ProcSubset=pid` are **omitted**. This allows `bwrap` to securely bind its own `/proc` filesystem without crashing due to lack of visibility.
+- **Elevation**: `NoNewPrivileges=yes` is maintained as it is compatible with modern `bwrap` and enhances overall security.
 
 ### Filesystem Hardening
-- `ProtectSystem=strict` and `TemporaryFileSystem=%h`: Prevents the daemon from seeing or modifying the user's real home directory except for explicitly bound paths.
-- `BindPaths=%h/.local/share/openfang`: The primary persistent data store.
-- `BindPaths=%h/agent-shared`: Integration point for sharing state with other tools.
+- **Strict Protection**: Uses `ProtectSystem=strict` and `TemporaryFileSystem=%h` to ensure the daemon cannot see or modify the user's real home directory by default.
+- **Explicit Mounts**:
+    - `~/.local/share/openfang`: Persistent data and state store.
+    - `~/agent-shared`: Shared integration directory.
+- **Read-Only System Paths**: SSL certificates and network configuration are mounted as read-only.
 
 ### Environment
-Configured via `~/.config/systemd/user/openfang.env`. The home directory for the process is redirected to its isolated data path via the `HOME` environment variable within the unit.
+- **HOME Redirection**: `HOME` is set to `%h/.local/share/openfang` within the service to isolate user-level configuration (like `.ssh` or `.gitconfig`) that might be created by the agent.
+- **Secrets**: Environment variables are loaded from `~/.config/systemd/user/openfang.env`.

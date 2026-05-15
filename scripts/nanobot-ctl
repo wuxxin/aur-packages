@@ -45,11 +45,11 @@ After=network.target
 
 [Service]
 Type=simple
-Environment=HOME=%h
+Environment=HOME=%h/.nanobot
 Environment=NANOBOT_CONFIG=$CONFIG_FILE
 # Allow user to override variables
 EnvironmentFile=-%h/.config/systemd/user/nanobot.env
-WorkingDirectory=%h
+WorkingDirectory=%h/.nanobot
 ExecStart=$VENV_DIR/bin/nanobot gateway --config $CONFIG_FILE
 Restart=on-failure
 RestartSec=5s
@@ -152,6 +152,55 @@ cmd_config() {
     ${EDITOR:-nano} "$CONFIG_FILE"
 }
 
+cmd_shell() {
+    if [ ! -d "$VENV_DIR" ]; then
+        echo "Virtual environment not found. Please run 'nanobot-ctl install' first."
+        exit 1
+    fi
+    echo "Starting interactive shell in the nanobot systemd environment..."
+    
+    local opts=(
+        --user
+        --pty
+        --wait
+        --collect
+        --quiet
+        -p "Type=exec"
+        -p "Environment=HOME=$NANOBOT_HOME"
+        -p "Environment=NANOBOT_CONFIG=$CONFIG_FILE"
+        -p "EnvironmentFile=-$HOME/.config/systemd/user/nanobot.env"
+        -p "WorkingDirectory=$NANOBOT_HOME"
+        -p "NoNewPrivileges=yes"
+        -p "CapabilityBoundingSet="
+        -p "AmbientCapabilities="
+        -p "ProtectSystem=strict"
+        -p "TemporaryFileSystem=$HOME"
+        -p "BindPaths=$NANOBOT_HOME:$NANOBOT_HOME"
+        -p "BindPaths=$HOME/.local/share/nanobot:$HOME/.local/share/nanobot"
+        -p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
+        -p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
+        -p "PrivateTmp=yes"
+        -p "PrivateDevices=yes"
+        -p "PrivateMounts=yes"
+        -p "ProtectKernelTunables=yes"
+        -p "ProtectKernelModules=yes"
+        -p "ProtectKernelLogs=yes"
+        -p "ProtectControlGroups=yes"
+        -p "ProtectClock=yes"
+        -p "ProtectHostname=yes"
+        -p "LockPersonality=yes"
+        -p "MemoryDenyWriteExecute=no"
+        -p "SystemCallArchitectures=native"
+        -p "PrivateIPC=yes"
+        -p "RestrictSUIDSGID=yes"
+        -p "RestrictRealtime=yes"
+        -p "KeyringMode=private"
+        -p "UMask=0077"
+    )
+
+    systemd-run "${opts[@]}" "${SHELL:-/bin/bash}" "$@"
+}
+
 cmd_exec() {
     if [ ! -d "$VENV_DIR" ]; then
         echo "Virtual environment not found. Please run 'nanobot-ctl install' first."
@@ -166,16 +215,16 @@ cmd_exec() {
         --collect
         --quiet
         -p "Type=exec"
-        -p "Environment=HOME=$HOME"
+        -p "Environment=HOME=$NANOBOT_HOME"
         -p "Environment=NANOBOT_CONFIG=$CONFIG_FILE"
         -p "EnvironmentFile=-$HOME/.config/systemd/user/nanobot.env"
-        -p "WorkingDirectory=$HOME"
+        -p "WorkingDirectory=$NANOBOT_HOME"
         -p "NoNewPrivileges=yes"
         -p "CapabilityBoundingSet="
         -p "AmbientCapabilities="
         -p "ProtectSystem=strict"
         -p "TemporaryFileSystem=$HOME"
-        -p "BindPaths=$HOME/.nanobot:$HOME/.nanobot"
+        -p "BindPaths=$NANOBOT_HOME:$NANOBOT_HOME"
         -p "BindPaths=$HOME/.local/share/nanobot:$HOME/.local/share/nanobot"
         -p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
         -p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
@@ -230,6 +279,7 @@ usage() {
     echo "  config    - Open nanobot config file in \$EDITOR"
     echo "  update    - Upgrade the nanobot package via uv and restart the service"
     echo "  exec      - Run nanobot as a transient systemd user service with args"
+    echo "  shell     - Spawn an interactive shell in the nanobot systemd environment"
 }
 
 if [ $# -lt 1 ]; then
@@ -253,6 +303,7 @@ case "$COMMAND" in
     config) cmd_config ;;
     update) cmd_update ;;
     exec) cmd_exec "$@" ;;
+    shell) cmd_shell "$@" ;;
     *)
         echo "Unknown command: $COMMAND"
         usage

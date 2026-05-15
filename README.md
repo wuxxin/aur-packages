@@ -22,7 +22,7 @@ Archlinux [AUR packages](https://aur.archlinux.org/) i currently maintain:
 
 ---
 
-Not ready yet or temporary private Forks of Archlinux/AUR pkgs:
+### Not ready yet or temporary private Forks of Archlinux/AUR pkgs:
 
 Can be **broken or bitrotten at anytime**.
 
@@ -39,3 +39,18 @@ Can be **broken or bitrotten at anytime**.
 
 - custom pkg (currently not in AUR)
     - [signal-cli-rest-api-git](signal-cli-rest-api-git) - A small REST API around signal-cli (Go implementation) with polling support
+
+---
+
+### Scripts and Documentation:
+
+- [scripts](scripts)
+- [antigravity-sandbox](docs/antigravity-sandbox.md)
+- [hermes-ctl](docs/hermes-ctl.md)
+- [llama-cache-test](docs/llama-cache-test.md)
+- [local-inference.sh](docs/local-inference.md)
+- [moltis-ctl](docs/moltis-ctl.md)
+- [nanobot-ctl](docs/nanobot-ctl.md)
+- [openfang-ctl](docs/openfang-ctl.md)
+- [signal-ctl](docs/signal-ctl.md)
+- [other utilities](docs/UTILITIES.md)

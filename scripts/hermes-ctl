@@ -56,7 +56,7 @@ StartLimitIntervalSec=0
 [Service]
 Type=simple
 EnvironmentFile=-$ENV_FILE
-# Ensure HERMES_HOME is set even if not in EnvFile
+Environment=HOME=%h/.hermes
 Environment=HERMES_HOME=%h/.hermes
 WorkingDirectory=%h/.hermes
 ExecStart=/usr/bin/hermes gateway run --replace
