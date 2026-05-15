@@ -10,15 +10,15 @@ ENV_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/${SERVICE_NAME}.env"
 HERMES_HOME="$HOME/.hermes"
 
 cmd_install() {
-	echo "Setting up Hermes home directory at $HERMES_HOME..."
-	mkdir -p "$HERMES_HOME"
+    echo "Setting up Hermes home directory at $HERMES_HOME..."
+    mkdir -p "$HERMES_HOME"
 
-	echo "Generating systemd user service..."
-	mkdir -p "$(dirname "$SERVICE_FILE")"
+    echo "Generating systemd user service..."
+    mkdir -p "$(dirname "$SERVICE_FILE")"
 
-	# Write default env file if it doesn't exist
-	if [ ! -f "$ENV_FILE" ]; then
-		cat >"$ENV_FILE" <<'EOF'
+    # Write default env file if it doesn't exist
+    if [ ! -f "$ENV_FILE" ]; then
+        cat >"$ENV_FILE" <<'EOF'
 # Hermes Agent Environment Configuration
 # ---------------------------------------------------------------------------
 # Set your API keys and other configuration here.
@@ -41,11 +41,11 @@ HERMES_HOME=%h/.hermes
 # If using Podman instead of Docker
 # HERMES_DOCKER_BINARY=/usr/bin/podman
 EOF
-		chmod 600 "$ENV_FILE"
-		echo "Created default environment file at $ENV_FILE"
-	fi
+        chmod 600 "$ENV_FILE"
+        echo "Created default environment file at $ENV_FILE"
+    fi
 
-	cat >"$SERVICE_FILE" <<EOF
+    cat >"$SERVICE_FILE" <<EOF
 [Unit]
 Description=Hermes Agent Messaging Gateway
 Documentation=https://hermes-agent.nousresearch.com/docs/
@@ -119,30 +119,30 @@ UMask=0077
 WantedBy=default.target
 EOF
 
-	echo "Reloading systemd and enabling service..."
-	systemctl --user daemon-reload
-	systemctl --user enable "${SERVICE_NAME}.service"
+    echo "Reloading systemd and enabling service..."
+    systemctl --user daemon-reload
+    systemctl --user enable "${SERVICE_NAME}.service"
 
-	echo "Starting service automatically..."
-	systemctl --user start "${SERVICE_NAME}.service"
+    echo "Starting service automatically..."
+    systemctl --user start "${SERVICE_NAME}.service"
 
-	echo "---------------------------------------------------------------------------"
-	echo "Hermes installation complete!"
-	echo "---------------------------------------------------------------------------"
-	echo "Done! Type '$0 logs' to see the output."
+    echo "---------------------------------------------------------------------------"
+    echo "Hermes installation complete!"
+    echo "---------------------------------------------------------------------------"
+    echo "Done! Type '$0 logs' to see the output."
 }
 
 cmd_uninstall() {
-	echo "Uninstalling hermes systemd service..."
-	systemctl --user stop "${SERVICE_NAME}.service" || true
-	systemctl --user disable "${SERVICE_NAME}.service" || true
+    echo "Uninstalling hermes systemd service..."
+    systemctl --user stop "${SERVICE_NAME}.service" || true
+    systemctl --user disable "${SERVICE_NAME}.service" || true
 
-	if [ -f "$SERVICE_FILE" ]; then
-		rm "$SERVICE_FILE"
-		systemctl --user daemon-reload
-		echo "Removed service file."
-	fi
-	echo "Uninstalled successfully. Data in $HERMES_HOME and configuration in $ENV_FILE are preserved."
+    if [ -f "$SERVICE_FILE" ]; then
+        rm "$SERVICE_FILE"
+        systemctl --user daemon-reload
+        echo "Removed service file."
+    fi
+    echo "Uninstalled successfully. Data in $HERMES_HOME and configuration in $ENV_FILE are preserved."
 }
 
 cmd_start() { systemctl --user start "${SERVICE_NAME}.service"; }
@@ -154,119 +154,119 @@ cmd_disable() { systemctl --user disable "${SERVICE_NAME}.service"; }
 cmd_logs() { journalctl --user -u "${SERVICE_NAME}.service" -f; }
 
 cmd_edit() {
-	mkdir -p "$(dirname "$ENV_FILE")"
-	touch "$ENV_FILE"
-	${EDITOR:-nano} "$ENV_FILE"
-	echo "Restarting service to apply updated environment..."
-	cmd_restart
+    mkdir -p "$(dirname "$ENV_FILE")"
+    touch "$ENV_FILE"
+    ${EDITOR:-nano} "$ENV_FILE"
+    echo "Restarting service to apply updated environment..."
+    cmd_restart
 }
 
 cmd_exec() {
-	echo "Starting hermes as a transient systemd service with args: $*"
+    echo "Starting hermes as a transient systemd service with args: $*"
 
-	local opts=(
-		--user
-		--pty
-		--wait
-		--collect
-		--quiet
-		-p "Type=exec"
-		-p "EnvironmentFile=-$ENV_FILE"
-		-p "Environment=HERMES_HOME=$HERMES_HOME"
-		-p "WorkingDirectory=$HERMES_HOME"
-		-p "NoNewPrivileges=yes"
-		-p "CapabilityBoundingSet="
-		-p "AmbientCapabilities="
-		-p "ProtectSystem=strict"
-		-p "TemporaryFileSystem=$HOME"
-		-p "BindPaths=$HERMES_HOME:$HERMES_HOME"
-		-p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
-		-p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
-		-p "PrivateTmp=yes"
-		-p "PrivateDevices=yes"
-		-p "PrivateMounts=yes"
-		-p "ProtectKernelTunables=yes"
-		-p "ProtectKernelModules=yes"
-		-p "ProtectKernelLogs=yes"
-		-p "ProtectControlGroups=yes"
-		-p "ProtectClock=yes"
-		-p "ProtectHostname=yes"
-		-p "LockPersonality=yes"
-		-p "MemoryDenyWriteExecute=no"
-		-p "SystemCallArchitectures=native"
-		-p "PrivateIPC=yes"
-		-p "RestrictSUIDSGID=yes"
-		-p "RestrictRealtime=yes"
-		-p "KeyringMode=private"
-		-p "UMask=0077"
-	)
+    local opts=(
+        --user
+        --pty
+        --wait
+        --collect
+        --quiet
+        -p "Type=exec"
+        -p "EnvironmentFile=-$ENV_FILE"
+        -p "Environment=HERMES_HOME=$HERMES_HOME"
+        -p "WorkingDirectory=$HERMES_HOME"
+        -p "NoNewPrivileges=yes"
+        -p "CapabilityBoundingSet="
+        -p "AmbientCapabilities="
+        -p "ProtectSystem=strict"
+        -p "TemporaryFileSystem=$HOME"
+        -p "BindPaths=$HERMES_HOME:$HERMES_HOME"
+        -p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
+        -p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
+        -p "PrivateTmp=yes"
+        -p "PrivateDevices=yes"
+        -p "PrivateMounts=yes"
+        -p "ProtectKernelTunables=yes"
+        -p "ProtectKernelModules=yes"
+        -p "ProtectKernelLogs=yes"
+        -p "ProtectControlGroups=yes"
+        -p "ProtectClock=yes"
+        -p "ProtectHostname=yes"
+        -p "LockPersonality=yes"
+        -p "MemoryDenyWriteExecute=no"
+        -p "SystemCallArchitectures=native"
+        -p "PrivateIPC=yes"
+        -p "RestrictSUIDSGID=yes"
+        -p "RestrictRealtime=yes"
+        -p "KeyringMode=private"
+        -p "UMask=0077"
+    )
 
-	systemd-run "${opts[@]}" /usr/bin/hermes "$@"
+    systemd-run "${opts[@]}" /usr/bin/hermes "$@"
 }
 
 cmd_shell() {
-	echo "Starting interactive shell in the hermes systemd environment..."
+    echo "Starting interactive shell in the hermes systemd environment..."
 
-	local opts=(
-		--user
-		--pty
-		--wait
-		--collect
-		--quiet
-		-p "Type=exec"
-		-p "EnvironmentFile=-$ENV_FILE"
-		-p "Environment=HERMES_HOME=$HERMES_HOME"
-		-p "WorkingDirectory=$HERMES_HOME"
-		-p "NoNewPrivileges=yes"
-		-p "CapabilityBoundingSet="
-		-p "AmbientCapabilities="
-		-p "ProtectSystem=strict"
-		-p "TemporaryFileSystem=$HOME"
-		-p "BindPaths=$HERMES_HOME:$HERMES_HOME"
-		-p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
-		-p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
-		-p "PrivateTmp=yes"
-		-p "PrivateDevices=yes"
-		-p "PrivateMounts=yes"
-		-p "ProtectKernelTunables=yes"
-		-p "ProtectKernelModules=yes"
-		-p "ProtectKernelLogs=yes"
-		-p "ProtectControlGroups=yes"
-		-p "ProtectClock=yes"
-		-p "ProtectHostname=yes"
-		-p "LockPersonality=yes"
-		-p "MemoryDenyWriteExecute=no"
-		-p "SystemCallArchitectures=native"
-		-p "PrivateIPC=yes"
-		-p "RestrictSUIDSGID=yes"
-		-p "RestrictRealtime=yes"
-		-p "KeyringMode=private"
-		-p "UMask=0077"
-	)
+    local opts=(
+        --user
+        --pty
+        --wait
+        --collect
+        --quiet
+        -p "Type=exec"
+        -p "EnvironmentFile=-$ENV_FILE"
+        -p "Environment=HERMES_HOME=$HERMES_HOME"
+        -p "WorkingDirectory=$HERMES_HOME"
+        -p "NoNewPrivileges=yes"
+        -p "CapabilityBoundingSet="
+        -p "AmbientCapabilities="
+        -p "ProtectSystem=strict"
+        -p "TemporaryFileSystem=$HOME"
+        -p "BindPaths=$HERMES_HOME:$HERMES_HOME"
+        -p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
+        -p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
+        -p "PrivateTmp=yes"
+        -p "PrivateDevices=yes"
+        -p "PrivateMounts=yes"
+        -p "ProtectKernelTunables=yes"
+        -p "ProtectKernelModules=yes"
+        -p "ProtectKernelLogs=yes"
+        -p "ProtectControlGroups=yes"
+        -p "ProtectClock=yes"
+        -p "ProtectHostname=yes"
+        -p "LockPersonality=yes"
+        -p "MemoryDenyWriteExecute=no"
+        -p "SystemCallArchitectures=native"
+        -p "PrivateIPC=yes"
+        -p "RestrictSUIDSGID=yes"
+        -p "RestrictRealtime=yes"
+        -p "KeyringMode=private"
+        -p "UMask=0077"
+    )
 
-	systemd-run "${opts[@]}" "${SHELL:-/bin/bash}" "$@"
+    systemd-run "${opts[@]}" "${SHELL:-/bin/bash}" "$@"
 }
 
 usage() {
-	echo "Usage: $0 <command>"
-	echo "Commands:"
-	echo "  install   - Setup service and hermes home directory"
-	echo "  uninstall - Stop and remove systemd service"
-	echo "  start     - Start the systemd service"
-	echo "  stop      - Stop the systemd service"
-	echo "  restart   - Restart the systemd service"
-	echo "  status    - View systemd service status"
-	echo "  enable    - Enable systemd service on boot"
-	echo "  disable   - Disable systemd service on boot"
-	echo "  logs      - Tail the systemd service logs"
-	echo "  edit      - Edit the .env file and restart the service upon exit"
-	echo "  exec      - Run hermes as a transient systemd user service with args"
-	echo "  shell     - Spawn an interactive shell in the hermes systemd environment"
+    echo "Usage: $0 <command>"
+    echo "Commands:"
+    echo "  install   - Setup service and hermes home directory"
+    echo "  uninstall - Stop and remove systemd service"
+    echo "  start     - Start the systemd service"
+    echo "  stop      - Stop the systemd service"
+    echo "  restart   - Restart the systemd service"
+    echo "  status    - View systemd service status"
+    echo "  enable    - Enable systemd service on boot"
+    echo "  disable   - Disable systemd service on boot"
+    echo "  logs      - Tail the systemd service logs"
+    echo "  edit      - Edit the .env file and restart the service upon exit"
+    echo "  exec      - Run hermes as a transient systemd user service with args"
+    echo "  shell     - Spawn an interactive shell in the hermes systemd environment"
 }
 
 if [ $# -lt 1 ]; then
-	usage
-	exit 1
+    usage
+    exit 1
 fi
 
 COMMAND="$1"
@@ -286,8 +286,8 @@ edit) cmd_edit ;;
 exec) cmd_exec "$@" ;;
 shell) cmd_shell "$@" ;;
 *)
-	echo "Unknown command: $COMMAND"
-	usage
-	exit 1
-	;;
+    echo "Unknown command: $COMMAND"
+    usage
+    exit 1
+    ;;
 esac

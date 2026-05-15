@@ -33,7 +33,7 @@ ENV_FILE="${SYSTEMD_USER_DIR}/${SERVICE_NAME}.env"
 # Embedded service file (heredoc written by --install)
 # ---------------------------------------------------------------------------
 generate_service_file() {
-	cat <<'EOF'
+    cat <<'EOF'
 [Unit]
 Description=Local LLM Inference Server (llama-server)
 Documentation=https://github.com/ggml-org/llama.cpp
@@ -111,7 +111,7 @@ EOF
 # Embedded default env file (heredoc written by --install)
 # ---------------------------------------------------------------------------
 generate_env_file() {
-	cat <<'EOF'
+    cat <<'EOF'
 # local-inference.env
 # ---------------------------------------------------------------------------
 # Configuration for the local-inference.service llama-server instance.
@@ -171,61 +171,61 @@ EOF
 # ---------------------------------------------------------------------------
 
 cmd_install() {
-	echo "Installing ${SERVICE_NAME} systemd user service..."
+    echo "Installing ${SERVICE_NAME} systemd user service..."
 
-	# Create directory if needed
-	mkdir -p "${SYSTEMD_USER_DIR}"
+    # Create directory if needed
+    mkdir -p "${SYSTEMD_USER_DIR}"
 
-	# Write service file
-	echo "Writing service file: ${SERVICE_FILE}"
-	generate_service_file >"${SERVICE_FILE}"
-	chmod 644 "${SERVICE_FILE}"
-	echo "Service file written."
+    # Write service file
+    echo "Writing service file: ${SERVICE_FILE}"
+    generate_service_file >"${SERVICE_FILE}"
+    chmod 644 "${SERVICE_FILE}"
+    echo "Service file written."
 
-	# Write env file only if it doesn't exist (preserve user edits)
-	if [[ -f "${ENV_FILE}" ]]; then
-		echo "Warning: Env file already exists, skipping: ${ENV_FILE}"
-		echo "Remove it manually if you want to regenerate the defaults."
-	else
-		echo "Writing default env file: ${ENV_FILE}"
-		generate_env_file >"${ENV_FILE}"
-		chmod 600 "${ENV_FILE}"
-		echo "Env file written."
-	fi
+    # Write env file only if it doesn't exist (preserve user edits)
+    if [[ -f "${ENV_FILE}" ]]; then
+        echo "Warning: Env file already exists, skipping: ${ENV_FILE}"
+        echo "Remove it manually if you want to regenerate the defaults."
+    else
+        echo "Writing default env file: ${ENV_FILE}"
+        generate_env_file >"${ENV_FILE}"
+        chmod 600 "${ENV_FILE}"
+        echo "Env file written."
+    fi
 
-	# Reload daemon
-	echo "Reloading systemd user daemon..."
-	systemctl --user daemon-reload
+    # Reload daemon
+    echo "Reloading systemd user daemon..."
+    systemctl --user daemon-reload
 
-	# Enable and start
-	echo "Enabling and starting ${SERVICE_NAME}.service..."
-	systemctl --user enable "${SERVICE_NAME}.service"
-	systemctl --user restart "${SERVICE_NAME}.service"
+    # Enable and start
+    echo "Enabling and starting ${SERVICE_NAME}.service..."
+    systemctl --user enable "${SERVICE_NAME}.service"
+    systemctl --user restart "${SERVICE_NAME}.service"
 
-	echo "Installation complete."
-	echo ""
-	echo "  Service: ${SERVICE_FILE}"
-	echo "  Env:     ${ENV_FILE}"
-	echo ""
-	echo "  Edit the env file to select model/mmproj/template, then:"
-	echo "    $0 restart"
-	echo ""
-	echo "  Status:  $0 status"
-	echo "  Logs:    $0 logs"
+    echo "Installation complete."
+    echo ""
+    echo "  Service: ${SERVICE_FILE}"
+    echo "  Env:     ${ENV_FILE}"
+    echo ""
+    echo "  Edit the env file to select model/mmproj/template, then:"
+    echo "    $0 restart"
+    echo ""
+    echo "  Status:  $0 status"
+    echo "  Logs:    $0 logs"
 }
 
 cmd_uninstall() {
-	echo "Uninstalling ${SERVICE_NAME} systemd user service..."
-	systemctl --user stop "${SERVICE_NAME}.service" || true
-	systemctl --user disable "${SERVICE_NAME}.service" || true
+    echo "Uninstalling ${SERVICE_NAME} systemd user service..."
+    systemctl --user stop "${SERVICE_NAME}.service" || true
+    systemctl --user disable "${SERVICE_NAME}.service" || true
 
-	if [[ -f "${SERVICE_FILE}" ]]; then
-		rm -f "${SERVICE_FILE}"
-		systemctl --user daemon-reload
-		echo "Removed service file."
-	fi
+    if [[ -f "${SERVICE_FILE}" ]]; then
+        rm -f "${SERVICE_FILE}"
+        systemctl --user daemon-reload
+        echo "Removed service file."
+    fi
 
-	echo "Uninstalled successfully. Configuration in ${ENV_FILE} is preserved."
+    echo "Uninstalled successfully. Configuration in ${ENV_FILE} is preserved."
 }
 
 cmd_start() { systemctl --user start "${SERVICE_NAME}.service"; }
@@ -237,54 +237,54 @@ cmd_disable() { systemctl --user disable "${SERVICE_NAME}.service"; }
 cmd_logs() { journalctl --user -u "${SERVICE_NAME}.service" -f; }
 
 cmd_edit() {
-	mkdir -p "$(dirname "${ENV_FILE}")"
-	touch "${ENV_FILE}"
-	${EDITOR:-nano} "${ENV_FILE}"
-	echo "Restarting service to apply updated environment..."
-	cmd_restart
+    mkdir -p "$(dirname "${ENV_FILE}")"
+    touch "${ENV_FILE}"
+    ${EDITOR:-nano} "${ENV_FILE}"
+    echo "Restarting service to apply updated environment..."
+    cmd_restart
 }
 
 cmd_exec() {
-	echo "Starting llama-server as a transient systemd service with args: $*"
+    echo "Starting llama-server as a transient systemd service with args: $*"
 
-	local opts=(
-		--user
-		--pty
-		--wait
-		--collect
-		--quiet
-		-p "Type=exec"
-		-p "EnvironmentFile=-${ENV_FILE}"
-		-p "WorkingDirectory=$HOME"
-		-p "NoNewPrivileges=yes"
-		-p "CapabilityBoundingSet="
-		-p "AmbientCapabilities="
-		-p "PrivateDevices=no"
-		-p "PrivateTmp=yes"
-		-p "PrivateMounts=yes"
-		-p "PrivateIPC=yes"
-		-p "ProtectSystem=strict"
-		-p "BindPaths=$HOME"
-		-p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
-		-p "ReadWritePaths=/data/public/machine-learning"
-		-p "ProtectKernelTunables=yes"
-		-p "ProtectKernelModules=yes"
-		-p "ProtectKernelLogs=yes"
-		-p "ProtectControlGroups=yes"
-		-p "ProtectClock=yes"
-		-p "ProtectHostname=yes"
-		-p "LockPersonality=yes"
-		-p "RestrictSUIDSGID=yes"
-		-p "RestrictRealtime=yes"
-		-p "KeyringMode=private"
-		-p "UMask=0077"
-	)
+    local opts=(
+        --user
+        --pty
+        --wait
+        --collect
+        --quiet
+        -p "Type=exec"
+        -p "EnvironmentFile=-${ENV_FILE}"
+        -p "WorkingDirectory=$HOME"
+        -p "NoNewPrivileges=yes"
+        -p "CapabilityBoundingSet="
+        -p "AmbientCapabilities="
+        -p "PrivateDevices=no"
+        -p "PrivateTmp=yes"
+        -p "PrivateMounts=yes"
+        -p "PrivateIPC=yes"
+        -p "ProtectSystem=strict"
+        -p "BindPaths=$HOME"
+        -p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
+        -p "ReadWritePaths=/data/public/machine-learning"
+        -p "ProtectKernelTunables=yes"
+        -p "ProtectKernelModules=yes"
+        -p "ProtectKernelLogs=yes"
+        -p "ProtectControlGroups=yes"
+        -p "ProtectClock=yes"
+        -p "ProtectHostname=yes"
+        -p "LockPersonality=yes"
+        -p "RestrictSUIDSGID=yes"
+        -p "RestrictRealtime=yes"
+        -p "KeyringMode=private"
+        -p "UMask=0077"
+    )
 
-	if [ $# -gt 0 ]; then
-		systemd-run "${opts[@]}" llama-server "$@"
-	else
-		# shellcheck disable=SC2016
-		systemd-run "${opts[@]}" /bin/sh -c 'exec llama-server \
+    if [ $# -gt 0 ]; then
+        systemd-run "${opts[@]}" llama-server "$@"
+    else
+        # shellcheck disable=SC2016
+        systemd-run "${opts[@]}" /bin/sh -c 'exec llama-server \
             -m "${LI_MODEL}" \
             ${LI_MMPROJ_ARGS} \
             ${LI_CHAT_TEMPLATE_ARGS} \
@@ -298,31 +298,31 @@ cmd_exec() {
             -ngl 99 \
             --host ${LI_HOST} \
             --port ${LI_PORT}'
-	fi
+    fi
 }
 
 usage() {
-	echo "Usage: $0 <command>"
-	echo "Commands:"
-	echo "  install   - Setup service and default environment"
-	echo "  uninstall - Stop and remove systemd service"
-	echo "  start     - Start the systemd service"
-	echo "  stop      - Stop the systemd service"
-	echo "  restart   - Restart the systemd service"
-	echo "  status    - View systemd service status"
-	echo "  enable    - Enable systemd service on boot"
-	echo "  disable   - Disable systemd service on boot"
-	echo "  logs      - Tail the systemd service logs"
-	echo "  edit      - Edit the .env file and restart the service upon exit"
-	echo "  exec      - Run llama-server as a transient systemd user service"
+    echo "Usage: $0 <command>"
+    echo "Commands:"
+    echo "  install   - Setup service and default environment"
+    echo "  uninstall - Stop and remove systemd service"
+    echo "  start     - Start the systemd service"
+    echo "  stop      - Stop the systemd service"
+    echo "  restart   - Restart the systemd service"
+    echo "  status    - View systemd service status"
+    echo "  enable    - Enable systemd service on boot"
+    echo "  disable   - Disable systemd service on boot"
+    echo "  logs      - Tail the systemd service logs"
+    echo "  edit      - Edit the .env file and restart the service upon exit"
+    echo "  exec      - Run llama-server as a transient systemd user service"
 }
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 if [ $# -lt 1 ]; then
-	usage
-	exit 1
+    usage
+    exit 1
 fi
 
 COMMAND="$1"
@@ -341,8 +341,8 @@ logs) cmd_logs ;;
 edit) cmd_edit ;;
 exec) cmd_exec "$@" ;;
 *)
-	echo "Unknown command: $COMMAND"
-	usage
-	exit 1
-	;;
+    echo "Unknown command: $COMMAND"
+    usage
+    exit 1
+    ;;
 esac
