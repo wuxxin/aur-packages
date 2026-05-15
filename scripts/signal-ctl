@@ -54,7 +54,8 @@ ExecStart=/bin/sh -c 'exec signal-cli \
     --config "${SC_CONFIG_DIR}" \
     ${SC_ACCOUNT:+--account "${SC_ACCOUNT}"} \
     daemon \
-    --tcp "${SC_RPC_HOST}:${SC_RPC_PORT}" \
+    --tcp "${SC_TCP_HOST}:${SC_TCP_PORT}" \
+    --http "${SC_TCP_HOST}:${SC_HTTP_PORT}" \
     --receive-mode on-start \
     ${SC_EXTRA_SUFFIXES}'
 
@@ -159,10 +160,11 @@ SC_ACCOUNT=
 # NETWORK SETTINGS
 # ---------------------------------------------------------------------------
 
-# TCP bind address and port for the internal JSON-RPC interface.
+# TCP/HTTP bind address and ports for the internal JSON-RPC interface.
 # The REST API wrapper connects here. MUST be 127.0.0.1 for the Go wrapper.
-SC_RPC_HOST=127.0.0.1
-SC_RPC_PORT=50888
+SC_TCP_HOST=127.0.0.1
+SC_TCP_PORT=50887
+SC_HTTP_PORT=50888
 
 # ---------------------------------------------------------------------------
 # EXTRA FLAGS (optional, space-separated)
@@ -201,6 +203,9 @@ PORT=51888
 MODE=json-rpc
 LOG_LEVEL=info
 
+# Set to false to disable starting the REST API service automatically
+SIGNAL_REST_API_ENABLED=true
+
 # Webhook for incoming messages (optional)
 # RECEIVE_WEBHOOK_URL=http://localhost:port/webhook
 EOF
@@ -214,24 +219,42 @@ EOF
 		cat >"$JSONRPC_CONFIG_FILE" <<EOF
 config:
   "<multi-account>":
-    tcp_port: 50888
+    tcp_port: 50887
 EOF
 	fi
 
 	echo "Reloading systemd and enabling services..."
 	systemctl --user daemon-reload
 	systemctl --user enable signal-cli.service
-	systemctl --user enable signal-rest-api.service
+	
+	# Load rest api enabled status from env file
+	local rest_enabled="true"
+	if [ -f "$ENV_REST_FILE" ]; then
+		rest_enabled=$(grep "^SIGNAL_REST_API_ENABLED=" "$ENV_REST_FILE" | cut -d'=' -f2 | tr -d ' "' || echo "true")
+	fi
+
+	if [ "$rest_enabled" = "true" ]; then
+		systemctl --user enable signal-rest-api.service
+	else
+		echo "REST API is disabled in $ENV_REST_FILE, skipping enable."
+	fi
 
 	echo "Starting services..."
 	systemctl --user start signal-cli.service
-	systemctl --user start signal-rest-api.service
+	if [ "$rest_enabled" = "true" ]; then
+		systemctl --user start signal-rest-api.service
+	fi
 
 	echo ""
-	echo "Done! signal-cli and signal-rest-api services are running."
+	echo "Done! signal-cli service is running."
+	if [ "$rest_enabled" = "true" ]; then
+		echo "signal-rest-api service is running."
+		echo "  REST API endpoint: http://127.0.0.1:51888"
+	fi
 	echo ""
-	echo "  REST API endpoint: http://127.0.0.1:51888"
-	echo "  Logs: signal-cfg.sh logs"
+	echo "  TCP RPC endpoint:  ${SC_TCP_HOST:-127.0.0.1}:${SC_TCP_PORT:-50887}"
+	echo "  HTTP RPC endpoint: ${SC_TCP_HOST:-127.0.0.1}:${SC_HTTP_PORT:-50888}"
+	echo "  Logs: signal-ctl logs"
 }
 
 cmd_uninstall() {
@@ -252,13 +275,37 @@ cmd_uninstall() {
 	echo "Note: Env files and signal-cli data were NOT removed."
 }
 
-cmd_start() { systemctl --user start signal-cli.service signal-rest-api.service; }
-cmd_stop() { systemctl --user stop signal-rest-api.service signal-cli.service; }
-cmd_restart() { systemctl --user restart signal-cli.service signal-rest-api.service; }
-cmd_status() { systemctl --user status signal-cli.service signal-rest-api.service; }
-cmd_enable() { systemctl --user enable signal-cli.service signal-rest-api.service; }
-cmd_disable() { systemctl --user disable signal-rest-api.service signal-cli.service; }
-cmd_logs() { journalctl --user -u signal-cli.service -u signal-rest-api.service -f; }
+_run_service_cmd() {
+	local cmd="$1"
+	local rest_enabled="true"
+	if [ -f "$ENV_REST_FILE" ]; then
+		rest_enabled=$(grep "^SIGNAL_REST_API_ENABLED=" "$ENV_REST_FILE" | cut -d'=' -f2 | tr -d ' "' || echo "true")
+	fi
+
+	systemctl --user "$cmd" signal-cli.service
+	if [ "$rest_enabled" = "true" ]; then
+		systemctl --user "$cmd" signal-rest-api.service
+	fi
+}
+
+cmd_start() { _run_service_cmd start; }
+cmd_stop() { _run_service_cmd stop; }
+cmd_restart() { _run_service_cmd restart; }
+cmd_status() { _run_service_cmd status; }
+cmd_enable() { _run_service_cmd enable; }
+cmd_disable() { _run_service_cmd disable; }
+cmd_logs() {
+	local rest_enabled="true"
+	if [ -f "$ENV_REST_FILE" ]; then
+		rest_enabled=$(grep "^SIGNAL_REST_API_ENABLED=" "$ENV_REST_FILE" | cut -d'=' -f2 | tr -d ' "' || echo "true")
+	fi
+
+	if [ "$rest_enabled" = "true" ]; then
+		journalctl --user -u signal-cli.service -u signal-rest-api.service -f
+	else
+		journalctl --user -u signal-cli.service -f
+	fi
+}
 
 cmd_edit() {
 	local files=("$ENV_FILE" "$ENV_REST_FILE")
@@ -370,7 +417,7 @@ usage() {
 	cat <<EOF
 Usage: $(basename "$0") <command>
 
-Manage the signal-cli systemd user service (JSON-RPC daemon over HTTP).
+Manage the signal-cli systemd user service (JSON-RPC daemon over TCP/HTTP).
 
 Commands:
   install   - Install service file, create default env file (if not present),
@@ -398,8 +445,9 @@ Environment variables (set in the env file):
                   (default: \$HOME/.local/share/signal-cli)
   SC_ACCOUNT      Phone number in E.164 format (+49...) for single-account mode.
                   Leave empty to serve all registered accounts (multi-account).
-  SC_HOST         HTTP bind address (default: 127.0.5.1)
-  SC_PORT         HTTP bind port    (default: 50888)
+  SC_TCP_HOST     TCP/HTTP bind address (default: 127.0.0.1)
+  SC_TCP_PORT     TCP bind port    (default: 50887)
+  SC_HTTP_PORT    HTTP bind port   (default: 50888)
   SC_EXTRA_SUFFIXES Additional daemon flags, space-separated, e.g.:
                     --send-read-receipts
                     --ignore-attachments
@@ -412,16 +460,17 @@ Fixed parameters (hardcoded in ExecStart):
   --http HOST:PORT          JSON-RPC over HTTP
   --receive-mode on-start   Begin receiving messages immediately on launch
 
-JSON-RPC endpoint (internal):
-  127.0.0.1:50888 (raw TCP)
+JSON-RPC endpoints (internal):
+  127.0.0.1:50887 (raw TCP)
+  127.0.0.1:50888 (HTTP)
 
 REST API endpoint:
   http://127.0.0.1:51888
 
 
 Account setup (one-time, before first start):
-  signal-cfg.sh stop
-  signal-cfg.sh shell
+  signal-ctl stop
+  signal-ctl shell
 
     signal-cli --config "\$SC_CONFIG_DIR" link --name "$(hostname)" | \
         tee >(head -1 | qrencode -t ANSIUTF8 >&2)
@@ -431,7 +480,7 @@ Account setup (one-time, before first start):
     # then: signal-cli verify --account +49... <CODE>
     # then set SC_ACCOUNT in $ENV_FILE
 
-  signal-cfg.sh start
+  signal-ctl start
 EOF
 }
 

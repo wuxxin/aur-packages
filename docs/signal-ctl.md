@@ -48,8 +48,9 @@ exit
 ## Implementation Considerations
 
 ### Architecture
-- **Dual Services**: Runs the Java-based `signal-cli` as a JSON-RPC daemon (TCP port 50888) and a Go-based `signal-cli-rest-api` as a frontend (HTTP port 51888).
-- **Communication**: The REST API connects to the daemon via the JSON-RPC interface.
+- **Dual Interfaces**: Runs the Java-based `signal-cli` as a daemon with both TCP (port 50887) and HTTP (port 50888) JSON-RPC interfaces enabled.
+- **Optional REST API**: A Go-based `signal-cli-rest-api` (HTTP port 51888) can be enabled/disabled via `SIGNAL_REST_API_ENABLED`.
+- **Communication**: The REST API connects to the daemon via the TCP JSON-RPC interface on port 50887.
 
 ### Security
 - **Hardening**: `signal-cli` runs with `ProtectSystem=strict` and `TemporaryFileSystem=%h`.
@@ -57,5 +58,5 @@ exit
 - **Isolation**: The data directory `~/.local/share/signal-cli` is bind-mounted, but the rest of the home directory is hidden.
 
 ### Configuration
-- `signal-cli.env`: Controls the phone number (`SC_ACCOUNT`), RPC ports, and extra flags (e.g. `--ignore-stories`).
-- `signal-api.env`: Controls the REST API bind address and `MODE=json-rpc`.
+- `signal-cli.env`: Controls the phone number (`SC_ACCOUNT`), TCP/HTTP ports (`SC_TCP_PORT`, `SC_HTTP_PORT`), and extra flags (e.g. `--ignore-stories`).
+- `signal-api.env`: Controls the REST API bind address, `MODE=json-rpc`, and `SIGNAL_REST_API_ENABLED`.
