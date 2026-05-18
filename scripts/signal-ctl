@@ -170,9 +170,12 @@ SC_HTTP_PORT=50888
 # EXTRA FLAGS (optional, space-separated)
 
 # Valid options:
+#   --no-receive-stdout    Don’t print received messages to stdout
 #   --send-read-receipts   Send read receipts automatically
 #   --ignore-attachments   Skip downloading attachments
 #   --ignore-stories       Suppress story messages
+#   --ignore-avatars       Don't download avatars of received messages.
+#   --ignore-stickers      Don't download sticker packs of received messages.
 # ---------------------------------------------------------------------------
 SC_EXTRA_SUFFIXES=--ignore-stories
 
