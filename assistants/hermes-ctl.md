@@ -39,6 +39,22 @@ SIGNAL_GROUP_ALLOWED_USERS="group_id_1,group_id_2" # Comma-separated allowed gro
 
 Ensure the local `signal-cli` daemon is running. Hermes will automatically connect, stream inbound messages via Server-Sent Events (SSE), and reply via JSON-RPC.
 
+## Onboarding
+
+1. **Install Service**: Run `./scripts/hermes-ctl install` to set up the home directory (`~/.local/share/hermes`) and generate/enable the systemd user service.
+2. **Set Environment**: Run `./scripts/hermes-ctl edit` (or edit `~/.config/systemd/user/hermes-gateway.env`) to configure necessary provider environment variables (e.g. `OPENROUTER_API_KEY`).
+3. **Setup Wizard**: Run `./scripts/hermes-ctl exec setup` to launch the interactive configuration setup.
+4. **Start & Verify**: Start the service with `./scripts/hermes-ctl start`. Monitor its logs via `./scripts/hermes-ctl logs` and access the Web UI at `http://localhost:9119`.
+5. **Switch to Local Inference & Qwen**: Run `./scripts/hermes-ctl edit` to set `OPENAI_API_BASE=http://localhost:50080/v1` and `OPENAI_API_KEY=unused`. Run `./scripts/hermes-ctl exec setup` and configure the default model to `qwen` (or whatever model name is served by your local instance).
+
+### OpenClaw Migration
+
+Hermes supports importing configuration from an existing OpenClaw setup. To migrate your setup, run:
+```bash
+./scripts/hermes-ctl exec claw migrate
+```
+This utility will parse your legacy config formats and migrate them to the Hermes gateway structure.
+
 ## Implementation Considerations
 
 ### Graceful Shutdown and Restarts

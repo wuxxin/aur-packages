@@ -35,6 +35,29 @@ default_agent = "my-agent"          # Optional: Default agent name to route mess
 
 Ensure both the `signal-cli` daemon and the REST API wrapper (listening on port `50889`) are active. OpenFang will connect to the REST wrapper to retrieve message updates and send replies.
 
+## Onboarding
+
+1. **Install Service**: Run `./scripts/openfang-ctl install` to set up the OpenFang home directory (`~/.local/share/openfang`) and register the systemd user service.
+2. **Initialize Workspace**: Run `./scripts/openfang-ctl exec init` to initialize the configuration workspace and prompt you interactively for LLM API keys to build `openfang.toml`.
+3. **Start Service**: Start the daemon with `./scripts/openfang-ctl start`. Verify it is running by checking the dashboard at `http://localhost:4200`.
+4. **Activate Hands**: Run `./scripts/openfang-ctl exec hand activate researcher` (or your hand of choice) to start autonomous background execution. Or run `./scripts/openfang-ctl exec chat <hand_name>` to converse directly.
+5. **Switch to Local Inference & Qwen**: Add a local OpenAI provider to `~/.openfang/config.toml` (which is located under the isolated home at `~/.local/share/openfang/.openfang/config.toml`):
+   ```toml
+   [providers.models.openai.local]
+   model = "qwen"
+   uri = "http://localhost:50080/v1"
+   api_key = "unused"
+   ```
+   Update your default agent profile's routing to target `openai.local`.
+
+### OpenClaw Migration
+
+OpenFang supports automatic migration from an existing OpenClaw installation. When you run:
+```bash
+./scripts/openfang-ctl exec init
+```
+OpenFang will scan your system for legacy OpenClaw directories (such as `~/.openclaw`), read your configuration, and import existing data, agent specifications, and credentials into `openfang.toml`.
+
 ## Implementation Considerations
 
 ### Nested Sandboxing (Bubblewrap Support)

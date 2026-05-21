@@ -47,6 +47,27 @@ text_chunk_limit = 4000               # Maximum UTF-8 bytes per outbound text ch
 
 Make sure `"signal"` is included in `channels.offered` in `moltis.toml` (it is included by default).
 
+## Onboarding
+
+1. **Install Service**: Run `./scripts/moltis-ctl install` to initialize `~/.local/share/moltis`, compile assets, and generate the systemd user service.
+2. **Launch Daemon**: Start the service via `./scripts/moltis-ctl start`. On first run, a unique setup token is printed to the service output logs.
+3. **Extract Setup Token**: Run `./scripts/moltis-ctl logs | grep "setup code"` to retrieve the unique authentication code.
+4. **Initialize Web UI**: Navigate to `http://localhost:13131` in your browser, enter the setup code, and configure your administrator password or WebAuthn passkey.
+> [!TIP]
+> For unattended deployments, edit `~/.config/systemd/user/moltis.env` via `./scripts/moltis-ctl edit` and define `MOLTIS_PASSWORD`, `MOLTIS_PROVIDER`, and `MOLTIS_API_KEY` before starting the daemon to bypass the setup wizard.
+5. **Switch to Local Inference & Qwen**: Edit `~/.local/share/moltis/moltis.toml` (or via the Web UI) to configure a local OpenAI-compatible provider:
+   ```toml
+   [providers.models.openai.local]
+   model = "qwen"
+   uri = "http://localhost:50080/v1"
+   api_key = "unused"
+   ```
+   Then point your target agent to use `model_provider = "openai.local"`.
+
+### OpenClaw Migration
+
+Moltis supports OpenClaw data and setting imports directly through the Web UI. During the initial onboarding steps (at `http://localhost:13131`), if a legacy OpenClaw workspace is detected, Moltis will prompt you to import settings and agent configurations.
+
 ## Implementation Considerations
 
 ### Network Access

@@ -60,6 +60,40 @@ Add the following to your `~/.local/share/nanobot/config.json` configuration fil
 
 Ensure the local `signal-cli` daemon is running. NanoBot will connect, handle inbound messages via Server-Sent Events, convert markdown formatting to native Signal styles, and handle reconnects automatically.
 
+## Onboarding
+
+1. **Install Service**: Run `./scripts/nanobot-ctl install` to initialize `~/.local/share/nanobot`, set up the python virtualenv, install the `nanobot-ai` package, and create the systemd unit.
+2. **Configuration Wizard**: Run the interactive onboarding wizard via `./scripts/nanobot-ctl exec onboard --wizard` to generate the default configuration.
+3. **Configure API & Model**: Edit `~/.local/share/nanobot/config.json` (via `./scripts/nanobot-ctl config`) to configure your API keys (e.g. OpenRouter/Anthropic under `providers`) and default models (under `agents.defaults`).
+4. **Enable WebUI**: In the config, ensure the WebSocket channel is enabled:
+   ```json
+   { "channels": { "websocket": { "enabled": true } } }
+   ```
+5. **Start & Verify**: Run `./scripts/nanobot-ctl start`. Verify status with `./scripts/nanobot-ctl status` and access the WebUI console at `http://localhost:8790`.
+6. **Switch to Local Inference & Qwen**: Edit `~/.local/share/nanobot/config.json` to configure the local OpenAI-compatible endpoint:
+   ```json
+   {
+     "providers": {
+       "openai_compatible": {
+         "local": {
+           "api_key": "unused",
+           "base_url": "http://localhost:50080/v1"
+         }
+       }
+     },
+     "agents": {
+       "defaults": {
+         "provider": "openai_compatible/local",
+         "model": "qwen"
+       }
+     }
+   }
+   ```
+
+### OpenClaw Migration
+
+OpenClaw migration is not natively supported by NanoBot. Configuration must be set up manually using the configuration wizard (`onboard --wizard`) or by editing the JSON configuration.
+
 ### Security and Isolation
 - **Isolated HOME**: `HOME` is redirected to `~/.local/share/nanobot` within the service.
 - **Sandboxing**: Uses `ProtectSystem=strict` and `TemporaryFileSystem=%h` to prevent unauthorized home directory access.

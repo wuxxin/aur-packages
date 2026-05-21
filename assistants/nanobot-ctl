@@ -5,6 +5,7 @@ set -euo pipefail
 
 VENV_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/nanobot/venv"
 SERVICE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/nanobot.service"
+ENV_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/nanobot.env"
 NANOBOT_HOME="$HOME/.local/share/nanobot"
 CONFIG_FILE="$NANOBOT_HOME/config.json"
 PACKAGE="nanobot-ai"
@@ -16,27 +17,19 @@ require_uv() {
 	fi
 }
 
-cmd_install() {
-	require_uv
-	echo "Installing nanobot and its virtual environment..."
-
-	mkdir -p "$(dirname "$VENV_DIR")"
-	uv venv --clear --python /usr/bin/python3 "$VENV_DIR"
-
-	echo "Installing package into virtual environment..."
-	uv pip install --python "$VENV_DIR" "$PACKAGE"
-
-	if [ ! -d "$NANOBOT_HOME" ]; then
-		mkdir -p "$NANOBOT_HOME"
-		echo "Created $NANOBOT_HOME"
-	fi
-	if [ ! -f "$CONFIG_FILE" ]; then
-		echo "{}" >"$CONFIG_FILE"
-		echo "Created empty config at $CONFIG_FILE"
+write_service_file() {
+	local AGENT_PRIVATE_MOUNTS=""
+	if [ -f "$ENV_FILE" ]; then
+		set +u
+		source "$ENV_FILE"
+		set -u
 	fi
 
-	echo "Generating systemd user service..."
-	mkdir -p "$(dirname "$SERVICE_FILE")"
+	local mount_binds=""
+	for m in ${AGENT_PRIVATE_MOUNTS:-}; do
+		mkdir -p "$HOME/agent-private/$m"
+		mount_binds="${mount_binds}BindPaths=%h/agent-private/$m:%h/agent-private/$m"$'\n'
+	done
 
 	cat >"$SERVICE_FILE" <<EOF
 [Unit]
@@ -50,7 +43,7 @@ Environment=NANOBOT_CONFIG=$CONFIG_FILE
 # Allow user to override variables
 EnvironmentFile=-%h/.config/systemd/user/nanobot.env
 WorkingDirectory=%h/.local/share/nanobot
-ExecStart=$VENV_DIR/bin/nanobot gateway --config $CONFIG_FILE --port ${NANOBOT_PORT:-8790}
+ExecStart=$VENV_DIR/bin/nanobot gateway --config $CONFIG_FILE --port \${NANOBOT_PORT:-8790}
 Restart=on-failure
 RestartSec=5s
 
@@ -68,7 +61,7 @@ ProtectSystem=strict
 TemporaryFileSystem=%h
 BindPaths=%h/.local/share/nanobot:%h/.local/share/nanobot
 BindPaths=%h/agent-shared:%h/agent-shared
-ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf
+${mount_binds}ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf
 PrivateTmp=yes
 PrivateDevices=yes
 PrivateMounts=yes
@@ -97,8 +90,49 @@ UMask=0077
 WantedBy=default.target
 EOF
 
-	echo "Reloading systemd and enabling service..."
 	systemctl --user daemon-reload
+}
+
+cmd_install() {
+	require_uv
+	echo "Installing nanobot and its virtual environment..."
+
+	mkdir -p "$(dirname "$VENV_DIR")"
+	uv venv --clear --python /usr/bin/python3 "$VENV_DIR"
+
+	echo "Installing package into virtual environment..."
+	uv pip install --python "$VENV_DIR" "$PACKAGE"
+
+	if [ ! -d "$NANOBOT_HOME" ]; then
+		mkdir -p "$NANOBOT_HOME"
+		echo "Created $NANOBOT_HOME"
+	fi
+	if [ ! -f "$CONFIG_FILE" ]; then
+		echo "{}" >"$CONFIG_FILE"
+		echo "Created empty config at $CONFIG_FILE"
+	fi
+
+	echo "Generating systemd user service..."
+	mkdir -p "$(dirname "$SERVICE_FILE")"
+
+	if [ ! -f "$ENV_FILE" ]; then
+		cat >"$ENV_FILE" <<'EOF'
+# Nanobot Environment Configuration
+# ---------------------------------------------------------------------------
+# NANOBOT_PORT: Gateway port for Nanobot (default 8790)
+# NANOBOT_PORT=8790
+
+# List of submounts from ~/agent-private/* to bind-mount into the sandbox
+# (e.g., AGENT_PRIVATE_MOUNTS="health diary" binds ~/agent-private/health and ~/agent-private/diary)
+# AGENT_PRIVATE_MOUNTS=""
+EOF
+		chmod 600 "$ENV_FILE"
+		echo "Created default environment file at $ENV_FILE"
+	fi
+
+	write_service_file
+
+	echo "Reloading systemd and enabling service..."
 	systemctl --user enable nanobot.service
 
 	if [ "$(wc -c <"$CONFIG_FILE")" -le 5 ]; then
@@ -134,13 +168,36 @@ cmd_uninstall() {
 	echo "Uninstalled successfully."
 }
 
-cmd_start() { systemctl --user start nanobot.service; }
-cmd_stop() { systemctl --user stop nanobot.service; }
-cmd_restart() { systemctl --user restart nanobot.service; }
-cmd_status() { systemctl --user status nanobot.service; }
-cmd_enable() { systemctl --user enable nanobot.service; }
-cmd_disable() { systemctl --user disable nanobot.service; }
-cmd_logs() { journalctl --user -u nanobot.service -f; }
+cmd_start() {
+	write_service_file
+	systemctl --user start nanobot.service
+}
+
+cmd_stop() {
+	systemctl --user stop nanobot.service
+}
+
+cmd_restart() {
+	write_service_file
+	systemctl --user restart nanobot.service
+}
+
+cmd_status() {
+	systemctl --user status nanobot.service
+}
+
+cmd_enable() {
+	write_service_file
+	systemctl --user enable nanobot.service
+}
+
+cmd_disable() {
+	systemctl --user disable nanobot.service
+}
+
+cmd_logs() {
+	journalctl --user -u nanobot.service -f
+}
 
 cmd_config() {
 	if [ ! -f "$CONFIG_FILE" ]; then
@@ -149,6 +206,14 @@ cmd_config() {
 		echo "Created empty config at $CONFIG_FILE"
 	fi
 	${EDITOR:-nano} "$CONFIG_FILE"
+}
+
+cmd_edit() {
+	mkdir -p "$(dirname "$ENV_FILE")"
+	touch "$ENV_FILE"
+	${EDITOR:-nano} "$ENV_FILE"
+	echo "Restarting service to apply updated environment..."
+	cmd_restart
 }
 
 cmd_shell() {
@@ -177,6 +242,20 @@ cmd_shell() {
 		-p "BindPaths=$NANOBOT_HOME:$NANOBOT_HOME"
 		-p "BindPaths=$HOME/.local/share/nanobot:$HOME/.local/share/nanobot"
 		-p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
+	)
+
+	local AGENT_PRIVATE_MOUNTS=""
+	if [ -f "$ENV_FILE" ]; then
+		set +u
+		source "$ENV_FILE"
+		set -u
+	fi
+	for m in ${AGENT_PRIVATE_MOUNTS:-}; do
+		mkdir -p "$HOME/agent-private/$m"
+		opts+=(-p "BindPaths=$HOME/agent-private/$m:$HOME/agent-private/$m")
+	done
+
+	opts+=(
 		-p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
 		-p "PrivateTmp=yes"
 		-p "PrivateDevices=yes"
@@ -226,6 +305,20 @@ cmd_exec() {
 		-p "BindPaths=$NANOBOT_HOME:$NANOBOT_HOME"
 		-p "BindPaths=$HOME/.local/share/nanobot:$HOME/.local/share/nanobot"
 		-p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
+	)
+
+	local AGENT_PRIVATE_MOUNTS=""
+	if [ -f "$ENV_FILE" ]; then
+		set +u
+		source "$ENV_FILE"
+		set -u
+	fi
+	for m in ${AGENT_PRIVATE_MOUNTS:-}; do
+		mkdir -p "$HOME/agent-private/$m"
+		opts+=(-p "BindPaths=$HOME/agent-private/$m:$HOME/agent-private/$m")
+	done
+
+	opts+=(
 		-p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
 		-p "PrivateTmp=yes"
 		-p "PrivateDevices=yes"
@@ -276,6 +369,7 @@ usage() {
 	echo "  disable   - Disable systemd service on boot"
 	echo "  logs      - Tail the systemd service logs"
 	echo "  config    - Open nanobot config file in \$EDITOR"
+	echo "  edit      - Edit the .env file and restart the service upon exit"
 	echo "  update    - Upgrade the nanobot package via uv and restart the service"
 	echo "  exec      - Run nanobot as a transient systemd user service with args"
 	echo "  shell     - Spawn an interactive shell in the nanobot systemd environment"
@@ -300,6 +394,7 @@ enable) cmd_enable ;;
 disable) cmd_disable ;;
 logs) cmd_logs ;;
 config) cmd_config ;;
+edit) cmd_edit ;;
 update) cmd_update ;;
 exec) cmd_exec "$@" ;;
 shell) cmd_shell "$@" ;;
