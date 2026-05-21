@@ -70,7 +70,7 @@ Ensure the local `signal-cli` daemon is running. NanoBot will connect, handle in
    { "channels": { "websocket": { "enabled": true } } }
    ```
 5. **Start & Verify**: Run `./assistants/nanobot-ctl start`. Verify status with `./assistants/nanobot-ctl status` and access the WebUI console at `http://localhost:8790`.
-6. **Switch to Local Inference & Qwen**: Edit `~/.local/share/nanobot/config.json` to configure the local OpenAI-compatible endpoint:
+6. **Switch to Local Inference & Qwen3**: Edit `~/.local/share/nanobot/config.json` to configure the local OpenAI-compatible endpoint:
    ```json
    {
      "providers": {
@@ -84,7 +84,7 @@ Ensure the local `signal-cli` daemon is running. NanoBot will connect, handle in
      "agents": {
        "defaults": {
          "provider": "openai_compatible/local",
-         "model": "qwen"
+         "model": "qwen3"
        }
      }
    }

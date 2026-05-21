@@ -40,10 +40,10 @@ Make sure both the `signal-cli` daemon and the REST API wrapper (listening on po
 2. **Interactive Onboarding**: Run the onboarding setup wizard with `./assistants/zeroclaw-ctl exec onboard`. This will guide you through providers, models, channels, and agent configuration, outputting a minimal four-section configuration to `~/.local/share/zeroclaw/.zeroclaw/config.toml`.
 3. **Verify Connection**: Run `./assistants/zeroclaw-ctl exec auth status` to check credentials and model fallback status. Test chat via `./assistants/zeroclaw-ctl exec agent -a <agent_alias>`.
 4. **Start Gateway**: Start the service via `./assistants/zeroclaw-ctl start` to launch the background daemon (listening on port `42617`). Watch logs with `./assistants/zeroclaw-ctl logs`.
-5. **Switch to Local Inference & Qwen**: Edit `~/.local/share/zeroclaw/.zeroclaw/config.toml` and configure the local provider:
+5. **Switch to Local Inference & Qwen3**: Edit `~/.local/share/zeroclaw/.zeroclaw/config.toml` and configure the local provider:
    ```toml
    [providers.models.openai.local]
-   model = "qwen"
+   model = "qwen3"
    uri = "http://localhost:50080/v1"
    api_key = "unused"
    ```

@@ -55,10 +55,10 @@ Make sure `"signal"` is included in `channels.offered` in `moltis.toml` (it is i
 4. **Initialize Web UI**: Navigate to `http://localhost:13131` in your browser, enter the setup code, and configure your administrator password or WebAuthn passkey.
 > [!TIP]
 > For unattended deployments, edit `~/.config/systemd/user/moltis.env` via `./assistants/moltis-ctl edit` and define `MOLTIS_PASSWORD`, `MOLTIS_PROVIDER`, and `MOLTIS_API_KEY` before starting the daemon to bypass the setup wizard.
-5. **Switch to Local Inference & Qwen**: Edit `~/.local/share/moltis/moltis.toml` (or via the Web UI) to configure a local OpenAI-compatible provider:
+5. **Switch to Local Inference & Qwen3**: Edit `~/.local/share/moltis/moltis.toml` (or via the Web UI) to configure a local OpenAI-compatible provider:
    ```toml
    [providers.models.openai.local]
-   model = "qwen"
+   model = "qwen3"
    uri = "http://localhost:50080/v1"
    api_key = "unused"
    ```

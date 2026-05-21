@@ -45,7 +45,7 @@ Ensure the local `signal-cli` daemon is running. Hermes will automatically conne
 2. **Set Environment**: Run `./assistants/hermes-ctl edit` (or edit `~/.config/systemd/user/hermes-gateway.env`) to configure necessary provider environment variables (e.g. `OPENROUTER_API_KEY`).
 3. **Setup Wizard**: Run `./assistants/hermes-ctl exec setup` to launch the interactive configuration setup.
 4. **Start & Verify**: Start the service with `./assistants/hermes-ctl start`. Monitor its logs via `./assistants/hermes-ctl logs` and access the Web UI at `http://localhost:9119`.
-5. **Switch to Local Inference & Qwen**: Run `./assistants/hermes-ctl edit` to set `OPENAI_API_BASE=http://localhost:50080/v1` and `OPENAI_API_KEY=unused`. Run `./assistants/hermes-ctl exec setup` and configure the default model to `qwen` (or whatever model name is served by your local instance).
+5. **Switch to Local Inference & Qwen3**: Run `./assistants/hermes-ctl edit` to set `OPENAI_API_BASE=http://localhost:50080/v1` and `OPENAI_API_KEY=unused`. Run `./assistants/hermes-ctl exec setup` and configure the default model to `qwen3` (or whatever model name is served by your local instance).
 
 ### OpenClaw Migration
 

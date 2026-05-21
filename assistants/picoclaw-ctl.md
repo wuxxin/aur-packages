@@ -24,8 +24,8 @@
 2. **Define Config**: Configure model providers and channel rules in `~/.local/share/picoclaw/config.json`.
 3. **Test & Run**: Run `./assistants/picoclaw-ctl exec agent -m "Hello"` to test connection. Launch background messaging gateway with `./assistants/picoclaw-ctl exec gateway`.
 
-### Switch to Local Inference & Qwen
-In the WebUI, add a Custom OpenAI provider with endpoint `http://localhost:50080/v1`, model `qwen`, and key `unused`. Alternatively, configure `~/.local/share/picoclaw/config.json` manually:
+### Switch to Local Inference & Qwen3
+In the WebUI, add a Custom OpenAI provider with endpoint `http://localhost:50080/v1`, model `qwen3`, and key `unused`. Alternatively, configure `~/.local/share/picoclaw/config.json` manually:
 ```json
 {
   "providers": {
@@ -39,7 +39,7 @@ In the WebUI, add a Custom OpenAI provider with endpoint `http://localhost:50080
   "agents": {
     "default": {
       "model_provider": "openai.local",
-      "model": "qwen"
+      "model": "qwen3"
     }
   }
 }

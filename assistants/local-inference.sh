@@ -52,6 +52,7 @@ WorkingDirectory=%h
 # MMPROJ_ARGS and CHAT_TEMPLATE_ARGS may be empty strings for dense models.
 ExecStart=/bin/sh -c 'exec llama-server \
     -m "${LI_MODEL}" \
+    --alias "${LI_ALIAS:-qwen3}" \
     ${LI_MMPROJ_ARGS} \
     ${LI_CHAT_TEMPLATE_ARGS} \
     -c ${LI_N_CTX} \
@@ -123,6 +124,9 @@ generate_env_file() {
 # MODEL SELECTION - uncomment exactly ONE block below
 # Default: MoE (Qwen3.6-35B-A3B) with vision support
 # ---------------------------------------------------------------------------
+
+# Alias for the model used by agents
+LI_ALIAS=qwen3
 
 # --- MoE: Qwen3.6-35B-A3B Compact (~17 GiB file, ~17,408 MiB on GPU, vision-enabled) ---
 # Context budget: ~30704 - 17408 - 990 = ~12306 MiB free for KV
@@ -286,6 +290,7 @@ cmd_exec() {
         # shellcheck disable=SC2016
         systemd-run "${opts[@]}" /bin/sh -c 'exec llama-server \
             -m "${LI_MODEL}" \
+            --alias "${LI_ALIAS:-qwen3}" \
             ${LI_MMPROJ_ARGS} \
             ${LI_CHAT_TEMPLATE_ARGS} \
             -c ${LI_N_CTX} \
