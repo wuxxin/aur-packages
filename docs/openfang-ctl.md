@@ -20,6 +20,10 @@
 
 ## Implementation Considerations
 
+### Configuration & Ports
+- **Default Port**: `4200` (OpenFang daemon API)
+- **Secrets & Configuration**: Loaded from `~/.config/systemd/user/openfang.env` and defined via config settings (such as `api_listen` in `~/.openfang/config.toml`).
+
 ### Nested Sandboxing (Bubblewrap Support)
 OpenFang often orchestrates sub-agents that require their own isolation. To support **bubblewrap (`bwrap`)** nested sandboxing:
 - **Namespaces**: `RestrictNamespaces=yes` is **omitted**. `bwrap` relies on unprivileged user namespaces (`CLONE_NEWUSER` and `CLONE_NEWNS`) to build its sandbox.

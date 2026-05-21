@@ -6,7 +6,7 @@
 
 - **Persistent Home**: Redirects `$HOME` to `~/.local/share/antigravity` within the sandbox.
 - **Filesystem Isolation**: Mounts the host root as read-only and uses a `tmpfs` for `/tmp`.
-- **Workspace Integration**: Explicitly binds `~/AntigravityWorkspace` and `~/agent-shared` into the sandbox.
+- **Workspace Integration**: Explicitly binds `~/agent-private/antigravity` and `~/agent-shared` into the sandbox.
 - **X11/Wayland Support**: Securely shares display sockets and environment variables.
 - **Configurable Flags**: Supports custom Electron and Antigravity flags via configuration files.
 

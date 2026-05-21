@@ -200,7 +200,7 @@ EOF
 
 # Public bind address and port for the REST API.
 HOST_IP=127.0.0.1
-PORT=51888
+PORT=50889
 
 # Execution mode. 'json-rpc' connects to the external signal-cli daemon.
 MODE=json-rpc
@@ -229,7 +229,7 @@ EOF
 	echo "Reloading systemd and enabling services..."
 	systemctl --user daemon-reload
 	systemctl --user enable signal-cli.service
-	
+
 	# Load rest api enabled status from env file
 	local rest_enabled="true"
 	if [ -f "$ENV_REST_FILE" ]; then
@@ -252,7 +252,7 @@ EOF
 	echo "Done! signal-cli service is running."
 	if [ "$rest_enabled" = "true" ]; then
 		echo "signal-rest-api service is running."
-		echo "  REST API endpoint: http://127.0.0.1:51888"
+		echo "  REST API endpoint: http://127.0.0.1:50889"
 	fi
 	echo ""
 	echo "  TCP RPC endpoint:  ${SC_TCP_HOST:-127.0.0.1}:${SC_TCP_PORT:-50887}"
@@ -468,7 +468,7 @@ JSON-RPC endpoints (internal):
   127.0.0.1:50888 (HTTP)
 
 REST API endpoint:
-  http://127.0.0.1:51888
+  http://127.0.0.1:50889
 
 
 Account setup (one-time, before first start):

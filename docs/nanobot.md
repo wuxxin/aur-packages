@@ -41,6 +41,10 @@ If the configuration is empty, the installer will prompt you to run the onboardi
 ./scripts/nanobot-ctl exec onboard --wizard
 ```
 
+### Configuration & Ports
+- **Configuration File**: Stored at `~/.local/share/nanobot/config.json`.
+- **Default Port**: The gateway service runs on port `8790` (set via `--port 8790` in the systemd service unit) to prevent conflicts with other services (e.g. PicoClaw Gateway on `18790`).
+
 ### Security and Isolation
 - **Isolated HOME**: `HOME` is redirected to `~/.local/share/nanobot` within the service.
 - **Sandboxing**: Uses `ProtectSystem=strict` and `TemporaryFileSystem=%h` to prevent unauthorized home directory access.

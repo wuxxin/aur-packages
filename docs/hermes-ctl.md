@@ -28,6 +28,12 @@ This command will:
 
 ## Implementation Considerations
 
+### Configuration & Ports
+- **Default Ports**:
+  - **Gateway API (OpenAI-compatible)**: `8642`
+  - **Dashboard Web UI**: `9119`
+- **Configuration File**: Environment variables and key secrets are managed in `~/.config/systemd/user/hermes-gateway.env`.
+
 ### Graceful Shutdown and Restarts
 Hermes uses a graceful drain mechanism. The service is configured with:
 - `KillMode=mixed`: Ensures that if the gateway is interrupted, child processes (like tool-call subshells) are correctly handled.

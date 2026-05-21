@@ -49,7 +49,7 @@ exit
 
 ### Architecture
 - **Dual Interfaces**: Runs the Java-based `signal-cli` as a daemon with both TCP (port 50887) and HTTP (port 50888) JSON-RPC interfaces enabled.
-- **Optional REST API**: A Go-based `signal-cli-rest-api` (HTTP port 51888) can be enabled/disabled via `SIGNAL_REST_API_ENABLED`.
+- **Optional REST API**: A Go-based `signal-cli-rest-api` (HTTP port 50889) can be enabled/disabled via `SIGNAL_REST_API_ENABLED`.
 - **Communication**: The REST API connects to the daemon via the TCP JSON-RPC interface on port 50887.
 
 ### Security

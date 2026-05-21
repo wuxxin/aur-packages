@@ -39,7 +39,7 @@ HERMES_HOME=%h/.local/share/hermes
 # TERMINAL_ENV=local
 
 # If using Podman instead of Docker
-# HERMES_DOCKER_BINARY=/usr/bin/podman
+HERMES_DOCKER_BINARY=/usr/bin/podman
 EOF
         chmod 600 "$ENV_FILE"
         echo "Created default environment file at $ENV_FILE"

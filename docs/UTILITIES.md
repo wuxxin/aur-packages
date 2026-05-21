@@ -3,13 +3,13 @@
 
 ## `aurupgrade.sh`
 
-A simple wrapper for upgrading all local AUR packages within the `aur-packages` repository.
+A helper script for automating the upgrade of all out-of-date AUR packages on the system in the correct dependency order.
 
 ```bash
 ./scripts/aurupgrade.sh
 ```
 
-It iterates through all subdirectories containing a `PKGBUILD` and executes the build process.
+It parses available AUR updates via `pamac upgrade -a --dry-run`, sorts them to respect package dependency ordering, and builds/updates each package sequentially using `pamac build`.
 
 ## `run-on-screen.sh`
 

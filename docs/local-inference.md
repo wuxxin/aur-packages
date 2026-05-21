@@ -30,9 +30,13 @@ Because `llama-server` requires direct access to GPU device nodes:
 - The user must be in the `render` and `video` groups.
 
 ### Filesystem and Data Access
-- **Models**: Read-only access to `/data/public/machine-learning` is configured.
+- **Models**: Read-write access to `/data/public/machine-learning` is configured.
 - **Sandboxing**: Uses `ProtectSystem=strict`.
-- **Isolation**: `TemporaryFileSystem=%h` is used to hide the user's home directory, but `%h` is re-bound to allow the server to see its own config and potentially local models if moved.
+- **Isolation**: The user's home directory `%h` is bind-mounted to allow the server to read its configurations, while system paths are protected.
+
+### Configuration & Ports
+- **Default Port**: `50080` (llama-server OpenAI-compatible API)
+- **Configuration File**: Environment parameters and model settings are configured in `~/.config/systemd/user/local-inference.env` (`LI_PORT`).
 
 ### Configuration
 Model selection and specific flags (like `mmproj` for vision support) are managed in `~/.config/systemd/user/local-inference.env`.

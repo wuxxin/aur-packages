@@ -28,6 +28,10 @@ Then visit `http://localhost:13131` to enter the code and create your admin acco
 
 ## Implementation Considerations
 
+### Configuration & Ports
+- **Default Port**: `13131` (Moltis Agent Server Web UI/API)
+- **Secrets & Configuration**: Loaded from `~/.config/systemd/user/moltis.env`. Key variables include `MOLTIS_PASSWORD`, `MOLTIS_PROVIDER`, and `MOLTIS_API_KEY`.
+
 ### Network Access
 - **Privileged Binding**: `CapabilityBoundingSet=CAP_NET_BIND_SERVICE` and `AmbientCapabilities=CAP_NET_BIND_SERVICE` are set to allow Moltis to bind to privileged ports if necessary.
 - **Bind Address**: The default `ExecStart` uses `--bind 0.0.0.0`, making the server accessible across the local network.
