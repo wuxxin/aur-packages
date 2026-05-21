@@ -30,15 +30,15 @@ The following default ports are used by various agent systems and services to av
 
 | Agent/Service | Default Port(s) | Description / Protocol |
 |---------------|-----------------|------------------------|
-| **OpenFang** | [4200](localhost:4200) | OpenFang daemon API (HTTP) |
-| **Moltis** | [13131](localhost:13131) | Moltis agent server Web UI/API (HTTP) |
-| **PicoClaw** | [18790](localhost:18790), [18800](localhost:18800) | Gateway (HTTP/Webhook) & Launcher Web UI |
-| **NanoBot** | [8790](localhost:8790) | NanoBot Gateway API |
-| **Hermes** | [8000](localhost:8000), [8642](localhost:8642), [9119](localhost:9119) | Hermes Messaging Gateway (API: 8642, UI: 9119) |
-| **ZeroClaw** | [42617](localhost:42617) | ZeroClaw Gateway |
-| **NanoClaw** | [3000](localhost:3000) | Webhook Server |
-| **Signal-CLI** | `50887`, [50888](localhost:50888), [50889](localhost:50889) | TCP JSON-RPC, HTTP JSON-RPC, REST API |
-| **Local-Inference** | [50080](localhost:50080) | Llama-server local instance |
+| **OpenFang** | [4200](http://localhost:4200) | OpenFang daemon API (HTTP) |
+| **Moltis** | [13131](https://localhost:13131) | Moltis agent server Web UI/API (HTTPS) |
+| **PicoClaw** | [18790](http://localhost:18790), [18800](http://localhost:18800) | Gateway (HTTP/Webhook) & Launcher Web UI |
+| **NanoBot** | [8790](http://localhost:8790) | NanoBot Gateway API |
+| **Hermes** | [8000](http://localhost:8000), [8642](http://localhost:8642), [9119](http://localhost:9119) | Hermes Messaging Gateway (API: 8642, UI: 9119) |
+| **ZeroClaw** | [42617](http://localhost:42617) | ZeroClaw Gateway |
+| **NanoClaw** | [3000](http://localhost:3000) | Webhook Server |
+| **Signal-CLI** | `50887`, [50888](http://localhost:50888), [50889](http://localhost:50889) | TCP JSON-RPC, HTTP JSON-RPC, REST API |
+| **Local-Inference** | [50080](http://localhost:50080) | Llama-server local instance |
 
 ## Sandboxing Architecture
 

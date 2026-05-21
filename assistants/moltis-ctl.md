@@ -13,7 +13,7 @@ On the first run, Moltis generates a unique setup code. You must retrieve this f
 ```bash
 ./assistants/moltis-ctl logs
 ```
-Then visit `http://localhost:13131` to enter the code and create your admin account.
+Then visit `https://localhost:13131` to enter the code and create your admin account.
 
 ## Commands
 
@@ -52,7 +52,7 @@ Make sure `"signal"` is included in `channels.offered` in `moltis.toml` (it is i
 1. **Install Service**: Run `./assistants/moltis-ctl install` to initialize `~/.local/share/moltis`, compile assets, and generate the systemd user service.
 2. **Launch Daemon**: Start the service via `./assistants/moltis-ctl start`. On first run, a unique setup token is printed to the service output logs.
 3. **Extract Setup Token**: Run `./assistants/moltis-ctl logs | grep "setup code"` to retrieve the unique authentication code.
-4. **Initialize Web UI**: Navigate to `http://localhost:13131` in your browser, enter the setup code, and configure your administrator password or WebAuthn passkey.
+4. **Initialize Web UI**: Navigate to `https://localhost:13131` in your browser, enter the setup code, and configure your administrator password or WebAuthn passkey.
 > [!TIP]
 > For unattended deployments, edit `~/.config/systemd/user/moltis.env` via `./assistants/moltis-ctl edit` and define `MOLTIS_PASSWORD`, `MOLTIS_PROVIDER`, and `MOLTIS_API_KEY` before starting the daemon to bypass the setup wizard.
 5. **Switch to Local Inference & Qwen3**: Edit `~/.local/share/moltis/moltis.toml` (or via the Web UI) to configure a local OpenAI-compatible provider:
@@ -66,7 +66,7 @@ Make sure `"signal"` is included in `channels.offered` in `moltis.toml` (it is i
 
 ### OpenClaw Migration
 
-Moltis supports OpenClaw data and setting imports directly through the Web UI. During the initial onboarding steps (at `http://localhost:13131`), if a legacy OpenClaw workspace is detected, Moltis will prompt you to import settings and agent configurations.
+Moltis supports OpenClaw data and setting imports directly through the Web UI. During the initial onboarding steps (at `https://localhost:13131`), if a legacy OpenClaw workspace is detected, Moltis will prompt you to import settings and agent configurations.
 
 ## Implementation Considerations
 

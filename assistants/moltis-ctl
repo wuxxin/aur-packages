@@ -130,7 +130,7 @@ EOF
     echo "Moltis installation complete!"
     echo "---------------------------------------------------------------------------"
     echo "IMPORTANT: On the first run, Moltis prints a setup code to the journal."
-    echo "Run '$0 logs' to see the setup code, then visit http://localhost:13131"
+    echo "Run '$0 logs' to see the setup code, then visit https://localhost:13131"
     echo "to complete the setup."
     echo "---------------------------------------------------------------------------"
     echo "Done! Type '$0 logs' to see the output."
