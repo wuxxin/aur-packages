@@ -10,19 +10,32 @@
 
 ## Commands
 
-| Command | Description |
-|---|---|
-| `install` | Sets up `~/.local/share/openfang` and the systemd unit. |
-| `uninstall` | Tears down the service while preserving data. |
-| `logs` | Monitor the agent's background activities. |
-| `exec` | Run `openfang` commands in the same restricted sandbox. |
-| `shell` | Spawn an interactive shell for debugging within the daemon's sandbox. |
+`openfang-ctl` supports all standard management operations. For detailed command reference and sandboxing path defaults, see [Standard Control Wrappers](file:///home/wuxxin/agent-shared/code/aur-packages/assistants/assistants.md#standard-control-wrappers-assistant-ctl).
+
+## Configuration & Ports
+
+- **Default Port**: `4200` (OpenFang daemon API)
+- **Secrets & Configuration**: Loaded from `~/.config/systemd/user/openfang.env` and defined via config settings in the configuration file (`~/.openfang/config.toml`).
+
+## Signal Channel Configuration
+
+OpenFang supports native Signal integration. In this environment, it interfaces with the Go-based REST API wrapper.
+
+### Configuration
+
+Add the following to your `~/.openfang/config.toml` config file (located in the sandboxed home directory at `~/.local/share/openfang/.openfang/config.toml`):
+
+```toml
+[channels.signal]
+api_url = "http://localhost:50889"  # Endpoint of the signal-cli REST API
+phone_number = "+1234567890"        # Your registered Signal phone number
+allowed_users = ["+1987654321"]     # Optional: List of allowed phone numbers/UUIDs (empty = allow all)
+default_agent = "my-agent"          # Optional: Default agent name to route messages to
+```
+
+Ensure both the `signal-cli` daemon and the REST API wrapper (listening on port `50889`) are active. OpenFang will connect to the REST wrapper to retrieve message updates and send replies.
 
 ## Implementation Considerations
-
-### Configuration & Ports
-- **Default Port**: `4200` (OpenFang daemon API)
-- **Secrets & Configuration**: Loaded from `~/.config/systemd/user/openfang.env` and defined via config settings (such as `api_listen` in `~/.openfang/config.toml`).
 
 ### Nested Sandboxing (Bubblewrap Support)
 OpenFang often orchestrates sub-agents that require their own isolation. To support **bubblewrap (`bwrap`)** nested sandboxing:
@@ -38,5 +51,5 @@ OpenFang often orchestrates sub-agents that require their own isolation. To supp
 - **Read-Only System Paths**: SSL certificates and network configuration are mounted as read-only.
 
 ### Environment
-- **HOME Redirection**: `HOME` is set to `%h/.local/share/openfang` within the service to isolate user-level configuration (like `.ssh` or `.gitconfig`) that might be created by the agent.
+- **HOME Redirection**: `HOME` is set to `%h/.local/share/openfang` within the service to isolate user-level configuration (like `.ssh` or `.gitconfig`).
 - **Secrets**: Environment variables are loaded from `~/.config/systemd/user/openfang.env`.

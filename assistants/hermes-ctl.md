@@ -8,31 +8,38 @@
 ./scripts/hermes-ctl install
 ```
 
-This command will:
-1. Create the `~/.local/share/hermes` home directory.
-2. Generate a default environment file at `~/.config/systemd/user/hermes-gateway.env`.
-3. Create and enable the `hermes-gateway.service` systemd user unit.
-
 ## Commands
 
-| Command | Description |
-|---|---|
-| `install` | Full setup of home directory, environment, and systemd service. |
-| `uninstall` | Stops and removes the service (preserves data and config). |
-| `start` / `stop` / `restart` | Standard service controls. |
-| `status` | View service health and uptime. |
-| `logs` | Tail service output via `journalctl`. |
-| `edit` | Open the environment file in `$EDITOR` and restart the service on exit. |
-| `exec` | Run a one-shot `hermes` command inside the hardened service environment. |
-| `shell` | Spawn an interactive shell with the same environment and sandboxing. |
+`hermes-ctl` supports all standard management operations. For detailed command reference and sandboxing path defaults, see [Standard Control Wrappers](file:///home/wuxxin/agent-shared/code/aur-packages/assistants/assistants.md#standard-control-wrappers-assistant-ctl).
 
-## Implementation Considerations
+## Configuration & Ports
 
-### Configuration & Ports
 - **Default Ports**:
   - **Gateway API (OpenAI-compatible)**: `8642`
   - **Dashboard Web UI**: `9119`
 - **Configuration File**: Environment variables and key secrets are managed in `~/.config/systemd/user/hermes-gateway.env`.
+
+## Signal Channel Configuration
+
+Hermes includes native support for the Signal messaging channel, interfacing with a locally running `signal-cli` daemon.
+
+### Configuration
+
+Add the following environment variables to `~/.config/systemd/user/hermes-gateway.env` (via `./scripts/hermes-ctl edit`):
+
+```bash
+# Enable Signal by supplying the account phone number and daemon endpoint
+SIGNAL_ACCOUNT="+1234567890"  # Your registered Signal phone number
+SIGNAL_HTTP_URL="http://localhost:50888"  # Local signal-cli HTTP daemon port
+
+# Optional Access Control Allowlists
+SIGNAL_ALLOWED_USERS="+1987654321,+1555000111" # Comma-separated allowed numbers or UUIDs ("*" to allow all DMs)
+SIGNAL_GROUP_ALLOWED_USERS="group_id_1,group_id_2" # Comma-separated allowed group IDs ("*" to allow all groups)
+```
+
+Ensure the local `signal-cli` daemon is running. Hermes will automatically connect, stream inbound messages via Server-Sent Events (SSE), and reply via JSON-RPC.
+
+## Implementation Considerations
 
 ### Graceful Shutdown and Restarts
 Hermes uses a graceful drain mechanism. The service is configured with:

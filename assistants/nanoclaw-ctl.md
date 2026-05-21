@@ -10,14 +10,7 @@
 
 ## Commands
 
-| Command | Description |
-|---|---|
-| `install` | Initializes `~/.local/share/nanoclaw` and the systemd service. |
-| `uninstall` | Tears down the service (preserves data and environment). |
-| `edit` | Edit `nanoclaw.env` to apply custom environment variables. |
-| `logs` | View webhook server and background execution output. |
-| `exec` | Run `nanoclaw` CLI commands in the sandboxed environment. |
-| `shell` | Spawn an interactive shell in the nanoclaw systemd environment. |
+`nanoclaw-ctl` supports all standard management operations. For detailed command reference and sandboxing path defaults, see [Standard Control Wrappers](file:///home/wuxxin/agent-shared/code/aur-packages/assistants/assistants.md#standard-control-wrappers-assistant-ctl).
 
 ## Implementation Considerations
 

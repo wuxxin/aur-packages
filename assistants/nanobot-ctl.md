@@ -10,28 +10,11 @@ Ensure you have `uv` installed, then simply run the script's `install` command:
 ./scripts/nanobot-ctl install
 ```
 
-During installation, `nanobot-ctl` will:
-1. Create a dedicated isolated virtual environment at `~/.local/share/nanobot/venv`.
-2. Install the `nanobot-ai` package into that environment using `uv pip`.
-3. Create the `~/.local/share/nanobot` configuration directory.
-4. Generate a secured `systemd` user service unit (`nanobot.service`).
-5. Automatically enable and start the service (if initialized).
+During installation, `nanobot-ctl` will set up the isolated environment and generate standard service files.
 
 ## Commands
 
-The `nanobot-ctl` wrapper acts as your primary entry point for managing the service. 
-
-| Command | Description |
-|---|---|
-| `install` | Creates the virtual environment, installs nanobot, and sets up systemd. |
-| `uninstall` | Tears down the setup: stops/disables the service, removes the `.service` file, and deletes the `venv`. |
-| `update` | Upgrades the nanobot python package using `uv pip` and restarts the service. |
-| `start` / `stop` / `restart` | standard `systemctl --user` commands for managing the daemon. |
-| `status` | View service health and journal status. |
-| `logs` | Tail service logs using `journalctl --user -f`. |
-| `config` | Opens `~/.local/share/nanobot/config.json` inside your `$EDITOR`. |
-| `shell` | Spawns an interactive shell with the nanobot virtual environment and sandbox environment. |
-| `exec` | Run `nanobot` CLI commands in the transient sandboxed service. |
+`nanobot-ctl` supports all standard management operations. For detailed command reference and sandboxing path defaults, see [Standard Control Wrappers](file:///home/wuxxin/agent-shared/code/aur-packages/assistants/assistants.md#standard-control-wrappers-assistant-ctl).
 
 ## Implementation Considerations
 
@@ -43,14 +26,45 @@ If the configuration is empty, the installer will prompt you to run the onboardi
 
 ### Configuration & Ports
 - **Configuration File**: Stored at `~/.local/share/nanobot/config.json`.
-- **Default Port**: The gateway service runs on port `8790` (set via `--port 8790` in the systemd service unit) to prevent conflicts with other services (e.g. PicoClaw Gateway on `18790`).
+- **Default Port**: The gateway service runs on port `8790` (set via `--port 8790` in the systemd service unit) to prevent conflicts with other services.
+
+## Signal Channel Configuration
+
+NanoBot supports native Signal integration. It communicates with a local `signal-cli` daemon in HTTP mode.
+
+### Configuration
+
+Add the following to your `~/.local/share/nanobot/config.json` configuration file under the `"channels"` block (via `nanobot-ctl config`):
+
+```json
+{
+  "channels": {
+    "signal": {
+      "enabled": true,
+      "phoneNumber": "+1234567890",
+      "daemonHost": "localhost",
+      "daemonPort": 50888,
+      "dm": {
+        "enabled": true,
+        "policy": "open"
+      },
+      "group": {
+        "enabled": true,
+        "policy": "open",
+        "requireMention": true
+      }
+    }
+  }
+}
+```
+
+Ensure the local `signal-cli` daemon is running. NanoBot will connect, handle inbound messages via Server-Sent Events, convert markdown formatting to native Signal styles, and handle reconnects automatically.
 
 ### Security and Isolation
 - **Isolated HOME**: `HOME` is redirected to `~/.local/share/nanobot` within the service.
 - **Sandboxing**: Uses `ProtectSystem=strict` and `TemporaryFileSystem=%h` to prevent unauthorized home directory access.
 - **Persistent Bindings**:
     - `~/.local/share/nanobot`: Primary configuration and state.
-    - `~/.local/share/nanobot`: Virtual environment and transient data.
     - `~/agent-shared`: Shared integration directory.
 
 ### Nested Sandboxing (Bubblewrap Support)

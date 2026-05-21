@@ -10,14 +10,7 @@
 
 ## Commands
 
-| Command | Description |
-|---|---|
-| `install` | Initializes `~/.local/share/picoclaw` and the systemd service. |
-| `uninstall` | Tears down the service (preserves data and environment). |
-| `edit` | Edit `picoclaw.env` to apply custom environment variables. |
-| `logs` | View server and launcher output. |
-| `exec` | Run `picoclaw` CLI commands in the sandboxed environment. |
-| `shell` | Spawn an interactive shell in the picoclaw systemd environment. |
+`picoclaw-ctl` supports all standard management operations. For detailed command reference and sandboxing path defaults, see [Standard Control Wrappers](file:///home/wuxxin/agent-shared/code/aur-packages/assistants/assistants.md#standard-control-wrappers-assistant-ctl).
 
 ## Implementation Considerations
 
