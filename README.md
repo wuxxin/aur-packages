@@ -42,19 +42,26 @@ Can be **broken or bitrotten at anytime**.
 
 ---
 
-### Scripts and Documentation:
+### Scripts
 
 - [scripts](scripts)
     - [antigravity-sandbox](docs/antigravity-sandbox.md)
     - [llama-cache-test](docs/llama-cache-test.md)
     - [other utilities](docs/UTILITIES.md)
+
+### LLM Agent Assistants Management
+
+Scripts for managing LLM agents, with default configs as user services.
+
+- [assistants](assistants/assistants.md)
+
 - [assistants/](assistants/)
     - [hermes-ctl](assistants/hermes-ctl.md)
     - [moltis-ctl](assistants/moltis-ctl.md)
-    - [nanobot-ctl](assistants/nanobot.md)
-    - [nanoclaw-ctl](assistants/nanoclaw.md)
+    - [nanobot-ctl](assistants/nanobot-ctl.md)
+    - [nanoclaw-ctl](assistants/nanoclaw-ctl.md)
     - [openfang-ctl](assistants/openfang-ctl.md)
-    - [picoclaw-ctl](assistants/picoclaw.md)
-    - [zeroclaw-ctl](assistants/zeroclaw.md)
+    - [picoclaw-ctl](assistants/picoclaw-ctl.md)
+    - [zeroclaw-ctl](assistants/zeroclaw-ctl.md)
     - [local-inference.sh](assistants/local-inference.md)
     - [signal-ctl](assistants/signal-ctl.md)

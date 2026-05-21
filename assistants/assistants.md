@@ -1,6 +1,6 @@
 # Assistants and Integrations
 
-This document centralizes information about all AI agents, assistants, their sandboxing requirements, default port allocations, and external integrations (Local Inference and Signal) managed within this repository.
+This document describes information about all AI assistants, their sandboxing requirements, default port allocations, and external integrations (Local Inference and Signal) managed within this repository.
 
 ## Default Ports
 
