@@ -131,8 +131,7 @@ build() {
 
 ## Agent Software Configuration Documentation
 
-- document all agent software default ports in `docs/ports.md`
-- document all agent isolation requirements (for their agent operations) in `docs/sandboxing.md`
+- document all agent software default ports and isolation requirements in `assistants/assistants.md`
 
 ## Notes for Agents
 - Contains custom builds of complex software (llama.cpp, PyTorch with ROCm)
