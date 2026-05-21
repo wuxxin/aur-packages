@@ -75,6 +75,23 @@ EMBEDDING_API_BASE="http://localhost:50080/v1"
 EMBEDDING_API_KEY="unused"
 ```
 
+### Reranking Configuration
+
+Hermes supports reranking via auxiliary model slots and the QMD hybrid retrieval engine. Configure the reranker endpoint to point to the local-inference server:
+
+```bash
+# Reranking Provider Configuration
+# Options: "local", "cohere", "jina", "disabled"
+HERMES_RERANK_PROVIDER="local"
+
+# Local reranker endpoint (served by local-inference on port 50080)
+HERMES_RERANK_URL="http://localhost:50080/v1/rerank"
+HERMES_RERANK_MODEL="qwen3-reranker"
+
+# Number of top candidates to rerank after initial retrieval
+HERMES_RERANK_TOP_K=30
+```
+
 ## Onboarding
 
 1. **Install Service**: Run `./assistants/hermes-ctl install` to set up the home directory (`~/.local/share/hermes`) and generate/enable the systemd user service.

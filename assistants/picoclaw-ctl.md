@@ -89,6 +89,29 @@ Add the following to `~/.local/share/picoclaw/config.json`:
 }
 ```
 
+### Reranking Configuration
+
+PicoClaw does not include native reranking due to its ultra-lightweight design. Reranking can be delegated via MCP to the local-inference reranker endpoint. Add a reranker MCP server to `~/.local/share/picoclaw/config.json`:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "local-reranker": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-fetch"],
+        "env": {
+          "RERANK_URL": "http://localhost:50080/v1/rerank",
+          "RERANK_MODEL": "qwen3-reranker"
+        }
+      }
+    }
+  }
+}
+```
+
+The reranker endpoint accepts `POST /v1/rerank` with `{"model": "qwen3-reranker", "query": "...", "documents": ["..."]}`.
+
 ## Implementation Considerations
 
 ### Configuration & Ports

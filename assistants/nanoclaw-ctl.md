@@ -53,6 +53,18 @@ EMBEDDING_API_KEY="unused"
 MCP_SQLITE_VEC_DB_PATH="~/.local/share/nanoclaw/mcp-vectors.db"
 ```
 
+### Reranking Configuration
+
+NanoClaw does not include native reranking. Reranking can be added via a custom skill or by configuring an MCP tool that calls the local-inference reranker endpoint. Set the following in `~/.config/systemd/user/nanoclaw.env`:
+
+```bash
+# Local reranker endpoint (served by local-inference on port 50080)
+RERANK_URL="http://localhost:50080/v1/rerank"
+RERANK_MODEL="qwen3-reranker"
+```
+
+The reranker endpoint accepts `POST /v1/rerank` with `{"model": "qwen3-reranker", "query": "...", "documents": ["..."]}`. Custom agent skills can call this endpoint to reorder retrieval results before injecting them into the agent context.
+
 ## Implementation Considerations
 
 ### Configuration & Ports

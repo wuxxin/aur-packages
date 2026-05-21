@@ -66,6 +66,24 @@ api_base = "http://localhost:50080/v1"
 api_key = "unused"
 ```
 
+### Reranking Configuration
+
+ZeroClaw includes a built-in weighted hybrid search (0.7 vector similarity / 0.3 keyword FTS) that does not require an external reranker. However, you can optionally integrate an external reranker for improved precision on large retrieval sets. Add the following to `~/.local/share/zeroclaw/.zeroclaw/config.toml`:
+
+```toml
+[reranker]
+# External reranker: "local" (OpenAI-compatible /v1/rerank), or "disabled" (use built-in hybrid)
+provider = "local"
+model = "qwen3-reranker"
+
+# Local reranker endpoint (served by local-inference on port 50080)
+api_base = "http://localhost:50080/v1"
+api_key = "unused"
+
+# Number of top candidates to rerank
+top_k = 30
+```
+
 ## Onboarding
 
 1. **Install Service**: Run `./assistants/zeroclaw-ctl install` to initialize `~/.local/share/zeroclaw` and register the systemd user service.

@@ -105,6 +105,29 @@ Add the following configuration blocks to `~/.local/share/nanobot/config.json` (
 }
 ```
 
+### Reranking Configuration
+
+NanoBot does not include native reranking support. To add reranking capabilities, configure a custom MCP tool that wraps the local-inference reranker endpoint. Add the following MCP server definition to `config.json`:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "local-reranker": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-fetch"],
+        "env": {
+          "RERANK_URL": "http://localhost:50080/v1/rerank",
+          "RERANK_MODEL": "qwen3-reranker"
+        }
+      }
+    }
+  }
+}
+```
+
+The agent can then call the reranker via the MCP tool to reorder retrieval results before injecting them into context. The reranker endpoint accepts `POST /v1/rerank` with `{"model": "qwen3-reranker", "query": "...", "documents": ["..."]}`.
+
 ## Onboarding
 
 1. **Install Service**: Run `./assistants/nanobot-ctl install` to initialize `~/.local/share/nanobot`, set up the python virtualenv, install the `nanobot-ai` package, and create the systemd unit.

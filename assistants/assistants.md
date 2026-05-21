@@ -5,9 +5,9 @@ This document describes information about several AI assistants, their sandboxin
 ## Integrations
 
 ### Local Inference
-- **Description**: Manages a persistent `llama-server` instance optimized for local LLM serving, specifically tuned for AMD ROCm hardware (tested on Radeon Pro W6800). Designed for high context lengths (Qwen 35B/27B) with optimized memory access and KV cache.
+- **Description**: Manages a persistent `llama-server` instance in **router mode** (`--models-preset`), serving an LLM, an embedding model, and an optional reranker from a single process on one port. Optimized for AMD ROCm hardware (tested on Radeon Pro W6800). All models are kept warm simultaneously in VRAM.
 - **Sandboxing**: Requires `PrivateDevices=no` to access `/dev/dri` and `/dev/kfd`. Enforces `ProtectSystem=strict` while bind-mounting the user's home configuration and granting read-write access to `/data/public/machine-learning`.
-- **Features**: Flash Attention, layer GPU offloading, hardware-specific concurrency parameters.
+- **Features**: Flash Attention, layer GPU offloading, hardware-specific concurrency parameters, integrated `/v1/embeddings` and `/v1/rerank` endpoints.
 - **Arch/AUR Packages**:
   - `llama.cpp` (Official extra repository, CPU-only/OpenBLAS fallback)
   - `llama.cpp-cuda` (AUR, with CUDA acceleration for NVIDIA GPUs)
@@ -52,7 +52,7 @@ The following default ports are used by various agent systems and services to av
 | **ZeroClaw** | [42617](http://localhost:42617) | ZeroClaw Gateway |
 | **NanoClaw** | [3000](http://localhost:3000) | Webhook Server |
 | **Signal-CLI** | `50887`, [50888](http://localhost:50888), [50889](http://localhost:50889) | TCP JSON-RPC, HTTP JSON-RPC, REST API |
-| **Local-Inference** | [50080](http://localhost:50080) | Llama-server local instance |
+| **Local-Inference** | [50080](http://localhost:50080) | Llama-server router (LLM + embeddings + reranker) |
 
 ## Sandboxing Architecture
 
@@ -86,6 +86,7 @@ Used by agents that orchestrate sub-agents or use tools like Bubblewrap (`bwrap`
 - **Arch/AUR Packages**: `hermes-agent` (AUR, standard source), `hermes-agent-git` (AUR, latest git source), `hermes-agent-desktop-bin` (AUR, desktop prebuilt binary).
 - **Search & Retrieval**: Built-in SQLite-based SessionDB and State management. Full-text search (FTS5) for keyword-based search. Built-in `sqlite-vec` extension support for vector search. Native integration with external vector/RAG databases (Qdrant, Chroma) and memory frameworks (Mem0, Honcho, Supermemory, RetainDB). Maintains localized context via `MEMORY.md` and `USER.md` prompt injections.
 - **Embedding Options**: Supports remote embedding API providers (OpenAI, Cohere, Jina, Voyage AI) and local embedding models served via `llama.cpp` (local-inference) or Ollama.
+- **Reranking Support**: Native — via auxiliary model slots and QMD hybrid engine. Can route to local reranker at `http://localhost:50080/v1/rerank`.
 - **Detailed Guide & Onboarding**: [hermes-ctl.md](hermes-ctl.md)
 
 ### Moltis
@@ -96,6 +97,7 @@ Used by agents that orchestrate sub-agents or use tools like Bubblewrap (`bwrap`
 - **Arch/AUR Packages**: `moltis` (AUR package built from the current workspace directory, source compilation). Alternatives: `moltis-bin` (AUR, precompiled binary) or `moltis-git` (AUR, latest git source build).
 - **Search & Retrieval**: Built-in SQLite database with Full-Text Search (FTS5) for keyword search. Direct vector embedding storage inside SQLite. Supports an optional **QMD** sidecar that adds high-performance **BM25** keyword search, vector similarity search, and hybrid retrieval with LLM reranking. Automatically extracts facts and summarizes history when approaching context limits.
 - **Embedding Options**: Remote OpenAI-compatible embedding API endpoints. Local vector search using local GGUF models served via local inference servers or Ollama, or built-in QMD model processing.
+- **Reranking Support**: Native — QMD sidecar provides LLM reranking with `qwen3-reranker-0.6b` by default. Can also route to local-inference reranker endpoint.
 - **Detailed Guide & Onboarding**: [moltis-ctl.md](moltis-ctl.md)
 
 ### NanoBot
@@ -106,6 +108,7 @@ Used by agents that orchestrate sub-agents or use tools like Bubblewrap (`bwrap`
 - **Arch/AUR Packages**: No system-wide AUR packages are available for NanoBot. It is a lightweight Python framework designed to be installed inside a virtual environment using `uv` (pip package: `nanobot-ai`).
 - **Search & Retrieval**: Structured two-stage memory system ("Dream") that separates active conversation buffers from long-term memory. Long-term memory store uses vector similarity search (RAG) to remember facts across sessions. Built-in Document Store allows indexing, chunking, and retrieving context from local files (PDFs, TXT, markdown). Model Context Protocol (MCP) integrations can execute external search tools (e.g. Brave Search) dynamically.
 - **Embedding Options**: OpenAI-compatible embedding endpoints or local embeddings. Integrates with local embedding models via Ollama or `llama.cpp` / local-inference instances.
+- **Reranking Support**: Via MCP — no native reranking; requires a custom MCP tool wrapping the local `/v1/rerank` endpoint.
 - **Detailed Guide & Onboarding**: [nanobot-ctl.md](nanobot-ctl.md)
 
 ### NanoClaw
@@ -116,6 +119,7 @@ Used by agents that orchestrate sub-agents or use tools like Bubblewrap (`bwrap`
 - **Arch/AUR Packages**: `nanoclaw-git` (AUR, git-based source compilation). Alternatives: `nanoclaw`, `nanoclaw-bin`.
 - **Search & Retrieval**: Uses SQLite databases within the Node.js process to maintain state. Maintains `CLAUDE.md` and related markdown files in isolated agent group directories. RAG or vector retrieval is typically handled by custom agent tools or external MCP databases.
 - **Embedding Options**: Uses APIs (e.g. Anthropic, OpenAI) for remote embeddings. Local embeddings can be fetched via tools querying `local-inference` or Ollama servers.
+- **Reranking Support**: Via custom skills — no native reranking; requires a custom skill or MCP tool wrapping the local `/v1/rerank` endpoint.
 - **Detailed Guide & Onboarding**: [nanoclaw-ctl.md](nanoclaw-ctl.md)
 
 ### OpenFang
@@ -126,6 +130,7 @@ Used by agents that orchestrate sub-agents or use tools like Bubblewrap (`bwrap`
 - **Arch/AUR Packages**: `openfang-cli` (AUR, provides both CLI client and the main server binary `/usr/bin/openfang`). Alternatives: `openfang-cli-git` (AUR, git-based).
 - **Search & Retrieval**: Native integration of SQLite and vector storage for persistent agent memories and knowledge retrieval. Built-in scheduling and task memory, which allows agents to run 24/7 and store OSINT/research search results in the native database. Can connect to external databases via MCP (Model Context Protocol).
 - **Embedding Options**: Supports embedding generation via 27 supported LLM/embedding providers (OpenAI-compatible, Cohere, Anthropic, etc.). Can leverage system-wide local embeddings via the `local-inference` server.
+- **Reranking Support**: Native — configurable reranker provider (Cohere-compatible API). Can route to local reranker at `http://localhost:50080/v1/rerank`.
 - **Detailed Guide & Onboarding**: [openfang-ctl.md](openfang-ctl.md)
 
 ### PicoClaw
@@ -136,6 +141,7 @@ Used by agents that orchestrate sub-agents or use tools like Bubblewrap (`bwrap`
 - **Arch/AUR Packages**: `picoclaw` (AUR, source-based Go compilation). Alternatives: `picoclaw-bin` (AUR, pre-built binary), `picoclaw-git` (AUR, git-based).
 - **Search & Retrieval**: No native built-in vector database or complex memory engine due to its ultra-lightweight design (<10MB memory). Local state and conversation histories are stored in simple JSON files. Supports the Model Context Protocol (MCP) to delegate search and retrieval tasks to external databases or RAG servers (e.g. SQLite-vec MCP, Qdrant MCP, Chroma MCP).
 - **Embedding Options**: No native embedding models. Leverages external embedding API endpoints (OpenAI, Anthropic) or local embedding models via Ollama/llama-server via MCP tools or API routing.
+- **Reranking Support**: Via MCP — no native reranking; delegates via MCP reranker tool wrapping the local `/v1/rerank` endpoint.
 - **Detailed Guide & Onboarding**: [picoclaw-ctl.md](picoclaw-ctl.md)
 
 ### ZeroClaw
@@ -146,6 +152,7 @@ Used by agents that orchestrate sub-agents or use tools like Bubblewrap (`bwrap`
 - **Arch/AUR Packages**: `zeroclaw` (AUR, Rust source compilation), `zeroclaw-bin` (AUR, prebuilt binary distribution), `zeroclaw-git` (AUR, git-based).
 - **Search & Retrieval**: Native SQLite-based hybrid memory system. Integrates vector search and Full-Text Search (FTS) directly into SQLite. No external database infrastructure (like Pinecone or Elasticsearch) is required, keeping the runtime completely self-contained. Persistent memory handles context compression, conversation history, and user preferences.
 - **Embedding Options**: Supports OpenAI-compatible embedding APIs. Can route to local embedding models using system-wide local inference (`local-inference`) or Ollama.
+- **Reranking Support**: Native — built-in weighted hybrid search (0.7 vector / 0.3 keyword). Can integrate external reranker via configuration pointing to `http://localhost:50080/v1/rerank`.
 - **Detailed Guide & Onboarding**: [zeroclaw-ctl.md](zeroclaw-ctl.md)
 
 ---

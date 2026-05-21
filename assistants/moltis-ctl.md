@@ -85,6 +85,26 @@ uri = "http://localhost:50080/v1"
 api_key = "unused"
 ```
 
+### Reranking Configuration
+
+Moltis natively supports reranking via the QMD sidecar, which uses `qwen3-reranker-0.6b` by default for LLM-based reranking of retrieval candidates. Add the following to `~/.local/share/moltis/moltis.toml`:
+
+```toml
+[retrieval.reranker]
+# Reranker provider: "qmd" (built-in QMD model), "local" (external endpoint), or "disabled"
+provider = "local"
+
+# Local reranker endpoint (served by local-inference on port 50080)
+uri = "http://localhost:50080/v1/rerank"
+model = "qwen3-reranker"
+
+# Number of top candidates to rerank after initial retrieval
+top_k = 30
+
+# Reranking weight in final scoring (QMD default: 0.7 reranker / 0.3 original)
+weight = 0.7
+```
+
 ## Onboarding
 
 1. **Install Service**: Run `./assistants/moltis-ctl install` to initialize `~/.local/share/moltis`, compile assets, and generate the systemd user service.

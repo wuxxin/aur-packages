@@ -68,6 +68,24 @@ args = ["-y", "@modelcontextprotocol/server-qdrant"]
 env = { QDRANT_URL = "http://localhost:6333" }
 ```
 
+### Reranking Configuration
+
+OpenFang supports reranking via configurable provider endpoints (Cohere-compatible API). Add the following to `~/.openfang/config.toml` (located under `~/.local/share/openfang/.openfang/config.toml`):
+
+```toml
+[reranker]
+# Reranker provider: "local" (OpenAI-compatible /v1/rerank), "cohere", or "disabled"
+provider = "local"
+model = "qwen3-reranker"
+
+# Local reranker endpoint (served by local-inference on port 50080)
+base_url = "http://localhost:50080/v1"
+api_key = "unused"
+
+# Number of top candidates to rerank
+top_k = 30
+```
+
 ## Onboarding
 
 1. **Install Service**: Run `./assistants/openfang-ctl install` to set up the OpenFang home directory (`~/.local/share/openfang`) and register the systemd user service.
