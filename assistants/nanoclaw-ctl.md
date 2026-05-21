@@ -5,7 +5,7 @@
 ## Installation
 
 ```bash
-./scripts/nanoclaw-ctl install
+./assistants/nanoclaw-ctl install
 ```
 
 ## Commands
@@ -14,14 +14,14 @@
 
 ## Onboarding
 
-1. **Install Service**: Run `./scripts/nanoclaw-ctl install` to set up `~/.local/share/nanoclaw` and register the systemd user service.
-2. **Bootstrap Agent**: Run the initial setup command `./scripts/nanoclaw-ctl exec tsx scripts/init-first-agent.ts` (or trigger it interactively using the `/init-first-agent` operational skill via Claude Code) to initialize the central database, pair your messaging channel (Telegram, Discord, WhatsApp), and wire a messaging group.
+1. **Install Service**: Run `./assistants/nanoclaw-ctl install` to set up `~/.local/share/nanoclaw` and register the systemd user service.
+2. **Bootstrap Agent**: Run the initial setup command `./assistants/nanoclaw-ctl exec tsx scripts/init-first-agent.ts` (or trigger it interactively using the `/init-first-agent` operational skill via Claude Code) to initialize the central database, pair your messaging channel (Telegram, Discord, WhatsApp), and wire a messaging group.
 3. **Authorize OneCLI Vault Secrets**: Access the OneCLI interface (default `http://127.0.0.1:10254`). Since new agents start in `selective` credential mode, authorize keys by running:
    ```bash
    onecli agents set-secret-mode --id <agent-group-id> --mode all
    ```
-4. **Start Webhook Service**: Run `./scripts/nanoclaw-ctl start` to start the webhook server on the configured port (default `3000`). Inspect routing and execution via `./scripts/nanoclaw-ctl logs` or the `ncl` admin CLI.
-5. **Switch to Local Inference & Qwen**: Edit `~/.config/systemd/user/nanoclaw.env` (via `./scripts/nanoclaw-ctl edit`) and set `LLM_PROVIDER=openai`, `LLM_BASE_URL=http://localhost:50080/v1`, `LLM_API_KEY=unused`, and `LLM_MODEL=qwen`.
+4. **Start Webhook Service**: Run `./assistants/nanoclaw-ctl start` to start the webhook server on the configured port (default `3000`). Inspect routing and execution via `./assistants/nanoclaw-ctl logs` or the `ncl` admin CLI.
+5. **Switch to Local Inference & Qwen**: Edit `~/.config/systemd/user/nanoclaw.env` (via `./assistants/nanoclaw-ctl edit`) and set `LLM_PROVIDER=openai`, `LLM_BASE_URL=http://localhost:50080/v1`, `LLM_API_KEY=unused`, and `LLM_MODEL=qwen`.
 
 ### OpenClaw Migration
 

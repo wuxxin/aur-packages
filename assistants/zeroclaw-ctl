@@ -8,20 +8,20 @@ ENV_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/zeroclaw.env"
 ZEROCLAW_HOME="$HOME/.local/share/zeroclaw"
 
 write_service_file() {
-	local AGENT_PRIVATE_MOUNTS=""
-	if [ -f "$ENV_FILE" ]; then
-		set +u
-		source "$ENV_FILE"
-		set -u
-	fi
+    local AGENT_PRIVATE_MOUNTS=""
+    if [ -f "$ENV_FILE" ]; then
+        set +u
+        source "$ENV_FILE"
+        set -u
+    fi
 
-	local mount_binds=""
-	for m in ${AGENT_PRIVATE_MOUNTS:-}; do
-		mkdir -p "$HOME/agent-private/$m"
-		mount_binds="${mount_binds}BindPaths=%h/agent-private/$m:%h/agent-private/$m"$'\n'
-	done
+    local mount_binds=""
+    for m in ${AGENT_PRIVATE_MOUNTS:-}; do
+        mkdir -p "$HOME/agent-private/$m"
+        mount_binds="${mount_binds}BindPaths=%h/agent-private/$m:%h/agent-private/$m"$'\n'
+    done
 
-	cat >"$SERVICE_FILE" <<EOF
+    cat >"$SERVICE_FILE" <<EOF
 [Unit]
 Description=ZeroClaw Agent OS Daemon
 Documentation=https://github.com/zeroclaw-labs/zeroclaw
@@ -80,18 +80,18 @@ UMask=0077
 WantedBy=default.target
 EOF
 
-	systemctl --user daemon-reload
+    systemctl --user daemon-reload
 }
 
 cmd_install() {
-	echo "Setting up zeroclaw home directory at $ZEROCLAW_HOME..."
-	mkdir -p "$ZEROCLAW_HOME"
+    echo "Setting up zeroclaw home directory at $ZEROCLAW_HOME..."
+    mkdir -p "$ZEROCLAW_HOME"
 
-	echo "Generating systemd user service..."
-	mkdir -p "$(dirname "$SERVICE_FILE")"
+    echo "Generating systemd user service..."
+    mkdir -p "$(dirname "$SERVICE_FILE")"
 
-	if [ ! -f "$ENV_FILE" ]; then
-		cat >"$ENV_FILE" <<'EOF'
+    if [ ! -f "$ENV_FILE" ]; then
+        cat >"$ENV_FILE" <<'EOF'
 # zeroclaw.env
 # ---------------------------------------------------------------------------
 # ZEROCLAW_PORT: Gateway port for ZeroClaw (default 42617)
@@ -101,206 +101,206 @@ ZEROCLAW_PORT=42617
 # (e.g., AGENT_PRIVATE_MOUNTS="health diary" binds ~/agent-private/health and ~/agent-private/diary)
 # AGENT_PRIVATE_MOUNTS=""
 EOF
-		chmod 600 "$ENV_FILE"
-	fi
+        chmod 600 "$ENV_FILE"
+    fi
 
-	write_service_file
+    write_service_file
 
-	echo "Reloading systemd and enabling service..."
-	systemctl --user enable zeroclaw.service
+    echo "Reloading systemd and enabling service..."
+    systemctl --user enable zeroclaw.service
 
-	echo "Starting service automatically..."
-	systemctl --user start zeroclaw.service
+    echo "Starting service automatically..."
+    systemctl --user start zeroclaw.service
 
-	echo "Done! Type '$0 logs' to see the output."
+    echo "Done! Type '$0 logs' to see the output."
 }
 
 cmd_uninstall() {
-	echo "Uninstalling zeroclaw systemd service..."
-	systemctl --user stop zeroclaw.service || true
-	systemctl --user disable zeroclaw.service || true
+    echo "Uninstalling zeroclaw systemd service..."
+    systemctl --user stop zeroclaw.service || true
+    systemctl --user disable zeroclaw.service || true
 
-	if [ -f "$SERVICE_FILE" ]; then
-		rm "$SERVICE_FILE"
-		systemctl --user daemon-reload
-		echo "Removed service file."
-	fi
-	echo "Uninstalled successfully. Data in $ZEROCLAW_HOME is preserved."
+    if [ -f "$SERVICE_FILE" ]; then
+        rm "$SERVICE_FILE"
+        systemctl --user daemon-reload
+        echo "Removed service file."
+    fi
+    echo "Uninstalled successfully. Data in $ZEROCLAW_HOME is preserved."
 }
 
 cmd_start() {
-	write_service_file
-	systemctl --user start zeroclaw.service
+    write_service_file
+    systemctl --user start zeroclaw.service
 }
 
 cmd_stop() {
-	systemctl --user stop zeroclaw.service
+    systemctl --user stop zeroclaw.service
 }
 
 cmd_restart() {
-	write_service_file
-	systemctl --user restart zeroclaw.service
+    write_service_file
+    systemctl --user restart zeroclaw.service
 }
 
 cmd_status() {
-	systemctl --user status zeroclaw.service
+    systemctl --user status zeroclaw.service
 }
 
 cmd_enable() {
-	write_service_file
-	systemctl --user enable zeroclaw.service
+    write_service_file
+    systemctl --user enable zeroclaw.service
 }
 
 cmd_disable() {
-	systemctl --user disable zeroclaw.service
+    systemctl --user disable zeroclaw.service
 }
 
 cmd_logs() {
-	journalctl --user -u zeroclaw.service -f
+    journalctl --user -u zeroclaw.service -f
 }
 
 cmd_edit() {
-	mkdir -p "$(dirname "$ENV_FILE")"
-	touch "$ENV_FILE"
-	${EDITOR:-nano} "$ENV_FILE"
-	echo "Restarting service to apply updated environment..."
-	cmd_restart
+    mkdir -p "$(dirname "$ENV_FILE")"
+    touch "$ENV_FILE"
+    ${EDITOR:-nano} "$ENV_FILE"
+    echo "Restarting service to apply updated environment..."
+    cmd_restart
 }
 
 cmd_exec() {
-	echo "Starting zeroclaw as a transient systemd service with args: $*"
+    echo "Starting zeroclaw as a transient systemd service with args: $*"
 
-	local opts=(
-		--user
-		--pty
-		--wait
-		--collect
-		--quiet
-		-p "Type=exec"
-		-p "Environment=HOME=$HOME/.local/share/zeroclaw"
-		-p "EnvironmentFile=-$HOME/.config/systemd/user/zeroclaw.env"
-		-p "WorkingDirectory=$HOME/.local/share/zeroclaw"
-		-p "NoNewPrivileges=yes"
-		-p "CapabilityBoundingSet="
-		-p "AmbientCapabilities="
-		-p "ProtectSystem=strict"
-		-p "TemporaryFileSystem=$HOME"
-		-p "BindPaths=$HOME/.local/share/zeroclaw:$HOME/.local/share/zeroclaw"
-		-p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
-	)
+    local opts=(
+        --user
+        --pty
+        --wait
+        --collect
+        --quiet
+        -p "Type=exec"
+        -p "Environment=HOME=$HOME/.local/share/zeroclaw"
+        -p "EnvironmentFile=-$HOME/.config/systemd/user/zeroclaw.env"
+        -p "WorkingDirectory=$HOME/.local/share/zeroclaw"
+        -p "NoNewPrivileges=yes"
+        -p "CapabilityBoundingSet="
+        -p "AmbientCapabilities="
+        -p "ProtectSystem=strict"
+        -p "TemporaryFileSystem=$HOME"
+        -p "BindPaths=$HOME/.local/share/zeroclaw:$HOME/.local/share/zeroclaw"
+        -p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
+    )
 
-	local AGENT_PRIVATE_MOUNTS=""
-	if [ -f "$ENV_FILE" ]; then
-		set +u
-		source "$ENV_FILE"
-		set -u
-	fi
-	for m in ${AGENT_PRIVATE_MOUNTS:-}; do
-		mkdir -p "$HOME/agent-private/$m"
-		opts+=(-p "BindPaths=$HOME/agent-private/$m:$HOME/agent-private/$m")
-	done
+    local AGENT_PRIVATE_MOUNTS=""
+    if [ -f "$ENV_FILE" ]; then
+        set +u
+        source "$ENV_FILE"
+        set -u
+    fi
+    for m in ${AGENT_PRIVATE_MOUNTS:-}; do
+        mkdir -p "$HOME/agent-private/$m"
+        opts+=(-p "BindPaths=$HOME/agent-private/$m:$HOME/agent-private/$m")
+    done
 
-	opts+=(
-		-p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
-		-p "PrivateTmp=yes"
-		-p "PrivateDevices=yes"
-		-p "PrivateMounts=yes"
-		-p "ProtectKernelTunables=yes"
-		-p "ProtectKernelModules=yes"
-		-p "ProtectKernelLogs=yes"
-		-p "ProtectControlGroups=yes"
-		-p "ProtectClock=yes"
-		-p "ProtectHostname=yes"
-		-p "LockPersonality=yes"
-		-p "MemoryDenyWriteExecute=no"
-		-p "SystemCallArchitectures=native"
-		-p "PrivateIPC=yes"
-		-p "RestrictSUIDSGID=yes"
-		-p "RestrictRealtime=yes"
-		-p "KeyringMode=private"
-		-p "UMask=0077"
-	)
+    opts+=(
+        -p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
+        -p "PrivateTmp=yes"
+        -p "PrivateDevices=yes"
+        -p "PrivateMounts=yes"
+        -p "ProtectKernelTunables=yes"
+        -p "ProtectKernelModules=yes"
+        -p "ProtectKernelLogs=yes"
+        -p "ProtectControlGroups=yes"
+        -p "ProtectClock=yes"
+        -p "ProtectHostname=yes"
+        -p "LockPersonality=yes"
+        -p "MemoryDenyWriteExecute=no"
+        -p "SystemCallArchitectures=native"
+        -p "PrivateIPC=yes"
+        -p "RestrictSUIDSGID=yes"
+        -p "RestrictRealtime=yes"
+        -p "KeyringMode=private"
+        -p "UMask=0077"
+    )
 
-	systemd-run "${opts[@]}" /usr/bin/zeroclaw "$@"
+    systemd-run "${opts[@]}" /usr/bin/zeroclaw "$@"
 }
 
 cmd_shell() {
-	echo "Starting interactive shell as a transient systemd service..."
+    echo "Starting interactive shell as a transient systemd service..."
 
-	local opts=(
-		--user
-		--pty
-		--wait
-		--collect
-		--quiet
-		-p "Type=exec"
-		-p "Environment=HOME=$HOME/.local/share/zeroclaw"
-		-p "EnvironmentFile=-$HOME/.config/systemd/user/zeroclaw.env"
-		-p "WorkingDirectory=$HOME/.local/share/zeroclaw"
-		-p "NoNewPrivileges=yes"
-		-p "CapabilityBoundingSet="
-		-p "AmbientCapabilities="
-		-p "ProtectSystem=strict"
-		-p "TemporaryFileSystem=$HOME"
-		-p "BindPaths=$HOME/.local/share/zeroclaw:$HOME/.local/share/zeroclaw"
-		-p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
-	)
+    local opts=(
+        --user
+        --pty
+        --wait
+        --collect
+        --quiet
+        -p "Type=exec"
+        -p "Environment=HOME=$HOME/.local/share/zeroclaw"
+        -p "EnvironmentFile=-$HOME/.config/systemd/user/zeroclaw.env"
+        -p "WorkingDirectory=$HOME/.local/share/zeroclaw"
+        -p "NoNewPrivileges=yes"
+        -p "CapabilityBoundingSet="
+        -p "AmbientCapabilities="
+        -p "ProtectSystem=strict"
+        -p "TemporaryFileSystem=$HOME"
+        -p "BindPaths=$HOME/.local/share/zeroclaw:$HOME/.local/share/zeroclaw"
+        -p "BindPaths=$HOME/agent-shared:$HOME/agent-shared"
+    )
 
-	local AGENT_PRIVATE_MOUNTS=""
-	if [ -f "$ENV_FILE" ]; then
-		set +u
-		source "$ENV_FILE"
-		set -u
-	fi
-	for m in ${AGENT_PRIVATE_MOUNTS:-}; do
-		mkdir -p "$HOME/agent-private/$m"
-		opts+=(-p "BindPaths=$HOME/agent-private/$m:$HOME/agent-private/$m")
-	done
+    local AGENT_PRIVATE_MOUNTS=""
+    if [ -f "$ENV_FILE" ]; then
+        set +u
+        source "$ENV_FILE"
+        set -u
+    fi
+    for m in ${AGENT_PRIVATE_MOUNTS:-}; do
+        mkdir -p "$HOME/agent-private/$m"
+        opts+=(-p "BindPaths=$HOME/agent-private/$m:$HOME/agent-private/$m")
+    done
 
-	opts+=(
-		-p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
-		-p "PrivateTmp=yes"
-		-p "PrivateDevices=yes"
-		-p "PrivateMounts=yes"
-		-p "ProtectKernelTunables=yes"
-		-p "ProtectKernelModules=yes"
-		-p "ProtectKernelLogs=yes"
-		-p "ProtectControlGroups=yes"
-		-p "ProtectClock=yes"
-		-p "ProtectHostname=yes"
-		-p "LockPersonality=yes"
-		-p "MemoryDenyWriteExecute=no"
-		-p "SystemCallArchitectures=native"
-		-p "PrivateIPC=yes"
-		-p "RestrictSUIDSGID=yes"
-		-p "RestrictRealtime=yes"
-		-p "KeyringMode=private"
-		-p "UMask=0077"
-	)
+    opts+=(
+        -p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
+        -p "PrivateTmp=yes"
+        -p "PrivateDevices=yes"
+        -p "PrivateMounts=yes"
+        -p "ProtectKernelTunables=yes"
+        -p "ProtectKernelModules=yes"
+        -p "ProtectKernelLogs=yes"
+        -p "ProtectControlGroups=yes"
+        -p "ProtectClock=yes"
+        -p "ProtectHostname=yes"
+        -p "LockPersonality=yes"
+        -p "MemoryDenyWriteExecute=no"
+        -p "SystemCallArchitectures=native"
+        -p "PrivateIPC=yes"
+        -p "RestrictSUIDSGID=yes"
+        -p "RestrictRealtime=yes"
+        -p "KeyringMode=private"
+        -p "UMask=0077"
+    )
 
-	systemd-run "${opts[@]}" "${SHELL:-/bin/bash}" "$@"
+    systemd-run "${opts[@]}" "${SHELL:-/bin/bash}" "$@"
 }
 
 usage() {
-	echo "Usage: $0 <command>"
-	echo "Commands:"
-	echo "  install   - Setup service and zeroclaw home directory"
-	echo "  uninstall - Stop and remove systemd service"
-	echo "  start     - Start the systemd service"
-	echo "  stop      - Stop the systemd service"
-	echo "  restart   - Restart the systemd service"
-	echo "  status    - View systemd service status"
-	echo "  enable    - Enable systemd service on boot"
-	echo "  disable   - Disable systemd service on boot"
-	echo "  logs      - Tail the systemd service logs"
-	echo "  edit      - Edit the .env file and restart the service upon exit"
-	echo "  exec      - Run zeroclaw as a transient systemd user service with args"
-	echo "  shell     - Spawn an interactive shell in the zeroclaw systemd environment"
+    echo "Usage: $0 <command>"
+    echo "Commands:"
+    echo "  install   - Setup service and zeroclaw home directory"
+    echo "  uninstall - Stop and remove systemd service"
+    echo "  start     - Start the systemd service"
+    echo "  stop      - Stop the systemd service"
+    echo "  restart   - Restart the systemd service"
+    echo "  status    - View systemd service status"
+    echo "  enable    - Enable systemd service on boot"
+    echo "  disable   - Disable systemd service on boot"
+    echo "  logs      - Tail the systemd service logs"
+    echo "  edit      - Edit the .env file and restart the service upon exit"
+    echo "  exec      - Run zeroclaw as a transient systemd user service with args"
+    echo "  shell     - Spawn an interactive shell in the zeroclaw systemd environment"
 }
 
 if [ $# -lt 1 ]; then
-	usage
-	exit 1
+    usage
+    exit 1
 fi
 
 COMMAND="$1"
@@ -320,8 +320,8 @@ edit) cmd_edit ;;
 exec) cmd_exec "$@" ;;
 shell) cmd_shell "$@" ;;
 *)
-	echo "Unknown command: $COMMAND"
-	usage
-	exit 1
-	;;
+    echo "Unknown command: $COMMAND"
+    usage
+    exit 1
+    ;;
 esac

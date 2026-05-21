@@ -5,7 +5,7 @@
 ## Installation
 
 ```bash
-./scripts/signal-ctl install
+./assistants/signal-ctl install
 ```
 
 This command:
@@ -19,8 +19,8 @@ This command:
 Before starting the service for the first time, you must link or register an account. Use the `shell` command to perform this in the restricted environment:
 
 ```bash
-./scripts/signal-ctl stop
-./scripts/signal-ctl shell
+./assistants/signal-ctl stop
+./assistants/signal-ctl shell
 
 # Link an existing account (shows a QR code)
 signal-cli --config "$SC_CONFIG_DIR" link --name "$(hostname)" | \
@@ -31,7 +31,7 @@ signal-cli --config "$SC_CONFIG_DIR" verify <code>
 
 # Exit shell and start services
 exit
-./scripts/signal-ctl start
+./assistants/signal-ctl start
 ```
 
 ## Commands

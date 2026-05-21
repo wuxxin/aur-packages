@@ -5,7 +5,7 @@
 ## Installation
 
 ```bash
-./scripts/hermes-ctl install
+./assistants/hermes-ctl install
 ```
 
 ## Commands
@@ -25,7 +25,7 @@ Hermes includes native support for the Signal messaging channel, interfacing wit
 
 ### Configuration
 
-Add the following environment variables to `~/.config/systemd/user/hermes-gateway.env` (via `./scripts/hermes-ctl edit`):
+Add the following environment variables to `~/.config/systemd/user/hermes-gateway.env` (via `./assistants/hermes-ctl edit`):
 
 ```bash
 # Enable Signal by supplying the account phone number and daemon endpoint
@@ -41,17 +41,17 @@ Ensure the local `signal-cli` daemon is running. Hermes will automatically conne
 
 ## Onboarding
 
-1. **Install Service**: Run `./scripts/hermes-ctl install` to set up the home directory (`~/.local/share/hermes`) and generate/enable the systemd user service.
-2. **Set Environment**: Run `./scripts/hermes-ctl edit` (or edit `~/.config/systemd/user/hermes-gateway.env`) to configure necessary provider environment variables (e.g. `OPENROUTER_API_KEY`).
-3. **Setup Wizard**: Run `./scripts/hermes-ctl exec setup` to launch the interactive configuration setup.
-4. **Start & Verify**: Start the service with `./scripts/hermes-ctl start`. Monitor its logs via `./scripts/hermes-ctl logs` and access the Web UI at `http://localhost:9119`.
-5. **Switch to Local Inference & Qwen**: Run `./scripts/hermes-ctl edit` to set `OPENAI_API_BASE=http://localhost:50080/v1` and `OPENAI_API_KEY=unused`. Run `./scripts/hermes-ctl exec setup` and configure the default model to `qwen` (or whatever model name is served by your local instance).
+1. **Install Service**: Run `./assistants/hermes-ctl install` to set up the home directory (`~/.local/share/hermes`) and generate/enable the systemd user service.
+2. **Set Environment**: Run `./assistants/hermes-ctl edit` (or edit `~/.config/systemd/user/hermes-gateway.env`) to configure necessary provider environment variables (e.g. `OPENROUTER_API_KEY`).
+3. **Setup Wizard**: Run `./assistants/hermes-ctl exec setup` to launch the interactive configuration setup.
+4. **Start & Verify**: Start the service with `./assistants/hermes-ctl start`. Monitor its logs via `./assistants/hermes-ctl logs` and access the Web UI at `http://localhost:9119`.
+5. **Switch to Local Inference & Qwen**: Run `./assistants/hermes-ctl edit` to set `OPENAI_API_BASE=http://localhost:50080/v1` and `OPENAI_API_KEY=unused`. Run `./assistants/hermes-ctl exec setup` and configure the default model to `qwen` (or whatever model name is served by your local instance).
 
 ### OpenClaw Migration
 
 Hermes supports importing configuration from an existing OpenClaw setup. To migrate your setup, run:
 ```bash
-./scripts/hermes-ctl exec claw migrate
+./assistants/hermes-ctl exec claw migrate
 ```
 This utility will parse your legacy config formats and migrate them to the Hermes gateway structure.
 

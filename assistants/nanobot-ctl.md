@@ -7,7 +7,7 @@
 Ensure you have `uv` installed, then simply run the script's `install` command:
 
 ```bash
-./scripts/nanobot-ctl install
+./assistants/nanobot-ctl install
 ```
 
 During installation, `nanobot-ctl` will set up the isolated environment and generate standard service files.
@@ -21,7 +21,7 @@ During installation, `nanobot-ctl` will set up the isolated environment and gene
 ### Initialization
 If the configuration is empty, the installer will prompt you to run the onboarding wizard:
 ```bash
-./scripts/nanobot-ctl exec onboard --wizard
+./assistants/nanobot-ctl exec onboard --wizard
 ```
 
 ### Configuration & Ports
@@ -62,14 +62,14 @@ Ensure the local `signal-cli` daemon is running. NanoBot will connect, handle in
 
 ## Onboarding
 
-1. **Install Service**: Run `./scripts/nanobot-ctl install` to initialize `~/.local/share/nanobot`, set up the python virtualenv, install the `nanobot-ai` package, and create the systemd unit.
-2. **Configuration Wizard**: Run the interactive onboarding wizard via `./scripts/nanobot-ctl exec onboard --wizard` to generate the default configuration.
-3. **Configure API & Model**: Edit `~/.local/share/nanobot/config.json` (via `./scripts/nanobot-ctl config`) to configure your API keys (e.g. OpenRouter/Anthropic under `providers`) and default models (under `agents.defaults`).
+1. **Install Service**: Run `./assistants/nanobot-ctl install` to initialize `~/.local/share/nanobot`, set up the python virtualenv, install the `nanobot-ai` package, and create the systemd unit.
+2. **Configuration Wizard**: Run the interactive onboarding wizard via `./assistants/nanobot-ctl exec onboard --wizard` to generate the default configuration.
+3. **Configure API & Model**: Edit `~/.local/share/nanobot/config.json` (via `./assistants/nanobot-ctl config`) to configure your API keys (e.g. OpenRouter/Anthropic under `providers`) and default models (under `agents.defaults`).
 4. **Enable WebUI**: In the config, ensure the WebSocket channel is enabled:
    ```json
    { "channels": { "websocket": { "enabled": true } } }
    ```
-5. **Start & Verify**: Run `./scripts/nanobot-ctl start`. Verify status with `./scripts/nanobot-ctl status` and access the WebUI console at `http://localhost:8790`.
+5. **Start & Verify**: Run `./assistants/nanobot-ctl start`. Verify status with `./assistants/nanobot-ctl status` and access the WebUI console at `http://localhost:8790`.
 6. **Switch to Local Inference & Qwen**: Edit `~/.local/share/nanobot/config.json` to configure the local OpenAI-compatible endpoint:
    ```json
    {

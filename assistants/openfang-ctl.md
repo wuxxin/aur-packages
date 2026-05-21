@@ -5,7 +5,7 @@
 ## Installation
 
 ```bash
-./scripts/openfang-ctl install
+./assistants/openfang-ctl install
 ```
 
 ## Commands
@@ -37,10 +37,10 @@ Ensure both the `signal-cli` daemon and the REST API wrapper (listening on port 
 
 ## Onboarding
 
-1. **Install Service**: Run `./scripts/openfang-ctl install` to set up the OpenFang home directory (`~/.local/share/openfang`) and register the systemd user service.
-2. **Initialize Workspace**: Run `./scripts/openfang-ctl exec init` to initialize the configuration workspace and prompt you interactively for LLM API keys to build `openfang.toml`.
-3. **Start Service**: Start the daemon with `./scripts/openfang-ctl start`. Verify it is running by checking the dashboard at `http://localhost:4200`.
-4. **Activate Hands**: Run `./scripts/openfang-ctl exec hand activate researcher` (or your hand of choice) to start autonomous background execution. Or run `./scripts/openfang-ctl exec chat <hand_name>` to converse directly.
+1. **Install Service**: Run `./assistants/openfang-ctl install` to set up the OpenFang home directory (`~/.local/share/openfang`) and register the systemd user service.
+2. **Initialize Workspace**: Run `./assistants/openfang-ctl exec init` to initialize the configuration workspace and prompt you interactively for LLM API keys to build `openfang.toml`.
+3. **Start Service**: Start the daemon with `./assistants/openfang-ctl start`. Verify it is running by checking the dashboard at `http://localhost:4200`.
+4. **Activate Hands**: Run `./assistants/openfang-ctl exec hand activate researcher` (or your hand of choice) to start autonomous background execution. Or run `./assistants/openfang-ctl exec chat <hand_name>` to converse directly.
 5. **Switch to Local Inference & Qwen**: Add a local OpenAI provider to `~/.openfang/config.toml` (which is located under the isolated home at `~/.local/share/openfang/.openfang/config.toml`):
    ```toml
    [providers.models.openai.local]
@@ -54,7 +54,7 @@ Ensure both the `signal-cli` daemon and the REST API wrapper (listening on port 
 
 OpenFang supports automatic migration from an existing OpenClaw installation. When you run:
 ```bash
-./scripts/openfang-ctl exec init
+./assistants/openfang-ctl exec init
 ```
 OpenFang will scan your system for legacy OpenClaw directories (such as `~/.openclaw`), read your configuration, and import existing data, agent specifications, and credentials into `openfang.toml`.
 

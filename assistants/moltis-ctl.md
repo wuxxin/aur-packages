@@ -5,13 +5,13 @@
 ## Installation
 
 ```bash
-./scripts/moltis-ctl install
+./assistants/moltis-ctl install
 ```
 
 ### Setup Code
 On the first run, Moltis generates a unique setup code. You must retrieve this from the logs to complete the web-based configuration:
 ```bash
-./scripts/moltis-ctl logs
+./assistants/moltis-ctl logs
 ```
 Then visit `http://localhost:13131` to enter the code and create your admin account.
 
@@ -49,12 +49,12 @@ Make sure `"signal"` is included in `channels.offered` in `moltis.toml` (it is i
 
 ## Onboarding
 
-1. **Install Service**: Run `./scripts/moltis-ctl install` to initialize `~/.local/share/moltis`, compile assets, and generate the systemd user service.
-2. **Launch Daemon**: Start the service via `./scripts/moltis-ctl start`. On first run, a unique setup token is printed to the service output logs.
-3. **Extract Setup Token**: Run `./scripts/moltis-ctl logs | grep "setup code"` to retrieve the unique authentication code.
+1. **Install Service**: Run `./assistants/moltis-ctl install` to initialize `~/.local/share/moltis`, compile assets, and generate the systemd user service.
+2. **Launch Daemon**: Start the service via `./assistants/moltis-ctl start`. On first run, a unique setup token is printed to the service output logs.
+3. **Extract Setup Token**: Run `./assistants/moltis-ctl logs | grep "setup code"` to retrieve the unique authentication code.
 4. **Initialize Web UI**: Navigate to `http://localhost:13131` in your browser, enter the setup code, and configure your administrator password or WebAuthn passkey.
 > [!TIP]
-> For unattended deployments, edit `~/.config/systemd/user/moltis.env` via `./scripts/moltis-ctl edit` and define `MOLTIS_PASSWORD`, `MOLTIS_PROVIDER`, and `MOLTIS_API_KEY` before starting the daemon to bypass the setup wizard.
+> For unattended deployments, edit `~/.config/systemd/user/moltis.env` via `./assistants/moltis-ctl edit` and define `MOLTIS_PASSWORD`, `MOLTIS_PROVIDER`, and `MOLTIS_API_KEY` before starting the daemon to bypass the setup wizard.
 5. **Switch to Local Inference & Qwen**: Edit `~/.local/share/moltis/moltis.toml` (or via the Web UI) to configure a local OpenAI-compatible provider:
    ```toml
    [providers.models.openai.local]

@@ -117,7 +117,7 @@ Used by agents that orchestrate sub-agents or use tools like Bubblewrap (`bwrap`
 
 ## Standard Control Wrappers (assistant-ctl)
 
-Each assistant in this repository is managed by a dedicated shell wrapper script (`scripts/<assistant>-ctl`) adhering to standard design and lifecycle management guidelines.
+Each assistant in this repository is managed by a dedicated shell wrapper script (`assistants/<assistant>-ctl`) adhering to standard design and lifecycle management guidelines.
 
 ### Common Commands
 

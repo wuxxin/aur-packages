@@ -302,42 +302,42 @@ cmd_exec() {
 }
 
 cmd_shell() {
-	echo "Starting interactive shell in the llama-server systemd environment..."
+    echo "Starting interactive shell in the llama-server systemd environment..."
 
-	local opts=(
-		--user
-		--pty
-		--wait
-		--collect
-		--quiet
-		-p "Type=exec"
-		-p "EnvironmentFile=-${ENV_FILE}"
-		-p "WorkingDirectory=$HOME"
-		-p "NoNewPrivileges=yes"
-		-p "CapabilityBoundingSet="
-		-p "AmbientCapabilities="
-		-p "PrivateDevices=no"
-		-p "PrivateTmp=yes"
-		-p "PrivateMounts=yes"
-		-p "PrivateIPC=yes"
-		-p "ProtectSystem=strict"
-		-p "BindPaths=$HOME"
-		-p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
-		-p "ReadWritePaths=/data/public/machine-learning"
-		-p "ProtectKernelTunables=yes"
-		-p "ProtectKernelModules=yes"
-		-p "ProtectKernelLogs=yes"
-		-p "ProtectControlGroups=yes"
-		-p "ProtectClock=yes"
-		-p "ProtectHostname=yes"
-		-p "LockPersonality=yes"
-		-p "RestrictSUIDSGID=yes"
-		-p "RestrictRealtime=yes"
-		-p "KeyringMode=private"
-		-p "UMask=0077"
-	)
+    local opts=(
+        --user
+        --pty
+        --wait
+        --collect
+        --quiet
+        -p "Type=exec"
+        -p "EnvironmentFile=-${ENV_FILE}"
+        -p "WorkingDirectory=$HOME"
+        -p "NoNewPrivileges=yes"
+        -p "CapabilityBoundingSet="
+        -p "AmbientCapabilities="
+        -p "PrivateDevices=no"
+        -p "PrivateTmp=yes"
+        -p "PrivateMounts=yes"
+        -p "PrivateIPC=yes"
+        -p "ProtectSystem=strict"
+        -p "BindPaths=$HOME"
+        -p "ReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/resolv.conf /etc/hosts /etc/nsswitch.conf"
+        -p "ReadWritePaths=/data/public/machine-learning"
+        -p "ProtectKernelTunables=yes"
+        -p "ProtectKernelModules=yes"
+        -p "ProtectKernelLogs=yes"
+        -p "ProtectControlGroups=yes"
+        -p "ProtectClock=yes"
+        -p "ProtectHostname=yes"
+        -p "LockPersonality=yes"
+        -p "RestrictSUIDSGID=yes"
+        -p "RestrictRealtime=yes"
+        -p "KeyringMode=private"
+        -p "UMask=0077"
+    )
 
-	systemd-run "${opts[@]}" "${SHELL:-/bin/bash}" "$@"
+    systemd-run "${opts[@]}" "${SHELL:-/bin/bash}" "$@"
 }
 
 usage() {
