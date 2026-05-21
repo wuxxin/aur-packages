@@ -4,7 +4,6 @@
 
 This is an **AUR (Arch User Repository) packages** repository containing:
 - PKGBUILD files for building Arch Linux packages
-- Shell and Python scripts for package management and general agent utilities
 
 ## Repository Structure
 
@@ -13,8 +12,7 @@ aur-packages/
 ├── README.md             # Human targeted README.md , list of currently available pkgs
 ├── libggml-git-hip/      # HIP/ROCm accelerated GGML + llama.cpp + whisper.cpp
 ├── python-torch*-rocm/   # PyTorch ROCm builds
-├── scripts/              # Utility scripts (antigravity-launcher.sh, aurupgrade.sh, ...)
-├── docs/                 # documentation for some scripts
+|__ scripts/              #  utility scripts
 |__ scratch/              # scratch space for agents to work or research (checkedout source code for package or build testing, etc)
 └── ...                   # Other AUR packages (each AUR package has its own directory with PKGBUILD)
 ```
@@ -65,7 +63,7 @@ shfmt -w scripts/*.sh
 - **Command substitution**: Use `$(...)` not backticks
 
 ### Python Scripts
-- **Shebang**: `#!/usr/bin/env python3`
+- **Shebang**: `#!/usr/bin/env python`
 - **Imports**: stdlib, third-party, local
 - **Indentation**: 4 spaces
 - **Types**: Use type hints where practical
@@ -113,11 +111,6 @@ build() {
 
 ## Common Patterns
 
-### Bubblewrap (bwrap)
-- Use `--unshare-all` with `--share-net` for isolation
-- Bind mount persistent home directories
-- Set DISPLAY, XAUTHORITY, XDG_RUNTIME_DIR
-
 ### ROCm/HIP Builds
 - Set `HIP_PLATFORM=amd` for AMD GPUs
 - Use `rocm-supported-gfx` to detect GPU architectures
@@ -128,10 +121,6 @@ build() {
 2. Follow existing package directory structure
 3. Place patches in package directory, reference in `source` array
 4. Utility scripts go in `scripts/` directory
-
-## Agent Software Configuration Documentation
-
-- document all agent software default ports and isolation requirements in `assistants/README.md`
 
 ## Notes for Agents
 - Contains custom builds of complex software (llama.cpp, PyTorch with ROCm)
