@@ -92,6 +92,31 @@ HERMES_RERANK_MODEL="qwen3-reranker"
 HERMES_RERANK_TOP_K=30
 ```
 
+## Speech-to-Text Integration
+
+Hermes automatically transcribes incoming voice messages (from Signal, Telegram, Discord, etc.) using its transcription tools. You can route these requests to the local `local-speech-to-text` service.
+
+### Configuration
+
+Add the following environment variables to `~/.config/systemd/user/hermes-gateway.env` (via `./assistants/hermes-ctl edit`):
+
+```bash
+# Set provider to openai and point base URL to local-speech-to-text service
+STT_OPENAI_BASE_URL="http://localhost:50090/v1"
+VOICE_TOOLS_OPENAI_KEY="dummy"  # Required placeholder to activate the provider
+```
+
+Alternatively, you can configure the provider directly in your `config.yaml`:
+
+```yaml
+stt:
+  enabled: true
+  provider: "openai"
+  openai:
+    api_key: "dummy"
+    base_url: "http://localhost:50090/v1"
+```
+
 ## Onboarding
 
 1. **Install Service**: Run `./assistants/hermes-ctl install` to set up the home directory (`~/.local/share/hermes`) and generate/enable the systemd user service.

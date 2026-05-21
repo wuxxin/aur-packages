@@ -105,6 +105,31 @@ top_k = 30
 weight = 0.7
 ```
 
+## Speech-to-Text Integration
+
+Moltis has built-in support for local voice transcription using an external OpenAI-compatible Whisper server. You can configure Moltis to use the `local-speech-to-text` service.
+
+### Configuration
+
+Add the following to `~/.local/share/moltis/moltis.toml`:
+
+```toml
+[voice.stt]
+# Enable Speech-to-Text globally
+enabled = true
+
+# Set active provider to whisper-local
+provider = "whisper-local"
+
+[voice.stt.whisper_local]
+enabled = true
+# Base URI of local-speech-to-text service (do not append '/v1/audio/transcriptions')
+endpoint = "http://localhost:50090"
+# Optional settings
+model = "ggml-large-v3-turbo-q5_0.bin"
+language = "en"
+```
+
 ## Onboarding
 
 1. **Install Service**: Run `./assistants/moltis-ctl install` to initialize `~/.local/share/moltis`, compile assets, and generate the systemd user service.

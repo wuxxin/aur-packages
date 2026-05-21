@@ -112,6 +112,29 @@ PicoClaw does not include native reranking due to its ultra-lightweight design. 
 
 The reranker endpoint accepts `POST /v1/rerank` with `{"model": "qwen3-reranker", "query": "...", "documents": ["..."]}`.
 
+## Speech-to-Text Integration
+
+PicoClaw supports speech-to-text (ASR) transcription by configuring a model provider pointing to the local `local-speech-to-text` service.
+
+### Configuration
+
+Add the following sections to `~/.local/share/picoclaw/config.json`:
+
+```json
+{
+  "voice": {
+    "model_name": "whisper_local"
+  },
+  "models": {
+    "whisper_local": {
+      "model": "openai/whisper-1",
+      "api_key": "dummy",
+      "base_url": "http://localhost:50090/v1"
+    }
+  }
+}
+```
+
 ## Implementation Considerations
 
 ### Configuration & Ports

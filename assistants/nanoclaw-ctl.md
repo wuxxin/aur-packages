@@ -65,6 +65,14 @@ RERANK_MODEL="qwen3-reranker"
 
 The reranker endpoint accepts `POST /v1/rerank` with `{"model": "qwen3-reranker", "query": "...", "documents": ["..."]}`. Custom agent skills can call this endpoint to reorder retrieval results before injecting them into the agent context.
 
+## Speech-to-Text Integration
+
+NanoClaw does not have native, built-in speech-to-text processing in its core runtime. However, because it runs a Node.js-based webhook/API service, voice transcription support can be integrated by:
+1. Creating a custom tool/skill that forwards audio files received from messaging channel webhooks (e.g., Discord/Telegram audio attachments).
+2. Performing a `multipart/form-data` POST request to the local `local-speech-to-text` service:
+   - **Endpoint**: `http://localhost:50090/v1/audio/transcriptions`
+   - **Form Fields**: `file` (the audio binary), `model` (default model configuration)
+
 ## Implementation Considerations
 
 ### Configuration & Ports

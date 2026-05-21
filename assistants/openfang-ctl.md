@@ -86,6 +86,25 @@ api_key = "unused"
 top_k = 30
 ```
 
+## Speech-to-Text Integration
+
+OpenFang supports local transcription for audio assets processed during workflows (such as media hands transcribing voice memos or Signal audio events). You can configure your hands to call the `local-speech-to-text` service.
+
+### Configuration
+
+Add the transcription provider configuration to `~/.openfang/config.toml` (located at `~/.local/share/openfang/.openfang/config.toml`):
+
+```toml
+[transcription]
+# Set provider to local-whisper or openai-compatible
+provider = "openai"
+model = "ggml-large-v3-turbo-q5_0.bin"
+
+# Point to local-speech-to-text service
+base_url = "http://localhost:50090/v1"
+api_key = "dummy"
+```
+
 ## Onboarding
 
 1. **Install Service**: Run `./assistants/openfang-ctl install` to set up the OpenFang home directory (`~/.local/share/openfang`) and register the systemd user service.

@@ -17,6 +17,15 @@ This document describes information about several AI assistants, their sandboxin
   - `llama.cpp-git-hip` (AUR, latest git source build with HIP/ROCm)
   - Local package built in this workspace: `llama.cpp-git-ggml-hip` (depends on `libggml-git-hip`), providing and conflicting with `llama.cpp` and `llama.cpp-hip`.
 
+### Local Speech-to-Text
+- **Description**: Manages a persistent `whisper-server` instance for speech-to-text (STT) transcription. Serves an OpenAI-compatible audio transcription API on port 50090.
+- **Sandboxing**: Requires `PrivateDevices=no` to access `/dev/dri` and `/dev/kfd` for GPU-accelerated transcription. Enforces `ProtectSystem=strict` while allowing read-write access to the home directory (for temporary ffmpeg transcoded files) and read-only access to `/data/public/machine-learning`.
+- **Features**: Flash Attention, GPU offloading, audio transcoding using `ffmpeg`.
+- **Arch/AUR Packages**:
+  - `whisper.cpp` (AUR, standard source package)
+  - `whisper.cpp-git` (AUR, latest git source build)
+  - Local package built in this workspace: `whisper.cpp-git-ggml-hip` (depends on `libggml-git-hip`), providing the `whisper-server` executable with ROCm GPU acceleration.
+
 ### Signal Integration
 - **Description**: Connects agents to Signal. Runs a `signal-cli` daemon exposing both TCP and HTTP JSON-RPC interfaces. It also provides an optional Go-based REST API wrapper for robust, HTTP-based polling/webhook integrations (like linking OpenFang).
 - **Sandboxing**: Standard filesystem hardening, but disables `MemoryDenyWriteExecute` because the underlying JVM (Java) requires it for JIT compilation. 
@@ -53,6 +62,8 @@ The following default ports are used by various agent systems and services to av
 | **NanoClaw** | [3000](http://localhost:3000) | Webhook Server |
 | **Signal-CLI** | `50887`, [50888](http://localhost:50888), [50889](http://localhost:50889) | TCP JSON-RPC, HTTP JSON-RPC, REST API |
 | **Local-Inference** | [50080](http://localhost:50080) | Llama-server router (LLM + embeddings + reranker) |
+| **Local-Speech-To-Text** | [50090](http://localhost:50090) | Whisper-server audio transcription API (HTTP) |
+
 
 ## Sandboxing Architecture
 

@@ -83,6 +83,39 @@ Hardware: AMD Radeon Pro W6800 — **30,704 MiB** usable VRAM.
 
 **n_ctx = 240,000** (per slot: 120,000)
 
+### Co-running Speech-to-Text (Whisper)
+
+Running the `local-speech-to-text` service (`whisper-server` using `ggml-large-v3-turbo-q5_0.bin`) alongside `local-inference` requires an additional **~1,426 MiB** of GPU VRAM (weights + compute + HIP context overhead).
+
+#### Co-running with Config A (MoE + Vision + Embedding + Reranker + Whisper)
+
+| Item | MiB |
+|---|---|
+| Total VRAM | 30,704 |
+| − Config A (weights + compute) | 20,409 |
+| − KV @ 240,000 tok | 8,031 |
+| − Whisper (local-speech-to-text) | 1,426 |
+| **Free headroom** | **838** |
+
+*Status*: **Safe**. The system has 838 MiB of remaining VRAM headroom, meaning all processes will remain fully offloaded to the GPU without risk of host memory fallbacks.
+
+#### Co-running with Config B (Dense + Embedding + Reranker + Whisper)
+
+| Item | MiB |
+|---|---|
+| Total VRAM | 30,704 |
+| − Config B (weights + compute) | 21,452 |
+| − KV @ 240,000 tok | 8,031 |
+| − Whisper (local-speech-to-text) | 1,426 |
+| **Free headroom** | **−205** |
+
+*Status*: **Overallocated (Risk of system RAM fallback)**. The total required VRAM (30,909 MiB) exceeds the GPU's physical capacity (30,704 MiB) by 205 MiB.
+
+*Mitigation*: If you need to run Whisper concurrently with the Dense LLM setup, you must reduce the LLM context limit `LI_N_CTX` from `240000` to `200000` in `local-inference.env` to free up ~1,340 MiB of VRAM:
+- Reduced KV @ 200,000 tok: ~6,692 MiB
+- Adjusted Free Headroom: **~1,134 MiB** (Safe)
+
+
 ## Implementation Considerations
 
 ### ROCm / GPU Access

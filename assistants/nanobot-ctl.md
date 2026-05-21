@@ -128,6 +128,34 @@ NanoBot does not include native reranking support. To add reranking capabilities
 
 The agent can then call the reranker via the MCP tool to reorder retrieval results before injecting them into context. The reranker endpoint accepts `POST /v1/rerank` with `{"model": "qwen3-reranker", "query": "...", "documents": ["..."]}`.
 
+## Speech-to-Text Integration
+
+NanoBot supports local transcription using an external OpenAI-compatible Whisper server. You can configure it to point to the `local-speech-to-text` service.
+
+### Configuration
+
+Add the following environment variables to `~/.config/systemd/user/nanobot.env` (via `./assistants/nanobot-ctl edit`):
+
+```bash
+# Point transcription endpoint to local-speech-to-text service
+OPENAI_TRANSCRIPTION_BASE_URL="http://localhost:50090/v1/audio/transcriptions"
+OPENAI_API_KEY="dummy"  # Required placeholder to activate the provider
+```
+
+Alternatively, you can configure it inside `~/.local/share/nanobot/config.json`:
+
+```json
+{
+  "transcription": {
+    "provider": "openai",
+    "openai": {
+      "api_key": "dummy",
+      "base_url": "http://localhost:50090/v1/audio/transcriptions"
+    }
+  }
+}
+```
+
 ## Onboarding
 
 1. **Install Service**: Run `./assistants/nanobot-ctl install` to initialize `~/.local/share/nanobot`, set up the python virtualenv, install the `nanobot-ai` package, and create the systemd unit.

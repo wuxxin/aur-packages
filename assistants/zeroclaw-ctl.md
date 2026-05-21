@@ -84,6 +84,36 @@ api_key = "unused"
 top_k = 30
 ```
 
+## Speech-to-Text Integration
+
+ZeroClaw supports speech-to-text (STT) transcription by routing voice payloads to the local `local-speech-to-text` service.
+
+### Configuration
+
+Add the transcription provider configuration to `~/.local/share/zeroclaw/.zeroclaw/config.toml`:
+
+```toml
+# 1. Define the transcription provider
+[providers.transcription.local_whisper.local]
+uri = "http://localhost:50090/v1/audio/transcriptions"
+bearer_token = "dummy"
+
+# 2. Reference this provider in your agent configuration
+[agents.default]
+transcription_provider = "local_whisper.local"
+```
+
+Alternatively, you can configure it globally in the legacy `[transcription]` section of `config.toml`:
+
+```toml
+[transcription]
+enabled = true
+
+[transcription.local_whisper]
+url = "http://localhost:50090/v1/audio/transcriptions"
+bearer_token = "dummy"
+```
+
 ## Onboarding
 
 1. **Install Service**: Run `./assistants/zeroclaw-ctl install` to initialize `~/.local/share/zeroclaw` and register the systemd user service.
