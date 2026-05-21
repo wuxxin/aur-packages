@@ -103,6 +103,7 @@ Add the following environment variables to `~/.config/systemd/user/hermes-gatewa
 ```bash
 # Set provider to openai and point base URL to local-speech-to-text service
 STT_OPENAI_BASE_URL="http://localhost:50090/v1"
+STT_OPENAI_MODEL="whisper"
 VOICE_TOOLS_OPENAI_KEY="dummy"  # Required placeholder to activate the provider
 ```
 
@@ -115,6 +116,7 @@ stt:
   openai:
     api_key: "dummy"
     base_url: "http://localhost:50090/v1"
+    model: "whisper"
 ```
 
 ## Onboarding

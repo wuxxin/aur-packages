@@ -96,9 +96,9 @@ Add the transcription provider configuration to `~/.openfang/config.toml` (locat
 
 ```toml
 [transcription]
-# Set provider to local-whisper or openai-compatible
+# Set provider to local_stt or openai-compatible
 provider = "openai"
-model = "ggml-large-v3-turbo-q5_0.bin"
+model = "whisper"
 
 # Point to local-speech-to-text service
 base_url = "http://localhost:50090/v1"

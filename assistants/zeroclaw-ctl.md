@@ -94,13 +94,14 @@ Add the transcription provider configuration to `~/.local/share/zeroclaw/.zerocl
 
 ```toml
 # 1. Define the transcription provider
-[providers.transcription.local_whisper.local]
+[providers.transcription.local_whisper.local_stt]
 uri = "http://localhost:50090/v1/audio/transcriptions"
 bearer_token = "dummy"
+model = "whisper"
 
 # 2. Reference this provider in your agent configuration
 [agents.default]
-transcription_provider = "local_whisper.local"
+transcription_provider = "local_whisper.local_stt"
 ```
 
 Alternatively, you can configure it globally in the legacy `[transcription]` section of `config.toml`:

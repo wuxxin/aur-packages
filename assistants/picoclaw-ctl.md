@@ -123,11 +123,11 @@ Add the following sections to `~/.local/share/picoclaw/config.json`:
 ```json
 {
   "voice": {
-    "model_name": "whisper_local"
+    "model_name": "local_stt"
   },
   "models": {
-    "whisper_local": {
-      "model": "openai/whisper-1",
+    "local_stt": {
+      "model": "whisper",
       "api_key": "dummy",
       "base_url": "http://localhost:50090/v1"
     }

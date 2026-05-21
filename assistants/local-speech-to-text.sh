@@ -28,6 +28,8 @@ load_env() {
 	LSTT_PORT=50090
 	LSTT_HOST=127.0.0.1
 	LSTT_MODEL=/data/public/machine-learning/models/speech-to-text/ggml-large-v3-turbo-q5_0.bin
+	# shellcheck disable=SC2034
+	LSTT_MODEL_ALIAS=whisper
 	LSTT_THREADS=4
 	LSTT_DEVICE=0
 	LSTT_INFERENCE_PATH=/v1/audio/transcriptions
@@ -139,6 +141,9 @@ LSTT_HOST=127.0.0.1
 # Path to the GGML Whisper model file
 # Source: https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-large-v3-turbo-q5_0.bin
 LSTT_MODEL=/data/public/machine-learning/models/speech-to-text/ggml-large-v3-turbo-q5_0.bin
+
+# Model alias used by client integrations (default: whisper)
+LSTT_MODEL_ALIAS=whisper
 
 # Number of threads to use for CPU-bound computations/preprocessing
 LSTT_THREADS=4

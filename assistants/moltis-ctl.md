@@ -118,15 +118,15 @@ Add the following to `~/.local/share/moltis/moltis.toml`:
 # Enable Speech-to-Text globally
 enabled = true
 
-# Set active provider to whisper-local
-provider = "whisper-local"
+# Set active provider to local_stt
+provider = "local_stt"
 
-[voice.stt.whisper_local]
+[voice.stt.local_stt]
 enabled = true
 # Base URI of local-speech-to-text service (do not append '/v1/audio/transcriptions')
 endpoint = "http://localhost:50090"
 # Optional settings
-model = "ggml-large-v3-turbo-q5_0.bin"
+model = "whisper"
 language = "en"
 ```
 
