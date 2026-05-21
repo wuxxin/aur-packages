@@ -129,6 +129,11 @@ build() {
 3. Place patches in package directory, reference in `source` array
 4. Utility scripts go in `scripts/` directory
 
+## Agent Software Configuration Documentation
+
+- document all agent software default ports in `docs/ports.md`
+- document all agent isolation requirements (for their agent operations) in `docs/sandboxing.md`
+
 ## Notes for Agents
 - Contains custom builds of complex software (llama.cpp, PyTorch with ROCm)
 - Many packages have HIP/ROCm acceleration requirements
