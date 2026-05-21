@@ -1,6 +1,28 @@
 # Assistants and Integrations
 
-This document describes information about all AI assistants, their sandboxing requirements, default port allocations, and external integrations (Local Inference and Signal) managed within this repository.
+This document describes information about several AI assistants, their sandboxing requirements, default port allocations, and external integrations (Local Inference and Signal) managed within this repository.
+
+## Integrations
+
+### Local Inference
+- **Description**: Manages a persistent `llama-server` instance optimized for local LLM serving, specifically tuned for AMD ROCm hardware (tested on Radeon Pro W6800). Designed for high context lengths (Qwen 35B/27B) with optimized memory access and KV cache.
+- **Sandboxing**: Requires `PrivateDevices=no` to access `/dev/dri` and `/dev/kfd`. Enforces `ProtectSystem=strict` while bind-mounting the user's home configuration and granting read-write access to `/data/public/machine-learning`.
+- **Features**: Flash Attention, layer GPU offloading, hardware-specific concurrency parameters.
+
+### Signal Integration
+- **Description**: Connects agents to Signal. Runs a `signal-cli` daemon exposing both TCP and HTTP JSON-RPC interfaces. It also provides an optional Go-based REST API wrapper for robust, HTTP-based polling/webhook integrations (like linking OpenFang).
+- **Sandboxing**: Standard filesystem hardening, but disables `MemoryDenyWriteExecute` because the underlying JVM (Java) requires it for JIT compilation. 
+- **Features**: Account linking via QR code, dual daemon interfaces, and isolated home directory execution to prevent contamination.
+
+The following assistants have native Signal channel integration available in their source code:
+- [Hermes](hermes-ctl.md)
+- [Moltis](moltis-ctl.md)
+- [NanoBot](nanobot-ctl.md)
+- [OpenFang](openfang-ctl.md)
+- [ZeroClaw](zeroclaw-ctl.md)
+
+To configure them, refer to their specific configuration sections in their respective control guides.
+
 
 ## Default Ports
 
@@ -18,7 +40,7 @@ The following default ports are used by various agent systems and services to av
 | **Signal-CLI** | `50887`, `50888`, `50889` | TCP JSON-RPC, HTTP JSON-RPC, REST API |
 | **Local-Inference** | `50080` | Llama-server local instance |
 
-## Sandboxing Architecture Overview
+## Sandboxing Architecture
 
 Agent runtimes in this repository operate under strict, layered sandboxing configurations via systemd user services to protect the host system while allowing agents to execute their tools securely. 
 
@@ -222,29 +244,3 @@ Each assistant in this repository is managed by a dedicated shell wrapper script
 - **Data Home**: `~/.local/share/<assistant>` (the service forces an isolated `HOME` environment variable to this location to keep configurations and cached libraries contained).
 - **Shared Space**: `~/agent-shared` is bind-mounted in read-write mode to enable inter-agent communication, workflow passing, and common file sharing.
 
----
-
-## Signal-Enabled Assistants
-
-The following assistants have native Signal channel integration available in their source code:
-- [Hermes](#hermes)
-- [Moltis](#moltis)
-- [NanoBot](#nanobot)
-- [OpenFang](#openfang)
-- [ZeroClaw](#zeroclaw)
-
-To configure them, refer to their specific configuration sections in their respective control guides.
-
----
-
-## Integrations
-
-### Local Inference
-- **Description**: Manages a persistent `llama-server` instance optimized for local LLM serving, specifically tuned for AMD ROCm hardware (tested on Radeon Pro W6800). Designed for high context lengths (Qwen 35B/27B) with optimized memory access and KV cache.
-- **Sandboxing**: Requires `PrivateDevices=no` to access `/dev/dri` and `/dev/kfd`. Enforces `ProtectSystem=strict` while bind-mounting the user's home configuration and granting read-write access to `/data/public/machine-learning`.
-- **Features**: Flash Attention, layer GPU offloading, hardware-specific concurrency parameters.
-
-### Signal Integration
-- **Description**: Connects agents to Signal. Runs a `signal-cli` daemon exposing both TCP and HTTP JSON-RPC interfaces. It also provides an optional Go-based REST API wrapper for robust, HTTP-based polling/webhook integrations (like linking OpenFang).
-- **Sandboxing**: Standard filesystem hardening, but disables `MemoryDenyWriteExecute` because the underlying JVM (Java) requires it for JIT compilation. 
-- **Features**: Account linking via QR code, dual daemon interfaces, and isolated home directory execution to prevent contamination.
