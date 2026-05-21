@@ -43,15 +43,15 @@ Hardware: AMD Radeon Pro W6800 — **30,704 MiB** usable VRAM.
 
 | Component | File Size | GPU VRAM |
 |---|---|---|
-| MoE LLM (Qwen3.6-35B-A3B Compact) | 17 GiB | ~17,408 MiB |
-| MoE mmproj (vision) | 861 MiB | ~861 MiB |
+| [MoE LLM (Qwen3.6-35B-A3B-APEX-I-Compact)](https://huggingface.co/mudler/Qwen3.6-35B-A3B-APEX-GGUF/blob/main/Qwen3.6-35B-A3B-APEX-I-Compact.gguf) | 17 GiB | ~17,408 MiB |
+| [MoE mmproj (vision)](https://huggingface.co/mudler/Qwen3.6-35B-A3B-APEX-GGUF/blob/main/mmproj.gguf) | 861 MiB | ~861 MiB |
 | Dense LLM (Qwen3.6-27B Q5_K_L) | 20 GiB | ~19,013 MiB |
-| Embedding (Qwen3-Embedding-0.6B Q8_0) | 610 MiB | ~700 MiB |
-| Reranker (Qwen3-Reranker-0.6B Q4_K_M) | 379 MiB | ~450 MiB |
+| [Embedding (Qwen3-Embedding-0.6B Q8_0)](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B-GGUF/blob/main/Qwen3-Embedding-0.6B-Q8_0.gguf) | 610 MiB | ~700 MiB |
+| [Reranker (Qwen3-Reranker-0.6B Q4_K_M)](https://huggingface.co/mradermacher/Qwen3-Reranker-0.6B-GGUF/resolve/main/Qwen3-Reranker-0.6B.Q4_K_M.gguf) | 379 MiB | ~450 MiB |
 | Compute overhead (per LLM) | — | ~990 MiB |
 | Dense recurrent state | — | ~299 MiB |
 
-### Config A: MoE + Embedding + Reranker
+### Config A: MoE + Vision + Embedding + Reranker
 
 | Item | MiB |
 |---|---|
