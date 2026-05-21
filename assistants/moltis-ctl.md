@@ -2,6 +2,8 @@
 
 `moltis-ctl` is a control script for the Moltis Agent server, based on the `openfang-ctl` architecture.
 
+- **Source Code**: [GitHub - moltis-org/moltis](https://github.com/moltis-org/moltis)
+
 ## Installation
 
 ```bash
@@ -46,6 +48,42 @@ text_chunk_limit = 4000               # Maximum UTF-8 bytes per outbound text ch
 ```
 
 Make sure `"signal"` is included in `channels.offered` in `moltis.toml` (it is included by default).
+
+## Search, Retrieval & Embedding Configuration
+
+Moltis provides a built-in SQLite database with Full-Text Search (FTS5) for keyword-based search and direct vector storage. It can optionally offload heavy search operations to a high-performance **QMD** sidecar for BM25 keyword search, vector similarity search, and hybrid retrieval with LLM reranking.
+
+### Configuration
+
+Add the following to `~/.local/share/moltis/moltis.toml`:
+
+```toml
+[retrieval]
+# Retrieval backend provider: "sqlite" (built-in, default) or "qmd" (external sidecar)
+provider = "sqlite"
+
+# Enable BM25 keyword search + vector similarity hybrid retrieval (requires QMD)
+hybrid_search = true
+
+# Perform LLM-based reranking on retrieved document chunks
+rerank = true
+
+# Strategy for handling agent context limits: "summarize" (default) or "truncate"
+context_limit_action = "summarize"
+
+[retrieval.qmd]
+# Connection URI for the optional QMD sidecar service
+uri = "http://localhost:8080"
+
+[embeddings]
+# Embedding provider: "openai" (OpenAI-compatible), "ollama", "local", or "qmd"
+provider = "local"
+model = "text-embedding-3-small"
+
+# Local Inference Endpoint (llama-server or Ollama)
+uri = "http://localhost:50080/v1"
+api_key = "unused"
+```
 
 ## Onboarding
 

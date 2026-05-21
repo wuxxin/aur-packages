@@ -2,6 +2,8 @@
 
 `picoclaw-ctl` is a control script for the PicoClaw agent and its launcher, designed similarly to the `openfang-ctl` and `moltis-ctl` architecture.
 
+- **Source Code**: [GitHub - sipeed/picoclaw](https://github.com/sipeed/picoclaw)
+
 ## Installation
 
 ```bash
@@ -52,6 +54,40 @@ PicoClaw supports migrating configuration and secure details from an existing Op
 ./assistants/picoclaw-ctl exec migrate
 ```
 This maps your legacy files and `.security.yml` details directly into the PicoClaw configurations under `~/.local/share/picoclaw/`.
+
+## Search, Retrieval & Embedding Configuration
+
+PicoClaw is an ultra-lightweight agent gateway and does not include a native built-in vector database or memory compression engine. Conversational history is stored in raw JSON files. To perform complex search and retrieval tasks, PicoClaw uses the Model Context Protocol (MCP) to delegate operations to external databases, search APIs, or RAG servers (such as Qdrant or `sqlite-vec`).
+
+### Configuration
+
+Add the following to `~/.local/share/picoclaw/config.json`:
+
+```json
+{
+  "memory": {
+    "type": "json_file",
+    "history_limit": 50
+  },
+  "embeddings": {
+    "provider": "openai",
+    "model": "text-embedding-3-small",
+    "base_url": "http://localhost:50080/v1",
+    "api_key": "unused"
+  },
+  "mcp": {
+    "servers": {
+      "sqlite-vec": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-sqlite-vec"],
+        "env": {
+          "DB_PATH": "/home/wuxxin/.local/share/picoclaw/mcp-vectors.db"
+        }
+      }
+    }
+  }
+}
+```
 
 ## Implementation Considerations
 

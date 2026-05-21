@@ -2,6 +2,8 @@
 
 `nanoclaw-ctl` manages the NanoClaw runtime, ensuring secure operations for the webhook server and container executions.
 
+- **Source Code**: [GitHub - gavrielc/nanoclaw](https://github.com/gavrielc/nanoclaw)
+
 ## Installation
 
 ```bash
@@ -26,6 +28,30 @@
 ### OpenClaw Migration
 
 OpenClaw migration is not natively supported by NanoClaw. You will need to define your agents, platform channels, and credentials manually or write custom scripts to import data into NanoClaw's datastore.
+
+## Search, Retrieval & Embedding Configuration
+
+NanoClaw maintains conversational state and agent mappings in an internal SQLite database within the Node.js process. Localized instructions and memory contexts are kept in files like `CLAUDE.md` within isolated agent directories. Heavy search, retrieval, and vector storage tasks are delegated to external MCP servers or handled by the agent calling custom tools.
+
+### Configuration
+
+Environment and embedding API options can be configured in `~/.config/systemd/user/nanoclaw.env` (via `./assistants/nanoclaw-ctl edit`):
+
+```bash
+# SQLite DB state path
+DATABASE_URL="file:~/.local/share/nanoclaw/nanoclaw.db"
+
+# Embedding Provider (options: openai, anthropic, local, ollama)
+EMBEDDING_PROVIDER="local"
+EMBEDDING_MODEL="text-embedding-3-small"
+
+# Local Inference or Ollama endpoint mapping
+EMBEDDING_BASE_URL="http://localhost:50080/v1"
+EMBEDDING_API_KEY="unused"
+
+# MCP-based Retrieval Configuration (if running sqlite-vec or Qdrant MCP server)
+MCP_SQLITE_VEC_DB_PATH="~/.local/share/nanoclaw/mcp-vectors.db"
+```
 
 ## Implementation Considerations
 

@@ -2,6 +2,10 @@
 
 `signal-ctl` manages `signal-cli` as a background daemon and provides an optional REST API wrapper for integration with other agents.
 
+- **Source Code**: 
+  - `signal-cli`: [GitHub - AsamK/signal-cli](https://github.com/AsamK/signal-cli)
+  - `signal-cli-rest-api`: [GitHub - bbernhard/signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api)
+
 ## Installation
 
 ```bash

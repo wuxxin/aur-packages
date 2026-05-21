@@ -2,6 +2,8 @@
 
 `nanobot-ctl` is a lightweight, virtual environment based installation and management script designed to deploy the `nanobot` python service. It utilizes `uv` to manage an isolated virtual environment and integrates seamlessly with `systemd` user services.
 
+- **Source Code**: [GitHub - HKUDS/nanobot](https://github.com/HKUDS/nanobot)
+
 ## Installation
 
 Ensure you have `uv` installed, then simply run the script's `install` command:
@@ -59,6 +61,49 @@ Add the following to your `~/.local/share/nanobot/config.json` configuration fil
 ```
 
 Ensure the local `signal-cli` daemon is running. NanoBot will connect, handle inbound messages via Server-Sent Events, convert markdown formatting to native Signal styles, and handle reconnects automatically.
+
+## Search, Retrieval & Embedding Configuration
+
+NanoBot implements a structured two-stage memory system ("Dream") that separates active conversation buffers from long-term memory. Long-term memory is queried using vector similarity search (RAG). It also includes a Document Store to index, chunk, and search local files (PDFs, TXT, markdown) and can execute dynamic external search via MCP (Model Context Protocol).
+
+### Configuration
+
+Add the following configuration blocks to `~/.local/share/nanobot/config.json` (via `./assistants/nanobot-ctl config`):
+
+```json
+{
+  "memory": {
+    "dream": {
+      "enabled": true,
+      "buffer_size_limit": 4096,
+      "long_term_store": "vector"
+    }
+  },
+  "document_store": {
+    "enabled": true,
+    "chunk_size": 500,
+    "chunk_overlap": 50,
+    "allowed_extensions": [".pdf", ".txt", ".md"]
+  },
+  "embeddings": {
+    "provider": "openai_compatible/local",
+    "model": "text-embedding-3-small",
+    "api_key": "unused",
+    "base_url": "http://localhost:50080/v1"
+  },
+  "mcp": {
+    "servers": {
+      "brave-search": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+        "env": {
+          "BRAVE_API_KEY": "your_api_key_here"
+        }
+      }
+    }
+  }
+}
+```
 
 ## Onboarding
 

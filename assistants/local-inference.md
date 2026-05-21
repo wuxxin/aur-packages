@@ -2,6 +2,8 @@
 
 `local-inference.sh` manages a persistent `llama-server` instance optimized for AMD ROCm hardware (specifically tested on Radeon Pro W6800).
 
+- **Source Code**: [GitHub - ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp)
+
 ## Usage
 
 | Command | Description |

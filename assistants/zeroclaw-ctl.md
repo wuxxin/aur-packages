@@ -2,6 +2,8 @@
 
 `zeroclaw-ctl` manages the ZeroClaw Gateway and agent runtime, providing a hardened execution environment that supports Bubblewrap/Landlock isolation.
 
+- **Source Code**: [GitHub - zeroclaw-labs/zeroclaw](https://github.com/zeroclaw-labs/zeroclaw)
+
 ## Installation
 
 ```bash
@@ -33,6 +35,36 @@ signal_cli_rest_url = "http://localhost:50889" # Endpoint of the signal-cli-rest
 ```
 
 Make sure both the `signal-cli` daemon and the REST API wrapper (listening on port `50889`) are active. ZeroClaw will retrieve message payloads and send messages through this endpoint.
+
+## Search, Retrieval & Embedding Configuration
+
+ZeroClaw contains a self-contained, native SQLite-based hybrid memory system. It integrates Full-Text Search (FTS5) and vector search directly into its SQLite datastore, removing the need for external vector database servers. The persistent memory system automatically handles context compression, conversation history limits, and user preference storage.
+
+### Configuration
+
+Add the following to your `config.toml` configuration file (located in the sandboxed home directory at `~/.local/share/zeroclaw/.zeroclaw/config.toml`):
+
+```toml
+[memory]
+# Native hybrid (keyword FTS + vector similarity) SQLite backend
+backend = "sqlite-hybrid"
+db_path = "~/.zeroclaw/memory.db"
+
+# Enable automatic context compression when reaching limit
+context_compression = true
+
+# Maximum conversational turns to hold in active context before compressing
+history_limit = 100
+
+[embeddings]
+# Embedding provider (OpenAI-compatible)
+provider = "openai"
+model = "text-embedding-3-small"
+
+# Local Inference (llama-server) or Ollama endpoint mapping
+api_base = "http://localhost:50080/v1"
+api_key = "unused"
+```
 
 ## Onboarding
 

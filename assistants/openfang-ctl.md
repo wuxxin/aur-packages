@@ -2,6 +2,8 @@
 
 `openfang-ctl` manages the OpenFang Agent OS daemon, providing a hardened execution environment for agentic workloads.
 
+- **Source Code**: [GitHub - RightNow-AI/openfang](https://github.com/RightNow-AI/openfang)
+
 ## Installation
 
 ```bash
@@ -34,6 +36,37 @@ default_agent = "my-agent"          # Optional: Default agent name to route mess
 ```
 
 Ensure both the `signal-cli` daemon and the REST API wrapper (listening on port `50889`) are active. OpenFang will connect to the REST wrapper to retrieve message updates and send replies.
+
+## Search, Retrieval & Embedding Configuration
+
+OpenFang features native SQLite and vector memory stores for persistent agent memory, task scheduling, and background search/research. Embedding models from 27 different providers (including local and OpenAI endpoints) can be registered to populate vector databases. Agents can also query external search APIs or databases using MCP (Model Context Protocol).
+
+### Configuration
+
+Add the following sections to `~/.openfang/config.toml` (which is located under the isolated home at `~/.local/share/openfang/.openfang/config.toml`):
+
+```toml
+[memory]
+backend = "sqlite"                    # Default SQLite backend
+vector_storage_enabled = true         # Enable vector search
+db_path = "~/.openfang/memory.db"
+
+[embeddings]
+# Embedding provider (supports 27 providers: openai, cohere, local, etc.)
+provider = "local"
+model = "text-embedding-3-small"
+
+# Local Inference (llama-server) or Ollama endpoint mapping
+base_url = "http://localhost:50080/v1"
+api_key = "unused"
+
+[mcp]
+# Connect to external vector DB or search servers via Model Context Protocol
+[mcp.servers.qdrant]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-qdrant"]
+env = { QDRANT_URL = "http://localhost:6333" }
+```
 
 ## Onboarding
 

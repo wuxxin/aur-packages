@@ -2,6 +2,8 @@
 
 `hermes-ctl` is a management wrapper for the `hermes-agent` messaging gateway. It provides a standardized interface for installation, configuration, and service lifecycle management using `systemd` user units.
 
+- **Source Code**: [GitHub - NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)
+
 ## Installation
 
 ```bash
@@ -38,6 +40,40 @@ SIGNAL_GROUP_ALLOWED_USERS="group_id_1,group_id_2" # Comma-separated allowed gro
 ```
 
 Ensure the local `signal-cli` daemon is running. Hermes will automatically connect, stream inbound messages via Server-Sent Events (SSE), and reply via JSON-RPC.
+
+## Search, Retrieval & Embedding Configuration
+
+Hermes supports built-in SQLite-based SessionDB/State management, Full-Text Search (FTS5), vector search using the `sqlite-vec` extension, and integrations with external vector databases and memory frameworks.
+
+### Configuration
+
+Add the following environment variables to `~/.config/systemd/user/hermes-gateway.env` (via `./assistants/hermes-ctl edit`):
+
+```bash
+# Vector Database & Memory Backend Selection
+# Options: "sqlite" (default), "qdrant", "chroma"
+HERMES_VECTOR_DB="sqlite"
+
+# External Vector Database Credentials (if using qdrant/chroma)
+QDRANT_URL="http://localhost:6333"
+QDRANT_API_KEY=""
+CHROMA_URL="http://localhost:8000"
+
+# External Memory & RAG Frameworks (optional)
+# Supports Mem0, Honcho, Supermemory, RetainDB
+MEM0_API_KEY="your-mem0-key"
+HONCHO_API_KEY="your-honcho-key"
+
+# Embedding Provider Configuration
+# Options: "openai", "cohere", "jina", "voyage", "local", "ollama"
+HERMES_EMBEDDING_PROVIDER="local"
+HERMES_EMBEDDING_MODEL="text-embedding-3-small"
+
+# Local Inference Endpoint (llama.cpp or Ollama)
+# Route to local-inference (port 50080) for system-wide local embeddings
+EMBEDDING_API_BASE="http://localhost:50080/v1"
+EMBEDDING_API_KEY="unused"
+```
 
 ## Onboarding
 
