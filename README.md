@@ -52,5 +52,6 @@ Can be **broken or bitrotten at anytime**.
 - [moltis-ctl](docs/moltis-ctl.md)
 - [nanobot-ctl](docs/nanobot-ctl.md)
 - [openfang-ctl](docs/openfang-ctl.md)
+- [picoclaw-ctl](docs/picoclaw-ctl.md)
 - [signal-ctl](docs/signal-ctl.md)
 - [other utilities](docs/UTILITIES.md)

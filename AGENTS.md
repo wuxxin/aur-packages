@@ -4,17 +4,19 @@
 
 This is an **AUR (Arch User Repository) packages** repository containing:
 - PKGBUILD files for building Arch Linux packages
-- Shell and Python scripts for package management and utilities
+- Shell and Python scripts for package management and general agent utilities
 
 ## Repository Structure
 
 ```
 aur-packages/
 ├── README.md             # Human targeted README.md , list of currently available pkgs
-├── scripts/              # Utility scripts (antigravity-launcher.sh, aurupgrade.sh, ...)
 ├── libggml-git-hip/      # HIP/ROCm accelerated GGML + llama.cpp + whisper.cpp
 ├── python-torch*-rocm/   # PyTorch ROCm builds
-└── ...                   # Other AUR packages
+├── scripts/              # Utility scripts (antigravity-launcher.sh, aurupgrade.sh, ...)
+├── docs/                 # documentation for some scripts
+|__ scratch/              # scratch space for agents to work or research (checkedout source code for package or build testing, etc)
+└── ...                   # Other AUR packages (each AUR package has its own directory with PKGBUILD)
 ```
 
 ## Build/Lint/Test Commands
