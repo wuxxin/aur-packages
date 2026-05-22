@@ -1,25 +1,22 @@
 # Maintainer: wuxxin <wuxxin@gmail.com>
 # Contributor: taotieren <admin@taotieren.com>
 
-pkgname=moltis
-pkgver=20260510.01
+pkgname=moltis-git
+pkgver=20260519.01.r15.g451e1e4ad
 pkgrel=1
-pkgdesc="A personal AI gateway written in Rust. One binary, sandboxed, secure."
+pkgdesc="A personal AI gateway written in Rust. One binary, sandboxed, secure. (Git VCS version)"
 arch=('x86_64' 'aarch64')
 url="https://github.com/moltis-org/moltis"
 license=('MIT')
-provides=(
-    ${pkgname}
-)
-conflicts=(
-    ${pkgname}
-)
+provides=("moltis")
+conflicts=("moltis")
 replaces=()
 depends=(
     gcc-libs
     glibc
     openssl
-    systemd-libs)
+    systemd-libs
+)
 makedepends=(
     clang
     cargo
@@ -32,11 +29,16 @@ makedepends=(
 backup=()
 options=(!lto !debug)
 install=
-source=("${pkgname}::git+${url}.git#tag=${pkgver}")
-sha256sums=('14d940e4290036985dbdfc4a4c6c50255b03c3fbcc2a173b4d3313370fba7c51')
+source=("${pkgname%-git}::git+${url}.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "${srcdir}/${pkgname%-git}"
+    git describe --long --tags | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+}
 
 prepare() {
-    cd "${srcdir}/${pkgname}"
+    cd "${srcdir}/${pkgname%-git}"
     
     # Increase recursion limit for all crate roots
     for f in crates/*/src/lib.rs crates/*/src/main.rs; do
@@ -55,7 +57,7 @@ prepare() {
 }
 
 build() {
-    cd "${srcdir}/${pkgname}/"
+    cd "${srcdir}/${pkgname%-git}/"
 
     export RUSTUP_TOOLCHAIN=stable
     export CARGO_TARGET_DIR=target
@@ -67,15 +69,8 @@ build() {
     cargo build --release -p moltis --features full
 }
 
-# check() {
-#     cd "${srcdir}/${pkgname}/"
-#
-#     export RUSTUP_TOOLCHAIN=stable
-#     cargo test --all-features
-# }
-
 package() {
-    cd "${srcdir}/${pkgname}/"
+    cd "${srcdir}/${pkgname%-git}/"
 
     install -Dm0755 target/release/moltis -t "${pkgdir}/usr/bin/"
     install -Dm0644 README.md -t "${pkgdir}/usr/share/doc/${pkgname}"
