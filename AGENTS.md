@@ -126,5 +126,5 @@ build() {
 - Contains custom builds of complex software (llama.cpp, PyTorch with ROCm)
 - Many packages have HIP/ROCm acceleration requirements
 - Some packages are experimental or personal forks
-- Always verify dependencies when modifying PKGBUILDs
-
+- Verify dependencies when modifying PKGBUILDs
+- Update README.md if significant changes or additions are made
