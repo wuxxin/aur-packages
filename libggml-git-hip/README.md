@@ -1,13 +1,14 @@
 # libggml-git-hip
 
-An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`) for Arch Linux. This package focuses on **HIP/ROCm hardware acceleration** on RDNA architectures.
+An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`) for Arch Linux. This package focuses on **HIP/ROCm hardware acceleration** on RDNA architectures.
 
 ## Key Features
 
 - **Git HEAD Version:** Builds directly from latest GIT HEAD to provide the latest features and improvements.
-- **Unified Shared Library:** `llama.cpp`, `whisper.cpp`, and `python-llama-cpp` all link dynamically against a single system-wide `libggml-git-hip`. This ensures **consistent backend behavior** and bug compatibility across all tools.
+- **Unified Shared Library:** `llama.cpp`, `whisper.cpp`, `python-llama-cpp`, and `stable-diffusion.cpp` all link dynamically against a single system-wide `libggml-git-hip`. This ensures **consistent backend behavior** and bug compatibility across all tools.
 - **RDNA2 Optimization:** Includes `rdna2-optimized-tile.patch` to unlock more performant TILE Flash Attention on RDNA2 GPUs.
 - **Python Bindings:** patched to support the latest git version of libggml and llama.cpp.
+- **OpenBLAS**: build to use OpenBLAS for optimized cpu performance layer.
 
 ## Package Structure
 
@@ -15,6 +16,7 @@ An optimized Git HEAD compilation of the GGML tensor library and associated tool
 - **`llama.cpp-git-ggml-hip`**: Main executables (`llama-cli`, `llama-server`, etc.) linking to the shared lib.
 - **`whisper.cpp-git-ggml-hip`**: Whisper speech-to-text tools (`whisper-cli`, `whisper-server`) linking to the shared lib.
 - **`python-llama-cpp-git-ggml-hip`**: Python bindings (`llama_cpp`) installed into site-packages, linking to the shared lib.
+- **`stable-diffusion.cpp-git-ggml-hip`**: Stable Diffusion Text-to-Image generation tools (`sd-cli`, `sd-server`) linking to the shared lib.
 
 ## Installation
 

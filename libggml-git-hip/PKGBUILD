@@ -1,10 +1,10 @@
 # Maintainer: Wuxxin <wuxxin@gmail.com>
 
 pkgbase=libggml-git-hip
-pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip')
-pkgver=9119.r4.g927dada
+pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip')
+pkgver=9305.r1.g5d246a7
 pkgrel=1
-pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp - HIP accelerated, shared library, git version"
+pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp - HIP accelerated, shared library, git version"
 arch=('x86_64')
 url="https://github.com/ggml-org/llama.cpp"
 license=('MIT' 'Apache-2.0' 'GPL-3.0-or-later')
@@ -15,12 +15,17 @@ makedepends=(
     'python-build' 'python-installer' 'python-wheel' 'python-setuptools' 'python-scikit-build-core'
     'sdl2-compat'
     'curl'
+    'openblas'
+    'pnpm'
 )
 
 source=(
     "llama.cpp::git+https://github.com/ggml-org/llama.cpp.git"
     "whisper.cpp::git+https://github.com/ggerganov/whisper.cpp.git"
     "llama-cpp-python::git+https://github.com/abetlen/llama-cpp-python.git"
+    "stable-diffusion.cpp::git+https://github.com/leejet/stable-diffusion.cpp.git"
+    "sdcpp-webui::git+https://github.com/leejet/sdcpp-webui.git"
+    "libwebm::git+https://github.com/webmproject/libwebm.git"
     "README.md"
     "ggml.pc.in"
     "llama-patch-abi.py"
@@ -31,7 +36,10 @@ source=(
 sha256sums=('SKIP'
             'SKIP'
             'SKIP'
-            'f1b24bbece9871b29a3964a4756d5742e93545ff4e4a3121dbbad46c3ef70648'
+            'SKIP'
+            'SKIP'
+            'SKIP'
+            'b956be52cabf91b1f8ce772992903799200459c80426bc8823d994e5b482475c'
             '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
             'e7430489ec842c7c10d6976e04c63023c24ebf9fa080ea3fad55ab19c636d875'
             '3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391'
@@ -89,6 +97,15 @@ prepare() {
 
     # Inject Shims (LoRA, Samplers, etc.)
     cat "${srcdir}/llama-shims.py" >> llama_cpp/llama_cpp.py
+
+    # Prepare stable-diffusion.cpp submodules
+    cd "${srcdir}/stable-diffusion.cpp"
+    git submodule init
+    git config submodule.examples/server/frontend.url "${srcdir}/sdcpp-webui"
+    git config submodule.thirdparty/libwebm.url "${srcdir}/libwebm"
+    git config submodule.thirdparty/libwebp.update none
+    git config submodule.ggml.update none
+    git -c protocol.file.allow=always submodule update
 }
 
 build() {
@@ -109,8 +126,8 @@ build() {
 
     # Clear flags that interfere with HIP/device compilation
     unset CFLAGS CXXFLAGS LDFLAGS CPPFLAGS
-    export CFLAGS=""
-    export CXXFLAGS=""
+    export CFLAGS="-DGGML_MAX_NAME=128"
+    export CXXFLAGS="-DGGML_MAX_NAME=128"
     export LDFLAGS=""
     export CPPFLAGS=""
 
@@ -146,7 +163,9 @@ build() {
         -DGGML_CUDA_FA_ALL_QUANTS=ON \
         -DAMDGPU_TARGETS="${GPU_TARGETS}" \
         -DBUILD_SHARED_LIBS=ON \
-        -DGGML_NATIVE=ON
+        -DGGML_NATIVE=ON \
+        -DGGML_BLAS=ON \
+        -DGGML_BLAS_VENDOR=OpenBLAS
     
     cmake --build build_ggml_hip
 
@@ -190,13 +209,25 @@ build() {
     mkdir -p "${srcdir}/dist_hip"
     mv dist/*.whl "${srcdir}/dist_hip/"
     cd ..
+
+    # --- Build stable-diffusion.cpp using system ggml ---
+    echo "--- Building stable-diffusion.cpp (HIP) ---"
+    cmake -B build_sd_hip -S stable-diffusion.cpp -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="/usr" \
+        -DSD_BUILD_SHARED_LIBS=ON \
+        -DSD_USE_SYSTEM_GGML=ON \
+        -DSD_USE_SYSTEM_WEBP=ON \
+        -DSD_USE_SYSTEM_WEBM=OFF \
+        -DSD_HIPBLAS=ON
+    cmake --build build_sd_hip
 }
 
 package_libggml-git-hip() {
-    pkgdesc="Tensor library for machine learning (HIP/ROCm optimized) - HEAD"
+    pkgdesc="Tensor library for machine learning (HIP/ROCm GPU, OpenBLAS CPU, GIT HEAD)"
     provides=("libggml" "libggml-git" "libggml-git-hip")
     conflicts=("libggml" "libggml-git" "libggml-git-vulkan")
-    depends=('hip-runtime-amd' 'hipblas' 'rocblas')
+    depends=('hip-runtime-amd' 'hipblas' 'rocblas' 'openblas')
 
     # Install from ggml build staging
     mkdir -p "${pkgdir}/usr"
@@ -230,4 +261,16 @@ package_python-llama-cpp-git-ggml-hip() {
 
     cd llama-cpp-python
     python -m installer --destdir="$pkgdir" "${srcdir}/dist_hip/"*.whl
+}
+
+package_stable-diffusion.cpp-git-ggml-hip() {
+    pkgdesc="Stable Diffusion in pure C/C++ (git shared library build)"
+    depends=('libggml-git-hip' 'libwebp')
+    provides=('stable-diffusion.cpp' 'stable-diffusion.cpp-hip')
+    conflicts=('stable-diffusion.cpp' 'stable-diffusion.cpp-hip')
+
+    DESTDIR="$pkgdir" cmake --install build_sd_hip
+
+    install -Dm644 "${srcdir}/stable-diffusion.cpp/LICENSE" \
+        -t "${pkgdir}/usr/share/licenses/${pkgname}"
 }

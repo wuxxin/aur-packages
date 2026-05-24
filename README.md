@@ -31,9 +31,9 @@ Archlinux [AUR packages](https://aur.archlinux.org/) i currently maintain:
 Can be **broken or bitrotten at anytime**.
 
 - [libggml-git-hip](libggml-git-hip) - HIP libggml git version shared library
-    - builds libggml, llama.cpp, whisper.cpp, python-llama-cpp with hip/rocm accel from latest git
+    - builds `libggml`, `llama.cpp`, `whisper.cpp`, `python-llama-cpp`, and `stable-diffusion.cpp` with hip/rocm accel from latest git
     - with patches for RDNA2,  Python Bindings to support the latest git version,
-    - `llama.cpp`, `whisper.cpp`, and `python-llama-cpp` all link dynamically against a single system-wide `libggml-git-hip`.
+    - all packages link dynamically against a single system-wide `libggml-git-hip`.
         - This ensures consistent backend behavior / bug compatibility across all tools.
 
 - [python-bitsandbytes-rocm-git](python-bitsandbytes-rocm-git) - Lightweight wrapper around CUDA/HIP custom functions, in particular 8-bit optimizers, matrix multiplication (LLM.int8()), and quantization functions
