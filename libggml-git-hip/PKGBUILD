@@ -106,6 +106,10 @@ prepare() {
     git config submodule.thirdparty/libwebp.update none
     git config submodule.ggml.update none
     git -c protocol.file.allow=always submodule update
+
+    # Copy internal ggml headers for stable-diffusion.cpp's graph cut module
+    mkdir -p "${srcdir}/stable-diffusion.cpp/ggml/src"
+    cp -r "${srcdir}/llama.cpp/ggml/src/"* "${srcdir}/stable-diffusion.cpp/ggml/src/"
 }
 
 build() {
