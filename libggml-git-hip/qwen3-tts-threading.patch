@@ -1,0 +1,226 @@
+diff --git a/src/audio_codec_encoder.cpp b/src/audio_codec_encoder.cpp
+index 76d4197..67d8a8b 100644
+--- a/src/audio_codec_encoder.cpp
++++ b/src/audio_codec_encoder.cpp
+@@ -832,6 +832,18 @@ bool AudioCodecEncoder::encode(const float * samples, int32_t n_samples,
+     return true;
+ }
+ 
++void AudioCodecEncoder::set_n_threads(int32_t n_threads) {
++    if (state_.backend_cpu) {
++        ggml_backend_cpu_set_n_threads(state_.backend_cpu, n_threads);
++    }
++    if (state_.backend) {
++        ggml_backend_dev_t dev = ggml_backend_get_device(state_.backend);
++        if (dev && ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_CPU) {
++            ggml_backend_cpu_set_n_threads(state_.backend, n_threads);
++        }
++    }
++}
++
+ void free_codec_encoder_model(codec_encoder_model & model) {
+     if (model.buffer) {
+         ggml_backend_buffer_free(model.buffer);
+diff --git a/src/audio_codec_encoder.h b/src/audio_codec_encoder.h
+index afc9d74..15faa92 100644
+--- a/src/audio_codec_encoder.h
++++ b/src/audio_codec_encoder.h
+@@ -120,6 +120,9 @@ public:
+     const codec_encoder_config & get_config() const { return model_.config; }
+     const std::string & get_error() const { return error_msg_; }
+ 
++    // Set dynamic thread count on all CPU backends
++    void set_n_threads(int32_t n_threads);
++
+ private:
+     struct ggml_cgraph * build_graph(int32_t n_samples);
+ 
+diff --git a/src/audio_tokenizer_decoder.cpp b/src/audio_tokenizer_decoder.cpp
+index 677ccb2..9213c9e 100644
+--- a/src/audio_tokenizer_decoder.cpp
++++ b/src/audio_tokenizer_decoder.cpp
+@@ -354,7 +354,7 @@ bool AudioTokenizerDecoder::load_model(const std::string & model_path) {
+         return false;
+     }
+ 
+-    ggml_backend_dev_t device = ggml_backend_get_device(state_.backend);
++    device = ggml_backend_get_device(state_.backend);
+     const char * device_name = device ? ggml_backend_dev_name(device) : "Unknown";
+     fprintf(stderr, "  AudioTokenizerDecoder backend: %s\n", device_name);
+     
+@@ -1241,6 +1241,18 @@ void AudioTokenizerDecoder::set_abort_callback(ggml_abort_callback callback, voi
+     }
+ }
+ 
++void AudioTokenizerDecoder::set_n_threads(int32_t n_threads) {
++    if (state_.backend_cpu) {
++        ggml_backend_cpu_set_n_threads(state_.backend_cpu, n_threads);
++    }
++    if (state_.backend) {
++        ggml_backend_dev_t dev = ggml_backend_get_device(state_.backend);
++        if (dev && ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_CPU) {
++            ggml_backend_cpu_set_n_threads(state_.backend, n_threads);
++        }
++    }
++}
++
+ bool AudioTokenizerDecoder::is_aborted() const {
+     return abort_cb_ && abort_cb_(abort_data_);
+ }
+diff --git a/src/audio_tokenizer_decoder.h b/src/audio_tokenizer_decoder.h
+index 9b82ea8..3698983 100644
+--- a/src/audio_tokenizer_decoder.h
++++ b/src/audio_tokenizer_decoder.h
+@@ -168,6 +168,9 @@ public:
+     void set_abort_callback(ggml_abort_callback callback, void * data);
+     bool is_aborted() const;
+ 
++    // Set dynamic thread count on all CPU backends
++    void set_n_threads(int32_t n_threads);
++
+     // Load model from GGUF file (tokenizer model)
+     bool load_model(const std::string & model_path);
+ 
+diff --git a/src/audio_tokenizer_encoder.cpp b/src/audio_tokenizer_encoder.cpp
+index 195dde6..7335bd1 100644
+--- a/src/audio_tokenizer_encoder.cpp
++++ b/src/audio_tokenizer_encoder.cpp
+@@ -769,6 +769,18 @@ void AudioTokenizerEncoder::set_abort_callback(ggml_abort_callback callback, voi
+     }
+ }
+ 
++void AudioTokenizerEncoder::set_n_threads(int32_t n_threads) {
++    if (state_.backend_cpu) {
++        ggml_backend_cpu_set_n_threads(state_.backend_cpu, n_threads);
++    }
++    if (state_.backend) {
++        ggml_backend_dev_t dev = ggml_backend_get_device(state_.backend);
++        if (dev && ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_CPU) {
++            ggml_backend_cpu_set_n_threads(state_.backend, n_threads);
++        }
++    }
++}
++
+ bool AudioTokenizerEncoder::is_aborted() const {
+     return abort_cb_ && abort_cb_(abort_data_);
+ }
+diff --git a/src/audio_tokenizer_encoder.h b/src/audio_tokenizer_encoder.h
+index c6bfd02..9520ad8 100644
+--- a/src/audio_tokenizer_encoder.h
++++ b/src/audio_tokenizer_encoder.h
+@@ -131,6 +131,9 @@ public:
+     // Set abort callback checked before each graph compute (thread-safe)
+     void set_abort_callback(ggml_abort_callback callback, void * data);
+     bool is_aborted() const;
++
++    // Set dynamic thread count on all CPU backends
++    void set_n_threads(int32_t n_threads);
+     
+ private:
+     // Compute mel spectrogram from waveform
+diff --git a/src/qwen3_tts.cpp b/src/qwen3_tts.cpp
+index ecd9586..517f07d 100644
+--- a/src/qwen3_tts.cpp
++++ b/src/qwen3_tts.cpp
+@@ -299,6 +299,7 @@ tts_result Qwen3TTS::synthesize_with_voice(const std::string & text,
+             return result;
+         }
+         audio_encoder_.set_abort_callback(abort_cb_, abort_data_);
++        audio_encoder_.set_n_threads(params.n_threads);
+         encoder_loaded_ = true;
+         if (params.print_timing) {
+             fprintf(stderr, "  Speaker encoder lazy-loaded in %lld ms\n",
+@@ -310,6 +311,7 @@ tts_result Qwen3TTS::synthesize_with_voice(const std::string & text,
+     int64_t t_encode_start = get_time_ms();
+     std::vector<float> speaker_embedding;
+ 
++    audio_encoder_.set_n_threads(params.n_threads);
+     if (!audio_encoder_.encode(ref_samples, n_ref_samples, speaker_embedding)) {
+         result.error_msg = "Failed to extract speaker embedding: " + audio_encoder_.get_error();
+         return result;
+@@ -332,6 +334,7 @@ tts_result Qwen3TTS::synthesize_with_voice(const std::string & text,
+                 result.error_msg = "failed to load codec encoder: " + codec_encoder_.get_error();
+                 return result;
+             }
++            codec_encoder_.set_n_threads(params.n_threads);
+             codec_encoder_loaded_ = true;
+             if (params.print_timing) {
+                 fprintf(stderr, "  Codec encoder lazy-loaded in %lld ms\n",
+@@ -342,6 +345,7 @@ tts_result Qwen3TTS::synthesize_with_voice(const std::string & text,
+         int64_t t0 = get_time_ms();
+         std::vector<int32_t> ref_codes;
+         int32_t n_ref_frames = 0;
++        codec_encoder_.set_n_threads(params.n_threads);
+         if (!codec_encoder_.encode(ref_samples, n_ref_samples, ref_codes, n_ref_frames)) {
+             result.error_msg = "failed to encode reference audio: " + codec_encoder_.get_error();
+             return result;
+@@ -526,6 +530,7 @@ tts_result Qwen3TTS::synthesize_internal(const std::string & text,
+             return result;
+         }
+         transformer_.set_abort_callback(abort_cb_, abort_data_);
++        transformer_.set_n_threads(params.n_threads);
+         transformer_loaded_ = true;
+         if (params.print_timing) {
+             fprintf(stderr, "  Transformer reloaded in %lld ms\n",
+@@ -580,6 +585,7 @@ tts_result Qwen3TTS::synthesize_internal(const std::string & text,
+                 return result;
+             }
+             audio_decoder_.set_abort_callback(abort_cb_, abort_data_);
++            audio_decoder_.set_n_threads(params.n_threads);
+             decoder_loaded_ = true;
+             if (params.print_timing) {
+                 fprintf(stderr, "  Vocoder lazy-loaded in %lld ms\n",
+@@ -626,6 +632,8 @@ tts_result Qwen3TTS::synthesize_internal(const std::string & text,
+     }
+ 
+     std::vector<int32_t> speech_codes;
++    transformer_.set_n_threads(params.n_threads);
++    audio_decoder_.set_n_threads(params.n_threads);
+     if (!transformer_.generate(text_tokens.data(), (int32_t)text_tokens.size(),
+                                speaker_embedding, params.max_audio_tokens, speech_codes,
+                                params.language_id, params.repetition_penalty,
+@@ -719,6 +727,7 @@ tts_result Qwen3TTS::synthesize_internal(const std::string & text,
+             return result;
+         }
+         audio_decoder_.set_abort_callback(abort_cb_, abort_data_);
++        audio_decoder_.set_n_threads(params.n_threads);
+         decoder_loaded_ = true;
+         if (params.print_timing) {
+             fprintf(stderr, "  Vocoder lazy-loaded in %lld ms\n",
+diff --git a/src/tts_transformer.cpp b/src/tts_transformer.cpp
+index 6727d3b..288e544 100644
+--- a/src/tts_transformer.cpp
++++ b/src/tts_transformer.cpp
+@@ -3245,6 +3245,18 @@ void TTSTransformer::set_abort_callback(ggml_abort_callback callback, void * dat
+     }
+ }
+ 
++void TTSTransformer::set_n_threads(int32_t n_threads) {
++    if (state_.backend_cpu) {
++        ggml_backend_cpu_set_n_threads(state_.backend_cpu, n_threads);
++    }
++    if (state_.backend) {
++        ggml_backend_dev_t dev = ggml_backend_get_device(state_.backend);
++        if (dev && ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_CPU) {
++            ggml_backend_cpu_set_n_threads(state_.backend, n_threads);
++        }
++    }
++}
++
+ bool TTSTransformer::is_aborted() const {
+     return abort_cb_ && abort_cb_(abort_data_);
+ }
+diff --git a/src/tts_transformer.h b/src/tts_transformer.h
+index 6767063..098086e 100644
+--- a/src/tts_transformer.h
++++ b/src/tts_transformer.h
+@@ -304,6 +304,9 @@ public:
+     // Set abort callback checked before each graph compute (thread-safe)
+     void set_abort_callback(ggml_abort_callback callback, void * data);
+ 
++    // Set dynamic thread count on all CPU backends
++    void set_n_threads(int32_t n_threads);
++
+     // Fired inside generate() after each frame's 16 codebook codes are
+     // pushed onto the output vector. The callback receives the frame
+     // index and a pointer to the new frame's codes (valid only for the

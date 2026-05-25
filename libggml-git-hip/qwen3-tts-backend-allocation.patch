@@ -1,0 +1,161 @@
+diff --git a/src/audio_codec_encoder.cpp b/src/audio_codec_encoder.cpp
+index 67d8a8b..4b84575 100644
+--- a/src/audio_codec_encoder.cpp
++++ b/src/audio_codec_encoder.cpp
+@@ -199,9 +199,12 @@ bool AudioCodecEncoder::load_model(const std::string & model_path) {
+         }
+     }
+ 
++    state_.backend = init_preferred_backend("AudioCodecEncoder", &error_msg_);
++    if (!state_.backend) return false;
++
+     if (!load_tensor_data_from_file(model_path, gguf_ctx, model_.ctx,
+                                      model_.tensors, model_.buffer, error_msg_,
+-                                     GGML_BACKEND_DEVICE_TYPE_CPU)) {
++                                     state_.backend)) {
+         return false;
+     }
+ 
+@@ -242,10 +245,7 @@ bool AudioCodecEncoder::load_model(const std::string & model_path) {
+         }
+     }
+ 
+-    // init compute backend
+-    state_.backend = init_preferred_backend("AudioCodecEncoder", &error_msg_);
+-    if (!state_.backend) return false;
+-
++    // init compute backend (already initialized above)
+     ggml_backend_dev_t device = ggml_backend_get_device(state_.backend);
+     const char * dev_name = device ? ggml_backend_dev_name(device) : "Unknown";
+     fprintf(stderr, "  AudioCodecEncoder backend: %s\n", dev_name);
+diff --git a/src/audio_tokenizer_decoder.cpp b/src/audio_tokenizer_decoder.cpp
+index 9213c9e..4cda0ae 100644
+--- a/src/audio_tokenizer_decoder.cpp
++++ b/src/audio_tokenizer_decoder.cpp
+@@ -282,9 +282,14 @@ bool AudioTokenizerDecoder::load_model(const std::string & model_path) {
+         }
+     }
+     
++    state_.backend = init_preferred_backend("AudioTokenizerDecoder", &error_msg_);
++    if (!state_.backend) {
++        return false;
++    }
++
+     if (!load_tensor_data_from_file(model_path, gguf_ctx, model_.ctx,
+                                      model_.tensors, model_.buffer, error_msg_,
+-                                     GGML_BACKEND_DEVICE_TYPE_IGPU)) {
++                                     state_.backend)) {
+         return false;
+     }
+     
+@@ -349,12 +354,9 @@ bool AudioTokenizerDecoder::load_model(const std::string & model_path) {
+         }
+     }
+     
+-    state_.backend = init_preferred_backend("AudioTokenizerDecoder", &error_msg_);
+-    if (!state_.backend) {
+-        return false;
+-    }
++    // state_.backend is already initialized above before loading tensor data
+ 
+-    device = ggml_backend_get_device(state_.backend);
++    ggml_backend_dev_t device = ggml_backend_get_device(state_.backend);
+     const char * device_name = device ? ggml_backend_dev_name(device) : "Unknown";
+     fprintf(stderr, "  AudioTokenizerDecoder backend: %s\n", device_name);
+     
+diff --git a/src/audio_tokenizer_encoder.cpp b/src/audio_tokenizer_encoder.cpp
+index 7335bd1..ccae237 100644
+--- a/src/audio_tokenizer_encoder.cpp
++++ b/src/audio_tokenizer_encoder.cpp
+@@ -241,13 +241,14 @@ bool AudioTokenizerEncoder::load_model(const std::string & model_path) {
+         }
+     }
+     
+-    if (!load_tensor_data_from_file(model_path, gguf_ctx, model_.ctx, 
+-                                     model_.tensors, model_.buffer, error_msg_)) {
++    state_.backend = init_preferred_backend("AudioTokenizerEncoder", &error_msg_);
++    if (!state_.backend) {
+         return false;
+     }
+     
+-    state_.backend = init_preferred_backend("AudioTokenizerEncoder", &error_msg_);
+-    if (!state_.backend) {
++    if (!load_tensor_data_from_file(model_path, gguf_ctx, model_.ctx, 
++                                     model_.tensors, model_.buffer, error_msg_,
++                                     state_.backend)) {
+         return false;
+     }
+     ggml_backend_dev_t device = ggml_backend_get_device(state_.backend);
+diff --git a/src/gguf_loader.cpp b/src/gguf_loader.cpp
+index b83446f..c95b589 100644
+--- a/src/gguf_loader.cpp
++++ b/src/gguf_loader.cpp
+@@ -163,14 +163,10 @@ bool load_tensor_data_from_file(
+     const std::map<std::string, struct ggml_tensor *> & tensors,
+     ggml_backend_buffer_t & buffer,
+     std::string & error_msg,
+-    enum ggml_backend_dev_type preferred_backend_type
++    ggml_backend_t backend
+ ) {
+-    ggml_backend_t backend = ggml_backend_init_by_type(preferred_backend_type, nullptr);
+-    if (!backend && preferred_backend_type != GGML_BACKEND_DEVICE_TYPE_CPU) {
+-        backend = ggml_backend_init_by_type(GGML_BACKEND_DEVICE_TYPE_CPU, nullptr);
+-    }
+     if (!backend) {
+-        error_msg = "Failed to initialize backend for GGUF tensor loader";
++        error_msg = "Null backend passed to load_tensor_data_from_file";
+         return false;
+     }
+     
+@@ -178,7 +174,6 @@ bool load_tensor_data_from_file(
+     buffer = ggml_backend_alloc_ctx_tensors(model_ctx, backend);
+     if (!buffer) {
+         error_msg = "Failed to allocate tensor buffer";
+-        ggml_backend_free(backend);
+         return false;
+     }
+     
+@@ -186,7 +181,6 @@ bool load_tensor_data_from_file(
+     FILE * f = fopen(path.c_str(), "rb");
+     if (!f) {
+         error_msg = "Failed to open file for reading: " + path;
+-        ggml_backend_free(backend);
+         return false;
+     }
+     
+@@ -211,14 +205,12 @@ bool load_tensor_data_from_file(
+         if (fseek(f, (long)(data_offset + offset), SEEK_SET) != 0) {
+             error_msg = "Failed to seek to tensor data: " + std::string(name);
+             fclose(f);
+-            ggml_backend_free(backend);
+             return false;
+         }
+         
+         if (fread(read_buf.data(), 1, nbytes, f) != nbytes) {
+             error_msg = "Failed to read tensor data: " + std::string(name);
+             fclose(f);
+-            ggml_backend_free(backend);
+             return false;
+         }
+         
+@@ -226,7 +218,6 @@ bool load_tensor_data_from_file(
+     }
+     
+     fclose(f);
+-    ggml_backend_free(backend);
+     
+     return true;
+ }
+diff --git a/src/gguf_loader.h b/src/gguf_loader.h
+index d14d84f..66a7df8 100644
+--- a/src/gguf_loader.h
++++ b/src/gguf_loader.h
+@@ -70,7 +70,7 @@ bool load_tensor_data_from_file(
+     const std::map<std::string, struct ggml_tensor *> & tensors,
+     ggml_backend_buffer_t & buffer,
+     std::string & error_msg,
+-    enum ggml_backend_dev_type preferred_backend_type = GGML_BACKEND_DEVICE_TYPE_CPU
++    ggml_backend_t backend
+ );
+ 
+ // Helper to initialize backend with GPU preference and CPU fallback

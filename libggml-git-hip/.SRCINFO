@@ -1,6 +1,6 @@
 pkgbase = libggml-git-hip
 	pkgdesc = libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)
-	pkgver = 9310.r18.g5a4126a
+	pkgver = 9319.r14.g35c9b1f
 	pkgrel = 1
 	url = https://github.com/ggml-org/llama.cpp
 	arch = x86_64
@@ -37,6 +37,8 @@ pkgbase = libggml-git-hip
 	source = llama-shims.py
 	source = llama-cpp-system.patch
 	source = qwen3-tts-system-ggml.patch
+	source = qwen3-tts-threading.patch
+	source = qwen3-tts-backend-allocation.patch
 	sha256sums = SKIP
 	sha256sums = SKIP
 	sha256sums = SKIP
@@ -50,6 +52,8 @@ pkgbase = libggml-git-hip
 	sha256sums = 3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391
 	sha256sums = 4247b582ffdd3ef1c48981efef417c3ee54d8cc48a627b89138162bdc3bbf5be
 	sha256sums = fd2119ea37dfb39ac6b2a1513c4e3c150f105bfc1a18d4404fc300f1607d5fc2
+	sha256sums = 606dc666773367146e0b1b8393b173e8c726bea88de8ee4e2e912cbb2650374a
+	sha256sums = d227edaa98d472090d9bcb613185aaada770900bd3c3f9bc63e849376bfad2fe
 
 pkgname = libggml-git-hip
 	pkgdesc = Tensor library for machine learning (HIP/ROCm GPU, OpenBLAS CPU, GIT HEAD)
