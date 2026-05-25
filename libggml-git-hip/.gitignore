@@ -3,10 +3,12 @@ llama.cpp/
 whisper.cpp/
 stable-diffusion.cpp/
 libwebm/
+qwen3-tts.cpp/
 sdcpp-webui/
 libggml-git*.pkg.tar*
 llama.cpp*.pkg.tar*
 python-llama-cpp*.pkg.tar*
 whisper.cpp*.pkg.tar*
 stable-diffusion.cpp*.pkg.tar*
+qwen3-tts.cpp*.pkg.tar*
 *.gguf

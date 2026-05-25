@@ -1,10 +1,10 @@
 # Maintainer: Wuxxin <wuxxin@gmail.com>
 
 pkgbase=libggml-git-hip
-pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip')
-pkgver=9305.r1.g5d246a7
+pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip')
+pkgver=9310.r18.g5a4126a
 pkgrel=1
-pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
+pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
 url="https://github.com/ggml-org/llama.cpp"
 license=('MIT' 'Apache-2.0' 'GPL-3.0-or-later')
@@ -26,11 +26,13 @@ source=(
     "stable-diffusion.cpp::git+https://github.com/leejet/stable-diffusion.cpp.git"
     "sdcpp-webui::git+https://github.com/leejet/sdcpp-webui.git"
     "libwebm::git+https://github.com/webmproject/libwebm.git"
+    "qwen3-tts.cpp::git+https://github.com/khimaros/qwen3-tts.cpp.git"
     "README.md"
     "ggml.pc.in"
     "llama-patch-abi.py"
     "llama-shims.py"
     "llama-cpp-system.patch"
+    "qwen3-tts-system-ggml.patch"
 )
 
 sha256sums=('SKIP'
@@ -39,11 +41,13 @@ sha256sums=('SKIP'
             'SKIP'
             'SKIP'
             'SKIP'
-            'fea1d353b1b82cb3f0ea8cd6c3a7af880b66c990d04bb52a6c7fd6559fee834e'
+            'SKIP'
+            'e27f7db71ef639caa57d4f796ce57f06a05152564079ed2c2cb4c20e87377fb5'
             '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
             'e7430489ec842c7c10d6976e04c63023c24ebf9fa080ea3fad55ab19c636d875'
             '3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391'
-            '4247b582ffdd3ef1c48981efef417c3ee54d8cc48a627b89138162bdc3bbf5be')
+            '4247b582ffdd3ef1c48981efef417c3ee54d8cc48a627b89138162bdc3bbf5be'
+            'fd2119ea37dfb39ac6b2a1513c4e3c150f105bfc1a18d4404fc300f1607d5fc2')
 
 pkgver() {
     cd llama.cpp
@@ -110,6 +114,11 @@ prepare() {
     # Copy internal ggml headers for stable-diffusion.cpp's graph cut module
     mkdir -p "${srcdir}/stable-diffusion.cpp/ggml/src"
     cp -r "${srcdir}/llama.cpp/ggml/src/"* "${srcdir}/stable-diffusion.cpp/ggml/src/"
+
+    # Prepare qwen3-tts.cpp
+    cd "${srcdir}/qwen3-tts.cpp"
+    patch -p1 <"${srcdir}/qwen3-tts-system-ggml.patch"
+    cp "${srcdir}/llama.cpp/LICENSE" "${srcdir}/qwen3-tts.cpp/LICENSE"
 }
 
 build() {
@@ -225,6 +234,14 @@ build() {
         -DSD_USE_SYSTEM_WEBM=OFF \
         -DSD_HIPBLAS=ON
     cmake --build build_sd_hip
+
+    # --- Build qwen3-tts.cpp using system ggml ---
+    echo "--- Building qwen3-tts.cpp (HIP) ---"
+    cmake -B build_qwen3_hip -S qwen3-tts.cpp -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="/usr" \
+        -DQWEN3_TTS_USE_SYSTEM_GGML=ON
+    cmake --build build_qwen3_hip
 }
 
 package_libggml-git-hip() {
@@ -276,5 +293,17 @@ package_stable-diffusion.cpp-git-ggml-hip() {
     DESTDIR="$pkgdir" cmake --install build_sd_hip
 
     install -Dm644 "${srcdir}/stable-diffusion.cpp/LICENSE" \
+        -t "${pkgdir}/usr/share/licenses/${pkgname}"
+}
+
+package_qwen3-tts.cpp-git-ggml-hip() {
+    pkgdesc="C++ inference for Qwen3-TTS using the GGML tensor library (git shared library build)"
+    depends=('libggml-git-hip')
+    provides=('qwen3-tts.cpp')
+    conflicts=('qwen3-tts.cpp')
+
+    DESTDIR="$pkgdir" cmake --install build_qwen3_hip
+
+    install -Dm644 "${srcdir}/qwen3-tts.cpp/LICENSE" \
         -t "${pkgdir}/usr/share/licenses/${pkgname}"
 }
