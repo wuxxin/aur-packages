@@ -1,0 +1,102 @@
+# Maintainer: Wuxxin <wuxxin@example.com>
+pkgname=python-vllm-omni-rocm-git
+_pkgname=vllm-omni
+pkgver=0.21.0rc2.r13.ge459fdb
+pkgrel=1
+pkgdesc='A framework for efficient model inference with omni-modality models (ROCm version)'
+arch=('any')
+url='https://github.com/vllm-project/vllm-omni'
+license=(Apache-2.0)
+depends=(
+  python-aenum
+  python-diffusers
+  python-janus
+  python-omegaconf
+  python-pydub
+  python-python-multipart
+  python-torchaudio-rocm
+  python-vllm-rocm-git
+  python-x-transformers
+)
+makedepends=(
+  git
+  python-setuptools
+  python-setuptools-scm
+  python-build
+  python-installer
+)
+
+optdepends=(
+  'onnxruntime-rocm: For ROCm'
+)
+
+conflicts=('python-vllm-omni' 'python-vllm-omni-git')
+provides=('python-vllm-omni' 'python-vllm-omni-rocm')
+
+source=('git+https://github.com/vllm-project/vllm-omni.git')
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "$srcdir/$_pkgname"
+    git describe --long --tags --abbrev=7 | sed 's/^v//;s/-/.r/;s/-/./'
+}
+
+prepare() {
+  cd "$srcdir/$_pkgname"
+  rm -f "dist"/*
+
+  sed -i 's/"setuptools>=\([0-9.]\+\).*/"setuptools>=\1",/g' pyproject.toml
+  sed -i '/^\s*uninstall_onnxruntime()/d' setup.py
+
+  # Fix vllm realtime imports for consolidated speech_to_text path
+  sed -i 's/vllm\.entrypoints\.openai\.realtime/vllm.entrypoints.speech_to_text.realtime/g' \
+    vllm_omni/entrypoints/openai/api_server.py \
+    vllm_omni/entrypoints/openai/realtime_connection.py
+
+  # Fix vllm speech_to_text imports for consolidated speech_to_text path
+  python -c '
+with open("vllm_omni/entrypoints/openai/api_server.py", "r") as f:
+    content = f.read()
+old_import = "from vllm.entrypoints.openai.speech_to_text.serving import (\n    OpenAIServingTranscription,\n    OpenAIServingTranslation,\n)"
+new_import = "from vllm.entrypoints.speech_to_text.transcription.serving import OpenAIServingTranscription\nfrom vllm.entrypoints.speech_to_text.translation.serving import OpenAIServingTranslation"
+content = content.replace(old_import, new_import)
+with open("vllm_omni/entrypoints/openai/api_server.py", "w") as f:
+    f.write(content)
+'
+
+  # Fix missing split_routed_experts from vllm.model_executor.layers.fused_moe.routed_experts_capturer
+  python -c '
+with open("vllm_omni/engine/output_processor.py", "r") as f:
+    content = f.read()
+old_import = "from vllm.model_executor.layers.fused_moe.routed_experts_capturer import (\n    split_routed_experts,\n)"
+new_def = """def split_routed_experts(
+    routed_experts: np.ndarray,
+    prompt_len: int,
+    num_output_tokens: int | None = None,
+) -> tuple[np.ndarray | None, np.ndarray | None]:
+    prompt_routed_experts = routed_experts[:prompt_len]
+    gen_routed_experts = routed_experts[prompt_len:]
+    if (
+        num_output_tokens is not None
+        and gen_routed_experts.shape[0] > num_output_tokens
+        and num_output_tokens > 0
+    ):
+        gen_routed_experts = gen_routed_experts[:num_output_tokens]
+    return prompt_routed_experts, gen_routed_experts"""
+content = content.replace(old_import, new_def)
+with open("vllm_omni/engine/output_processor.py", "w") as f:
+    f.write(content)
+'
+}
+
+build() {
+  cd "$srcdir/$_pkgname"
+
+  python -m build --wheel --no-isolation
+}
+
+package() {
+  cd "$srcdir/$_pkgname"
+  python -m installer --destdir="${pkgdir}" dist/*.whl
+  rm -f "${pkgdir}/usr/bin/vllm"
+}

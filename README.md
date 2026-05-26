@@ -41,3 +41,7 @@ Can be **broken or bitrotten at anytime**.
 
 - [signal-cli-rest-api-git](signal-cli-rest-api-git) - A small REST API around signal-cli (Go implementation) with polling support, currently not in AUR
 
+- [python-vllm-rocm-git](python-vllm-rocm-git) - High-throughput and memory-efficient inference and serving engine for LLMs (ROCm support, Git VCS version)
+
+- [python-vllm-omni-rocm-git](python-vllm-omni-rocm-git) - A framework for efficient model inference with omni-modality models (ROCm support, depends on python-vllm-rocm-git)
+
