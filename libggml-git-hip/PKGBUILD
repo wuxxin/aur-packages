@@ -2,7 +2,7 @@
 
 pkgbase=libggml-git-hip
 pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip')
-pkgver=9319.r14.g35c9b1f
+pkgver=9320.r13.g35c9b1f
 pkgrel=1
 pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
@@ -35,6 +35,7 @@ source=(
     "qwen3-tts-system-ggml.patch"
     "qwen3-tts-threading.patch"
     "qwen3-tts-backend-allocation.patch"
+    "qwen3-tts-hybrid-backend.patch"
 )
 
 sha256sums=('SKIP'
@@ -51,7 +52,8 @@ sha256sums=('SKIP'
             '4247b582ffdd3ef1c48981efef417c3ee54d8cc48a627b89138162bdc3bbf5be'
             'fd2119ea37dfb39ac6b2a1513c4e3c150f105bfc1a18d4404fc300f1607d5fc2'
             '606dc666773367146e0b1b8393b173e8c726bea88de8ee4e2e912cbb2650374a'
-            'd227edaa98d472090d9bcb613185aaada770900bd3c3f9bc63e849376bfad2fe')
+            'd227edaa98d472090d9bcb613185aaada770900bd3c3f9bc63e849376bfad2fe'
+            '419d7c7d1e325f37256bfab1233c5c75c084dff5e15b850ba32bc137af1c7c6e')
 
 pkgver() {
     cd llama.cpp
@@ -124,6 +126,7 @@ prepare() {
     patch -p1 <"${srcdir}/qwen3-tts-system-ggml.patch"
     patch -p1 <"${srcdir}/qwen3-tts-threading.patch"
     patch -p1 <"${srcdir}/qwen3-tts-backend-allocation.patch"
+    patch -p1 <"${srcdir}/qwen3-tts-hybrid-backend.patch"
     cp "${srcdir}/llama.cpp/LICENSE" "${srcdir}/qwen3-tts.cpp/LICENSE"
 }
 

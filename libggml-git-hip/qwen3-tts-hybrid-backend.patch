@@ -1,0 +1,132 @@
+diff --git a/src/gguf_loader.cpp b/src/gguf_loader.cpp
+index b83446f..3b5550e 100644
+--- a/src/gguf_loader.cpp
++++ b/src/gguf_loader.cpp
+@@ -9,8 +9,11 @@ namespace qwen3_tts {
+ 
+ namespace {
+ struct shared_backend_state {
+-    ggml_backend_t backend = nullptr;
+-    int32_t ref_count = 0;
++    ggml_backend_t gpu_backend = nullptr;
++    int32_t gpu_ref_count = 0;
++
++    ggml_backend_t cpu_backend = nullptr;
++    int32_t cpu_ref_count = 0;
+ };
+ 
+ shared_backend_state & get_shared_backend_state() {
+@@ -29,37 +32,63 @@ ggml_backend_t init_preferred_backend(const char * component_name, std::string *
+     if (error_msg) error_msg->clear();
+ 
+     auto & shared = get_shared_backend_state();
+-    if (shared.backend) {
+-        shared.ref_count++;
+-        return shared.backend;
+-    }
+ 
+     const char * force_cpu = std::getenv("QWEN3_TTS_FORCE_CPU");
+-    ggml_backend_t backend = nullptr;
+-    if (!(force_cpu && force_cpu[0] == '1')) {
+-        backend = ggml_backend_init_by_type(GGML_BACKEND_DEVICE_TYPE_IGPU, nullptr);
++    bool want_cpu = (force_cpu && force_cpu[0] == '1');
++
++    if (component_name && std::strcmp(component_name, "TTSTransformer") == 0) {
++        const char * trans_force_cpu = std::getenv("QWEN3_TTS_TRANSFORMER_FORCE_CPU");
++        if (trans_force_cpu && trans_force_cpu[0] == '1') {
++            want_cpu = true;
++        }
++    }
++    if (component_name && std::strcmp(component_name, "AudioTokenizerDecoder") == 0) {
++        const char * voc_force_cpu = std::getenv("QWEN3_TTS_VOCODER_FORCE_CPU");
++        if (voc_force_cpu && voc_force_cpu[0] == '1') {
++            want_cpu = true;
++        }
++    }
++
++    if (want_cpu) {
++        if (shared.cpu_backend) {
++            shared.cpu_ref_count++;
++            return shared.cpu_backend;
++        }
++        ggml_backend_t backend = ggml_backend_init_by_type(GGML_BACKEND_DEVICE_TYPE_CPU, nullptr);
++        if (!backend && error_msg) {
++            const char * name = component_name ? component_name : "component";
++            *error_msg = "Failed to initialize CPU backend for " + std::string(name);
++        }
++        if (backend) {
++            shared.cpu_backend = backend;
++            shared.cpu_ref_count = 1;
++        }
++        return backend;
++    } else {
++        if (shared.gpu_backend) {
++            shared.gpu_ref_count++;
++            return shared.gpu_backend;
++        }
++        ggml_backend_t backend = ggml_backend_init_by_type(GGML_BACKEND_DEVICE_TYPE_IGPU, nullptr);
+         if (!backend) {
+             backend = ggml_backend_init_by_type(GGML_BACKEND_DEVICE_TYPE_GPU, nullptr);
+         }
+         if (!backend) {
+             backend = ggml_backend_init_by_type(GGML_BACKEND_DEVICE_TYPE_ACCEL, nullptr);
+         }
++        if (!backend) {
++            backend = ggml_backend_init_by_type(GGML_BACKEND_DEVICE_TYPE_CPU, nullptr);
++        }
++        if (!backend && error_msg) {
++            const char * name = component_name ? component_name : "component";
++            *error_msg = "Failed to initialize GPU/CPU backend for " + std::string(name);
++        }
++        if (backend) {
++            shared.gpu_backend = backend;
++            shared.gpu_ref_count = 1;
++        }
++        return backend;
+     }
+-    if (!backend) {
+-        backend = ggml_backend_init_by_type(GGML_BACKEND_DEVICE_TYPE_CPU, nullptr);
+-    }
+-
+-    if (!backend && error_msg) {
+-        const char * name = component_name ? component_name : "component";
+-        *error_msg = "Failed to initialize backend (IGPU/GPU/ACCEL/CPU) for " + std::string(name);
+-    }
+-
+-    if (backend) {
+-        shared.backend = backend;
+-        shared.ref_count = 1;
+-    }
+-
+-    return backend;
+ }
+ 
+ void release_preferred_backend(ggml_backend_t backend) {
+@@ -68,12 +97,21 @@ void release_preferred_backend(ggml_backend_t backend) {
+     }
+ 
+     auto & shared = get_shared_backend_state();
+-    if (shared.backend == backend) {
+-        shared.ref_count--;
+-        if (shared.ref_count <= 0) {
+-            ggml_backend_free(shared.backend);
+-            shared.backend = nullptr;
+-            shared.ref_count = 0;
++    if (shared.gpu_backend == backend) {
++        shared.gpu_ref_count--;
++        if (shared.gpu_ref_count <= 0) {
++            ggml_backend_free(shared.gpu_backend);
++            shared.gpu_backend = nullptr;
++            shared.gpu_ref_count = 0;
++        }
++        return;
++    }
++    if (shared.cpu_backend == backend) {
++        shared.cpu_ref_count--;
++        if (shared.cpu_ref_count <= 0) {
++            ggml_backend_free(shared.cpu_backend);
++            shared.cpu_backend = nullptr;
++            shared.cpu_ref_count = 0;
+         }
+         return;
+     }
