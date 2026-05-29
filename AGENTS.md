@@ -47,8 +47,8 @@ pytest tests/test_file.py::test_function -v
 ```bash
 # Lint
 shellcheck scripts/*.sh
-# Format
-shfmt -w scripts/*.sh
+# Format (requires -i 4 to enforce the 4-space indentation style)
+shfmt -i 4 -w scripts/*.sh
 ```
 
 ## Code Style Guidelines
@@ -90,7 +90,9 @@ pkgdesc="My package"
 arch=('x86_64')
 
 source=("my-package::git+https://github.com/user/repo.git")
-sha256sums=('SKIP')
+sha256sums=(
+    'SKIP'
+)
 
 pkgver() {
     cd my-package
