@@ -73,6 +73,7 @@ shfmt -i 4 -w scripts/*.sh
 
 ### PKGBUILD Files
 - **Maintainer**: Include at top
+- **Indentation**: 4 spaces
 - **pkgver**: Use `pkgver()` function for git packages
 - **Functions**: `prepare()`, `build()`, `check()`, `package_<pkgname>()`
 - **Quotes**: Quote all variable expansions

@@ -1,6 +1,6 @@
 pkgbase = python-vllm-omni-rocm-git
 	pkgdesc = A framework for efficient model inference with omni-modality models (ROCm version)
-	pkgver = 0.21.0rc2.r13.ge459fdb
+	pkgver = 0.21.0rc2.r67.g8c4a42b
 	pkgrel = 1
 	url = https://github.com/vllm-project/vllm-omni
 	arch = any

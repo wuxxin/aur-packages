@@ -18,13 +18,13 @@ Archlinux [AUR packages](https://aur.archlinux.org/) i currently maintain:
     - PyTorch Datasets, transforms, and models specific to computer vision (with ROCM support)
 - [salt](salt)
     - Portable, distributed, remote execution and configuration management system
+- [signal-cli-rest-api-git](signal-cli-rest-api-git) - A small REST API around signal-cli 
+    - GIT version with patches for unix socket, token auth and polling support
 - [solo1](solo1)
     - Python tool and library for SoloKeys Solo 1
 - [zeroclaw-git](zeroclaw-git)
     - Fast, small, and fully autonomous AI assistant infrastructure (Rust, Git VCS version with all features and embedded web dashboard).
 
-
----
 
 ### Private forks of Archlinux/AUR and other custom packages
 
@@ -39,9 +39,10 @@ Can be **broken or bitrotten at anytime**.
 - [python-bitsandbytes-rocm-git](python-bitsandbytes-rocm-git) - Lightweight wrapper around CUDA/HIP custom functions, in particular 8-bit optimizers, matrix multiplication (LLM.int8()), and quantization functions
     - switched to main branch, other branch is stale
 
-- [signal-cli-rest-api-git](signal-cli-rest-api-git) - A small REST API around signal-cli (Go implementation) with polling support, currently not in AUR
-
 - [python-vllm-rocm-git](python-vllm-rocm-git) - High-throughput and memory-efficient inference and serving engine for LLMs (ROCm support, Git VCS version)
 
 - [python-vllm-omni-rocm-git](python-vllm-omni-rocm-git) - A framework for efficient model inference with omni-modality models (ROCm support, depends on python-vllm-rocm-git)
 
+### Weekly development activity tracking
+
+Development activity tracking for a few selected packages are available in [weekly-devel-activity.md](weekly-devel-activity.md).

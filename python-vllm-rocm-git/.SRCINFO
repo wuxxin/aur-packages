@@ -1,6 +1,6 @@
 pkgbase = python-vllm-rocm-git
 	pkgdesc = high-throughput and memory-efficient inference and serving engine for LLMs (ROCm support)
-	pkgver = 0.21.1rc0.r301.g445ded1
+	pkgver = 0.21.1rc0.r433.g0585b5b
 	pkgrel = 1
 	url = https://github.com/vllm-project/vllm
 	arch = x86_64
@@ -28,7 +28,7 @@ pkgbase = python-vllm-rocm-git
 	depends = python-ijson
 	depends = python-importlib-metadata
 	depends = python-jmespath
-	depends = python-mistral-common>=1.11.2
+	depends = python-mistral-common-git
 	depends = python-model-hosting-container-standards
 	depends = python-msgpack
 	depends = python-msgspec
@@ -67,7 +67,7 @@ pkgbase = python-vllm-rocm-git
 	optdepends = python-torchaudio: required for image processor of minicpm-o-2.6
 	optdepends = python-datasets: tools to benchmark scripts
 	optdepends = python-xgrammar: flexible structured generation
-	optdepends = python-depyf: required for debugging and profiling with complilation config
+	optdepends = python-depyf: required for debugging and profiling with compilation config
 	optdepends = python-lm-format-enforcer: required for JSON/REGEX llm output
 	provides = python-vllm-rocm
 	provides = vllm
