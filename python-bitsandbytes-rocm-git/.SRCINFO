@@ -1,6 +1,6 @@
 pkgbase = python-bitsandbytes-rocm-git
 	pkgdesc = Accessible large language models via k-bit quantization for PyTorch. (with ROCm support)
-	pkgver = head.r1054.g17d32f15
+	pkgver = head.r1154.g5500cffe
 	pkgrel = 1
 	url = https://github.com/bitsandbytes-foundation/bitsandbytes
 	arch = x86_64
