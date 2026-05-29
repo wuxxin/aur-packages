@@ -2,7 +2,7 @@
 
 pkgbase=libggml-git-hip
 pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip')
-pkgver=9320.r13.g35c9b1f
+pkgver=9406.r7.g6ed481e
 pkgrel=1
 pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
@@ -38,22 +38,23 @@ source=(
     "qwen3-tts-hybrid-backend.patch"
 )
 
-sha256sums=('SKIP'
-            'SKIP'
-            'SKIP'
-            'SKIP'
-            'SKIP'
-            'SKIP'
-            'SKIP'
-            'e27f7db71ef639caa57d4f796ce57f06a05152564079ed2c2cb4c20e87377fb5'
-            '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
-            'e7430489ec842c7c10d6976e04c63023c24ebf9fa080ea3fad55ab19c636d875'
-            '3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391'
-            '4247b582ffdd3ef1c48981efef417c3ee54d8cc48a627b89138162bdc3bbf5be'
-            'fd2119ea37dfb39ac6b2a1513c4e3c150f105bfc1a18d4404fc300f1607d5fc2'
-            '606dc666773367146e0b1b8393b173e8c726bea88de8ee4e2e912cbb2650374a'
-            'd227edaa98d472090d9bcb613185aaada770900bd3c3f9bc63e849376bfad2fe'
-            '419d7c7d1e325f37256bfab1233c5c75c084dff5e15b850ba32bc137af1c7c6e')
+sha256sums=(
+    'SKIP'
+    'SKIP'
+    'SKIP'
+    'SKIP'
+    'SKIP'
+    'SKIP'
+    'SKIP'
+    'e27f7db71ef639caa57d4f796ce57f06a05152564079ed2c2cb4c20e87377fb5'
+    '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
+    'e7430489ec842c7c10d6976e04c63023c24ebf9fa080ea3fad55ab19c636d875'
+    '3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391'
+    '4247b582ffdd3ef1c48981efef417c3ee54d8cc48a627b89138162bdc3bbf5be'
+    'fd2119ea37dfb39ac6b2a1513c4e3c150f105bfc1a18d4404fc300f1607d5fc2'
+    '606dc666773367146e0b1b8393b173e8c726bea88de8ee4e2e912cbb2650374a'
+    'd227edaa98d472090d9bcb613185aaada770900bd3c3f9bc63e849376bfad2fe'
+    '419d7c7d1e325f37256bfab1233c5c75c084dff5e15b850ba32bc137af1c7c6e')
 
 pkgver() {
     cd llama.cpp
@@ -101,12 +102,12 @@ prepare() {
     for sym in "${_MISSING_SYMBOLS[@]}"; do
         sed -i "s|\"${sym}\"|\"llama_get_memory\"|" llama_cpp/llama_cpp.py
     done
-    
+
     # Patch ABI mismatches in llama_cpp.py
     python3 "${srcdir}/llama-patch-abi.py" "llama_cpp/llama_cpp.py"
 
     # Inject Shims (LoRA, Samplers, etc.)
-    cat "${srcdir}/llama-shims.py" >> llama_cpp/llama_cpp.py
+    cat "${srcdir}/llama-shims.py" >>llama_cpp/llama_cpp.py
 
     # Prepare stable-diffusion.cpp submodules
     cd "${srcdir}/stable-diffusion.cpp"
@@ -153,7 +154,6 @@ build() {
     export LDFLAGS=""
     export CPPFLAGS=""
 
-
     # WMMA Logic: Disable for single-target RDNA2 (gfx103x) to use TILE kernel for perf.
     # Enable for everything else (CDNA, RDNA3, or mixed targets) for compatibility.
     local _WMMA_FLAG="ON"
@@ -161,11 +161,11 @@ build() {
         echo "Build targets multiple architectures: ${GPU_TARGETS}. Enabling WMMA for compatibility."
         _WMMA_FLAG="ON"
     elif [[ "$GPU_TARGETS" =~ ^gfx103[0-6]$ ]]; then
-         echo "Build targets single RDNA2 architecture: ${GPU_TARGETS}. Disabling WMMA for better performance (forcing TILE)."
-         _WMMA_FLAG="OFF"
+        echo "Build targets single RDNA2 architecture: ${GPU_TARGETS}. Disabling WMMA for better performance (forcing TILE)."
+        _WMMA_FLAG="OFF"
     else
-         echo "Build targets single non-RDNA2 architecture: ${GPU_TARGETS}. Enabling WMMA."
-         _WMMA_FLAG="ON"
+        echo "Build targets single non-RDNA2 architecture: ${GPU_TARGETS}. Enabling WMMA."
+        _WMMA_FLAG="ON"
     fi
 
     echo "Building HEAD for ROCm architectures: ${GPU_TARGETS}"
@@ -188,7 +188,7 @@ build() {
         -DGGML_NATIVE=ON \
         -DGGML_BLAS=ON \
         -DGGML_BLAS_VENDOR=OpenBLAS
-    
+
     cmake --build build_ggml_hip
 
     # Install ggml to staging directory
@@ -271,7 +271,7 @@ package_llama.cpp-git-ggml-hip() {
     conflicts=('llama.cpp' 'llama.cpp-hip')
 
     DESTDIR="$pkgdir" cmake --install build_llama_hip
-    
+
     # Install Arch-specific README
     install -Dm644 "${srcdir}/README.md" "${pkgdir}/usr/share/doc/${pkgname}/README-arch.md"
 }
