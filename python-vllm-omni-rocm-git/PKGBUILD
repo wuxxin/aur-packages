@@ -1,7 +1,7 @@
 # Maintainer: Wuxxin <wuxxin@example.com>
 pkgname=python-vllm-omni-rocm-git
 _pkgname=vllm-omni
-pkgver=0.21.0rc2.r67.g8c4a42b
+pkgver=0.21.0rc2.r89.g5dfdf58
 pkgrel=1
 pkgdesc='A framework for efficient model inference with omni-modality models (ROCm version)'
 arch=('any')

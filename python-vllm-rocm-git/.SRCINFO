@@ -1,6 +1,6 @@
 pkgbase = python-vllm-rocm-git
 	pkgdesc = high-throughput and memory-efficient inference and serving engine for LLMs (ROCm support)
-	pkgver = 0.21.1rc0.r433.g0585b5b
+	pkgver = 0.22.1rc0.r23.g6bdabba
 	pkgrel = 1
 	url = https://github.com/vllm-project/vllm
 	arch = x86_64

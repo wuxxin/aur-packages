@@ -1,6 +1,6 @@
 pkgbase = libggml-git-hip
 	pkgdesc = libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)
-	pkgver = 9406.r7.g6ed481e
+	pkgver = 9442.r0.gd4c8e2c
 	pkgrel = 1
 	url = https://github.com/ggml-org/llama.cpp
 	arch = x86_64

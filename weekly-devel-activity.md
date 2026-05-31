@@ -4,21 +4,21 @@ This document tracks repository activity, commit counts, merge frequency, and re
 
 ---
 
-## 📅 Summary of Weekly Activity (May 23, 2026 – May 29, 2026)
+## 📅 Summary of Weekly Activity (May 25, 2026 – May 31, 2026)
 
 ### AI Backend & Inference Packages
 
 | Package | Upstream Repo | Stars | Forks | Main Branch | Last Commit | Commits (Last Wk) | Merges (Last Wk) | Releases/Tags (Last Wk) | Avg Commits/Wk (4 Wks) | Recent Tags / Versions | Installed Pkg Version | Commits Since Installed | Status |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- | :--- | :---: | :---: |
-| **libggml-git-hip** | [ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp) | 113,629 | 18,914 | `master` | 2026-05-29 | **121** | 0 | 59 | 104.7 | `b9406`, `b9405` | `9320.r13.g35c9b1f-1` (built 2026-05-26) | 80 | **Highly Active** |
-| *└─ python-llama-cpp-git-ggml-hip* | [abetlen/llama-cpp-python](https://github.com/abetlen/llama-cpp-python) | 10,348 | 1,411 | `main` | 2026-05-24 | **2** | 0 | 0 | 4.7 | `v0.3.23` | `9320.r13.g35c9b1f-1` (ref `3bda091`) | 0 | **Active** |
-| *└─ stable-diffusion.cpp-git-ggml-hip* | [leejet/stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) | 6,116 | 631 | `master` | 2026-05-27 | **14** | 0 | 12 | 15.7 | `master-656-0e4ee04` | `9320.r13.g35c9b1f-1` (ref `1ceb5bd`) | 6 | **Active** |
-| *└─ whisper.cpp-git-ggml-hip* | [ggerganov/whisper.cpp](https://github.com/ggerganov/whisper.cpp) | 50,243 | 5,583 | `master` | 2026-05-29 | **108** | 0 | 1 | 51.0 | `v1.8.5` | `9320.r13.g35c9b1f-1` (ref `e0fd1f67`) | 44 | **Highly Active** |
-| *└─ qwen3-tts.cpp-git-ggml-hip* | [khimaros/qwen3-tts.cpp](https://github.com/khimaros/qwen3-tts.cpp) (Fork) | 14 | 3 | `main` | 2026-04-21 | **0** | 0 | 0 | 0.0 | — | `9320.r13.g35c9b1f-1` (ref `2a41916`) | 0 | **Stale** |
-| *   └─ [Fork Origin]* | [predict-woo/qwen3-tts.cpp](https://github.com/predict-woo/qwen3-tts.cpp) | 184 | 61 | `main` | 2026-03-09 | **0** | 0 | 0 | 0.0 | — | — | — | **Stale** |
-| **python-bitsandbytes-rocm-git** | [bitsandbytes-foundation/bitsandbytes](https://github.com/bitsandbytes-foundation/bitsandbytes) | 8,236 | 856 | `main` | 2026-05-28 | **4** | 0 | 1 | 3.0 | `continuous-release_main` | `head.r1054.g17d32f15-1` (built 2026-01-22) | 92 | **Active** |
-| **python-vllm-rocm-git** | [vllm-project/vllm](https://github.com/vllm-project/vllm) | 81,346 | 17,389 | `main` | 2026-05-29 | **218** | 0 | 5 | 209.7 | `v0.22.0`, `v0.22.0rc3` | `0.21.1rc0.r301.g445ded1-1` (built 2026-05-26) | 132 | **Highly Active** |
-| **python-vllm-omni-rocm-git** | [vllm-project/vllm-omni](https://github.com/vllm-project/vllm-omni) | 4,834 | 1,014 | `main` | 2026-05-29 | **78** | 0 | 1 | 78.7 | `v0.21.0rc2` | `0.21.0rc2.r13.ge459fdb-1` (built 2026-05-26) | 54 | **Highly Active** |
+| **libggml-git-hip** | [ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp) | 113,921 | 18,981 | `master` | 2026-05-31 | **134** | 0 | 72 | 107.2 | `b9441`, `b9439` | `9406.r7.g6ed481e-1` (built 2026-05-29) | 28 | **Highly Active** |
+| *└─ python-llama-cpp-git-ggml-hip* | [abetlen/llama-cpp-python](https://github.com/abetlen/llama-cpp-python) | 10,355 | 1,411 | `main` | 2026-05-30 | **4** | 0 | 0 | 4.0 | — | `9406.r7.g6ed481e-1` (ref `3bda091`) | 4 | **Active** |
+| *└─ stable-diffusion.cpp-git-ggml-hip* | [leejet/stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) | 6,132 | 636 | `master` | 2026-05-30 | **12** | 0 | 10 | 16.7 | `master-660-d2797b8` | `9406.r7.g6ed481e-1` (ref `0e4ee04`) | 4 | **Active** |
+| *└─ whisper.cpp-git-ggml-hip* | [ggerganov/whisper.cpp](https://github.com/ggerganov/whisper.cpp) | 50,293 | 5,591 | `master` | 2026-05-29 | **108** | 0 | 1 | 48.2 | `v1.8.5` | `9406.r7.g6ed481e-1` (ref `f24588a`) | 0 | **Highly Active** |
+| *└─ qwen3-tts.cpp-git-ggml-hip* | [khimaros/qwen3-tts.cpp](https://github.com/khimaros/qwen3-tts.cpp) (Fork) | 14 | 3 | `main` | 2026-04-21 | **0** | 0 | 0 | 0.0 | — | `9406.r7.g6ed481e-1` (ref `2a41916`) | 0 | **Stale** |
+| *   └─ [Fork Origin]* | [predict-woo/qwen3-tts.cpp](https://github.com/predict-woo/qwen3-tts.cpp) | 186 | 61 | `main` | 2026-03-09 | **0** | 0 | 0 | 0.0 | — | — | — | **Stale** |
+| **python-bitsandbytes-rocm-git** | [bitsandbytes-foundation/bitsandbytes](https://github.com/bitsandbytes-foundation/bitsandbytes) | 8,243 | 858 | `main` | 2026-05-30 | **4** | 0 | 1 | 3.2 | `continuous-release_main` | `head.r1054.g17d32f15-1` (built 2026-02-12) | 93 | **Active** |
+| **python-vllm-rocm-git** | [vllm-project/vllm](https://github.com/vllm-project/vllm) | 81,475 | 17,458 | `main` | 2026-05-31 | **199** | 0 | 5 | 210.5 | `v0.22.1rc0`, `v0.22.0` | `0.21.1rc0.r433.g0585b5b-1` (built 2026-05-29) | 34 | **Highly Active** |
+| **python-vllm-omni-rocm-git** | [vllm-project/vllm-omni](https://github.com/vllm-project/vllm-omni) | 4,852 | 1,022 | `main` | 2026-05-31 | **93** | 0 | 1 | 79.7 | `v0.21.0rc2` | `0.21.0rc2.r67.g8c4a42b-1` (built 2026-05-29) | 22 | **Highly Active** |
 
 > [!NOTE]
 > `vllm`, `bitsandbytes`, and most split sub-repositories of the `libggml-git-hip` package squash-merge PRs directly into their primary branch instead of creating merge commits, which is why the "Merges" column displays `0`.
@@ -27,76 +27,71 @@ This document tracks repository activity, commit counts, merge frequency, and re
 
 | Package | Upstream Repo | Stars | Forks | Main Branch | Last Commit | Commits (Last Wk) | Merges (Last Wk) | Releases/Tags (Last Wk) | Avg Commits/Wk (4 Wks) | Recent Tags / Versions | Installed Pkg Version | Commits Since Installed | Status |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- | :--- | :---: | :---: |
-| **signal-cli-rest-api-git** | [bbernhard/signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) | 2,586 | 283 | `master` | 2026-05-28 | **10** | 1 | 0 | 9.0 | — | `0.99.r38.g5c0bd05-2` (built 2026-05-17) | 10 | **Active** |
+| **signal-cli-rest-api-git** | [bbernhard/signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) | 2,591 | 284 | `master` | 2026-05-28 | **6** | 1 | 0 | 8.7 | — | `0.99.r38.g5c0bd05-2` (built 2026-05-23) | 10 | **Active** |
 
 ---
 
 ## 🔍 Repository Focus & Developments
 
 ### llama.cpp (`ggml-org/llama.cpp`)
-* **Status**: Highly Active (121 commits, 59 tags in the last week).
+* **Status**: Highly Active (134 commits, 72 tags in the last week).
 * **Recent Focus**:
-  - **CUDA & GPU Optimizations**: Disabled `launch_fattn` PDL enrollment due to compiler bugs; auto-applied iGPU flags for integrated CUDA/HIP devices; added Vulkan Release-build adjustments to minimize ccache bloat.
-  - **Multi-Modal Support**: Corrected `n_head_kv` default settings in MiniCPM-V-like architectures (MTMD); resolved pre-normalization issues in the Gemma 4 projector; fixed audio RMS-norm epsilon parameters.
-  - **Backend Integrations**: Introduced basic/generic operator fusion and RMS_NORM+MUL fusion on Hexagon processors; resolved a missing buffer set in the fallback clearing routine for allreduce operations.
-  - **Usability & Build Improvements**: Relocated application licenses to the `llama-app` package; enhanced help interface output; fixed audio and video modality detection in the Web UI.
+  - **Vulkan & OpenCL GPU Optimizations**: Added support for Flash Attention in Vulkan for BFloat16 KV cache; enabled BF16 support in OpenCL by converting to F16.
+  - **Metal Backend**: Restored the `im2col` implementation for large kernels.
+  - **Hardware Integration**: Added support for LSX (Loongson vector extensions); improved device identification logic to prevent skipping integrated GPUs when only RPC devices are present.
+  - **Speculative Decoding & Benchmarking**: Introduced a new `speed-bench` utility in server-bench specifically for speculative decoding benchmarking.
+  - **Usability & Server updates**: Implemented server self-updater feature; configured the server to send HTTP headers when slots start in SSE mode; enabled custom CSS injection via config in WebUI; improved tokenizer support for LFM2.5-8B-A1B.
 
 ### llama-cpp-python (`abetlen/llama-cpp-python`)
-* **Status**: Active (2 commits in the last week).
+* **Status**: Active (4 commits in the last week).
 * **Recent Focus**:
-  - **Submodule Maintenance**: Updated `llama.cpp` dependency submodules to latest versions (`c0c7e147e` and `b9a2170fc`).
-  - **Migration**: Moved upstream `llama.cpp` submodule tracking from `ggerganov/llama.cpp` to the new `ggml-org` organization.
-  - **Embedding Refactors**: Auto-configured `kv_unified=True` when running embeddings to allow correct batch processing; configured `n_seq_max` specifically for batched embedding jobs.
+  - **Documentation**: Added a comprehensive contributing guide.
 
 ### stable-diffusion.cpp (`leejet/stable-diffusion.cpp`)
-* **Status**: Active (14 commits in the last week).
+* **Status**: Active (12 commits, 10 tags in the last week).
 * **Recent Focus**:
-  - **New Architectures**: Added native support for Longcat-Image and Longcat-Image-Edit; supported Microsoft Lens model loads.
-  - **Image Generation Pipeline**: Enabled temporal and rational latent upscaling for LTX video pipelines; optimized VAE decode by stripping trailing latent channels; corrected VAE loading defaults (TAE) for models running Flux2 VAE.
-  - **BLAS & CPU/GPU Bindings**: Restructured and simplified parameter bindings in the main diffusion runner; resolved host symbol naming checks; ensured ROCm BLAS runtime dlls package correctly inside Windows distributions.
+  - **New Architecture Support**: Added support for Gemma3 rope settings and vram limit propagation; added microsoft lens support.
+  - **Generation & Model Pipelines**: Excluded F8, F64, and I64 tensors explicitly from mmap; resolved LLM norm tensor names dynamically by architecture; corrected TAE defaults for models utilizing the Flux2 VAE; used flux flow prediction for LTXAV.
+  - **Performance & Reliability**: Split tokens before normalization; simplified parameters for the diffusion model runner; prevented crashes in the event of memory allocation errors with a graceful exit; fixed ROCm CI builds by preserving frontend tooling.
 
 ### whisper.cpp (`ggerganov/whisper.cpp`)
 * **Status**: Highly Active (108 commits, 1 tag in the last week).
 * **Recent Focus**:
-  - **Synchronization**: Regularly pulled modifications from the upstream `ggml` library and bumped `ggml` versioning parameters to 0.13.1.
-  - **Hardware acceleration updates**: Inherited CUDA/HIP integrated device identification configurations from llama.cpp; implemented faster Vulkan paths for Walsh-Hadamard transforms.
-  - **Speech-specific patches**: Synchronized internal `talk-llama` sub-applications against newer llama.cpp interfaces.
+  - **Sync & Versioning**: Regularly pulled changes from the ggml library, bumping the ggml dependency version to 0.13.1.
+  - **Hardware-Specific Optimizations**: Disabled `launch_fattn` PDL enrollment on CUDA due to compiler bugs; routed batch>=4 quantized matmuls to MMQ on AMD MFMA hardware; auto-applied iGPU flags for CUDA/HIP integrated devices; implemented faster Vulkan paths for Walsh-Hadamard transform.
+  - **General Fixes & Backends**: Fixed KQ mask offset integer overflow in CUDA fattn MMA kernel; resolved vector usage bug in ARM SVE; fixed unsafe iterator accesses in Vulkan memory logger; updated Hexagon OP_GATED_DELTA_NET support for K>1 and added OpenCL support.
 
 ### qwen3-tts.cpp (`khimaros/qwen3-tts.cpp` and fork origin `predict-woo/qwen3-tts.cpp`)
 * **Status**: Stale (0 commits in the last week on both repos).
 * **Fork & Feature Parity**:
-  - The split package `qwen3-tts.cpp-git-ggml-hip` is built from **`khimaros/qwen3-tts.cpp`**, which is a downstream fork of **`predict-woo/qwen3-tts.cpp`** (the original author's repository, which has 184 stars but has not received updates since March 9, 2026).
+  - The split package `qwen3-tts.cpp-git-ggml-hip` is built from **`khimaros/qwen3-tts.cpp`**, which is a downstream fork of **`predict-woo/qwen3-tts.cpp`** (the original author's repository, which has 186 stars but has not received updates since March 9, 2026).
   - The downstream `khimaros` fork was created to address several performance regressions and add integration patches: it introduces **Flash Attention** support, implements a **static KV cache**, caches the vocoder graph to prevent re-compilation latency, refactors C FFI embeddings extraction, and implements an **OpenAI-compatible TTS server** with batch conversion support. Its last commit was on April 21, 2026 (`2a41916`), implementing streaming vocoder decodes using chunked KV/tail state.
 
 ### bitsandbytes (`bitsandbytes-foundation/bitsandbytes`)
-* **Status**: Active (4 commits in the last week).
+* **Status**: Active (4 commits, 1 tag in the last week).
 * **Recent Focus**:
-  - **Compiler Fixes**: Resolved OpenMP loop-inlining target option mismatches under GCC 16.
-  - **Quantization & Kernels**: Integrated a per-device `cudaFuncSetAttribute` cache to mitigate GEMM launch overheads; rolled out new 4-bit GEMM inference kernels; cleaned up deprecated code and CPU activation check mutations.
-  - **Platform & PyTorch Support**: Lifted the minimum PyTorch requirement to 2.4 and optimized validation warnings; bumped supported Linux ROCm targets to 7.2.3 and enabled Windows compilation workflows for ROCm 7.2.1; added Intel XPU support for blockwise quantization.
+  - **Build & Platform Support**: Added Windows ARM64 wheel build support with NEON optimization; resolved GCC 16 target specific option mismatches during OpenMP loop inlining.
+  - **Usability & Performance**: Reduced Python CPU overhead and improved validation messages; fixed GEMV tests on AVX-512 BF16 CPUs.
 
 ### vLLM (`vllm-project/vllm`)
-* **Status**: Highly Active (218 commits in the last week).
+* **Status**: Highly Active (199 commits, 5 tags in the last week).
 * **Recent Focus**:
-  - **AMD ROCm Backend**: Cleaned up decode-step orchestration for the MI355X architecture (achieving several performance micro-opts); resolved AITER MXFP4 MoE weight loading/shuffling issues; added native W4A16 kernels for AMD RDNA3 (gfx1100).
-  - **Intel XPU Backend**: Implemented Multi-Token Prediction (MTP) for gdn attention models; expanded XPU support to Gelu Tanh activation in MoE layers.
-  - **Attention & Kernel Core**: Debugged corrupted MLA + linear attention paths; proceeded with the transition of attention and caching kernels to PyTorch's stable ABI; introduced Triton-based top-k/top-p sampling on CPU.
-  - **Engine & Scheduling**: Fixed pipeline parallel KeyErrors for residual tensors; excluded decode-phase blocks from CPU KV offloading; optimized CPU core binding (PCT priority) on DGX B300.
+  - **AMD & Hardware Backends**: Added attention sink support to the AITer flash attention backend for AMD ROCm; routed W8A8 and W4A16 linear inference through `zentorch` on AMD Zen CPUs; added native cmake PYTORCH_FOUND_HIP support for torch 2.13.
+  - **Attention & Kernel Core**: Fixed Gemma4 MTP IMA issue when TP > 1 causing illegal memory access errors; resolved RMSNorm kernel bugs by multiplying in weight's native dtype; optimized expert mapping by removing expertExpertMap method and expertExpertMethod configurations.
+  - **Execution & Scheduling**: Introduced support for breakable CUDA graphs in MRV2 engine; offloaded prompt embeddings decode in `render_prompts_async` to prevent blocking the engine loop.
 
 ### vllm-omni (`vllm-project/vllm-omni`)
-* **Status**: Highly Active (78 commits in the last week).
+* **Status**: Highly Active (93 commits, 1 tag in the last week).
 * **Recent Focus**:
-  - **Audio & Speech Modeling**: Supported voice cloning (zero-shot) for omnivoice in online endpoints; introduced CosyVoice3Model support on Intel XPUs; consolidated Code2Wav CUDA Graph bucket configurations for Qwen3-TTS.
-  - **Diffusion & Graphics**: Integrated prompt embedding caching for diffusion pipelines; added SageAttention3 diffusion backend support on NVIDIA Blackwell (GB200/B200) architectures.
-  - **Distributed & Cache Optimization**: Fixed DistributedVaeExecutor IndexErrors when the parallel size is smaller than the world size; resolved prefix-caching behavior issues; stabilized FP8 Z-Image quality gates in CI.
+  - **Model Support**: Added Voxtral TTS recipe from MistralAI; added SenseNova-U1 Cache-DiT deployment configurations.
+  - **Qwen3-TTS Optimizations**: Extracted a reusable prompt embeddings builder and made `tts_pad_embed` a persistent buffer; restored Code2Wav cross-request batching; fixed length estimation issue where 2D reference code list was collapsed.
+  - **Performance & Distributed**: Supported USP and VAE patch parallel architectures for HunyuanVideo 1.5; resolved DistributedVaeExecutor IndexErrors when patch parallel sizes are smaller than world sizes; enabled AITER backend with ring attention on AMD ROCm.
 
 ### signal-cli-rest-api (`bbernhard/signal-cli-rest-api`)
-* **Status**: Active (10 commits in the last week).
+* **Status**: Active (6 commits in the last week).
 * **Recent Focus**:
-  - **Build Integrity**: Fixed Gradle integration and manual download hooks in CI; resolved Docker image packaging bugs and updated Go dependencies (`go.sum`).
-  - **Core Updates**: Upgraded the underlying `signal-cli` to `v0.14.4.1`; restructured the JSON schema generation pipelines to build directly from signal-cli source trees.
-  - **Extensibility**: Improved the plugin interface architecture and bundled a native SQLite3 plugin.
-  - **Bugfixes**: Added safeguards against slice out-of-range crashes occurring during base64 attachment extraction.
+  - **Build & Dependencies**: Fixed Dockerfile build issues; resolved CI gradle download hangs by switching to manual Gradle download; updated go.sum.
+  - **Features & Safety**: Upgraded underlying `signal-cli` to v0.14.4.1; configured JSON schema generation to build directly from the signal-cli source tree; added safe slicing checks to prevent crashes when processing base64 attachment data.
 
 ---
 
@@ -191,16 +186,16 @@ declare -A PKG_MAP=(
   [signal-cli-rest-api]=signal-cli-rest-api-git
 )
 
-# Reference hashes corresponding to build date (2026-05-26 02:02:15)
+# Reference hashes corresponding to build date (2026-05-29 15:59:16)
 declare -A PKG_REFS=(
-  [llama.cpp]="35c9b1f"
+  [llama.cpp]="6ed481e"
   [llama-cpp-python]="3bda091"
-  [stable-diffusion.cpp]="1ceb5bd"
-  [whisper.cpp]="e0fd1f67"
+  [stable-diffusion.cpp]="0e4ee04"
+  [whisper.cpp]="f24588a"
   [qwen3-tts.cpp]="2a41916"
   [bitsandbytes]="17d32f15"
-  [vllm]="445ded1"
-  [vllm-omni]="e459fdb"
+  [vllm]="0585b5b"
+  [vllm-omni]="8c4a42b"
   [signal-cli-rest-api]="5c0bd05"
 )
 

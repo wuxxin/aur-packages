@@ -2,7 +2,7 @@
 
 pkgbase=libggml-git-hip
 pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip')
-pkgver=9406.r7.g6ed481e
+pkgver=9442.r0.gd4c8e2c
 pkgrel=1
 pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
