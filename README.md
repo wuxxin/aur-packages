@@ -5,7 +5,9 @@ Archlinux [AUR packages](https://aur.archlinux.org/) i currently maintain:
 - [coreos-installer](coreos-installer)
     - Installer for CoreOS disk images
 - [librefang-git](librefang-git)
-    - Libre-source Agent Operating System built in Rust. One binary, sandboxed, secure (Git VCS version with all split packages: CLI, GUI, and WhatsApp gateway).
+    - Libre-source Agent Operating System built in Rust. One binary, sandboxed, secure (Git VCS version with split packages: CLI, GUI, and WhatsApp gateway).
+- [python-librefang-sdk-git](python-librefang-sdk-git)
+    - Official Python client and SDK for the LibreFang Agent OS (Git VCS version).
 - [moltis-git](moltis-git)
     - A personal AI gateway written in Rust. One binary, sandboxed, secure. (Git VCS version)
 - [pulumi-git](pulumi-git) - Modern Infrastructure as Code
