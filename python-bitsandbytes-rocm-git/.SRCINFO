@@ -1,0 +1,27 @@
+pkgbase = python-bitsandbytes-rocm-git
+	pkgdesc = Lightweight wrapper around CUDA custom functions, in particular 8-bit optimizers, matrix multiplication (LLM.int8()), and quantization functions (official AMD ROCm branch)
+	pkgver = 0.43.1.r228.g517eaf2
+	pkgrel = 1
+	url = https://github.com/TimDettmers/bitsandbytes
+	arch = x86_64
+	license = MIT
+	makedepends = make
+	makedepends = cmake
+	depends = hipblaslt
+	depends = hiprand
+	depends = hipsparse
+	depends = hipcub
+	depends = rocthrust
+	depends = python-setuptools
+	depends = python-pytest
+	depends = python-einops
+	depends = python-wheel
+	depends = python-scipy
+	depends = python-lion-pytorch
+	depends = python-pandas
+	depends = python-matplotlib
+	provides = python-bitsandbytes
+	source = python-bitsandbytes-rocm-git::git+https://github.com/TimDettmers/bitsandbytes.git#branch=multi-backend-refactor
+	sha512sums = SKIP
+
+pkgname = python-bitsandbytes-rocm-git
