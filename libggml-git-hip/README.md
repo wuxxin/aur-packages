@@ -1,23 +1,26 @@
 # libggml-git-hip
 
-An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`) for Arch Linux. This package focuses on **HIP/ROCm hardware accelerated** builds, and uses libggml and libllama as shared libraries instead of static linking.
+An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`) for Arch Linux. This package uses **dynamic backends** (`GGML_BACKEND_DL=ON`) to compile and package **CPU** (with auto-selected instruction set variants), **OpenBLAS**, **HIP/ROCm**, and **Vulkan** backends under a unified shared library.
 
 ## Split Packages
 
-- **`libggml-git-hip`**: The core shared library (`libggml.so`, `libllama.so`) built for HIP/ROCm.
-- **`llama.cpp-git-ggml-hip`**: Main executables (`llama-cli`, `llama-server`, etc.) linking to the shared lib.
-- **`whisper.cpp-git-ggml-hip`**: Whisper speech-to-text tools (`whisper-cli`, `whisper-server`) linking to the shared lib.
-- **`python-llama-cpp-git-ggml-hip`**: Python bindings (`llama_cpp`) installed into site-packages, linking to the shared lib.
-- **`stable-diffusion.cpp-git-ggml-hip`**: Stable Diffusion Text-to-Image generation tools (`sd-cli`, `sd-server`) linking to the shared lib.
-- **`qwen3-tts.cpp-git-ggml-hip`**: Qwen3-TTS text-to-speech tools (`qwen3-tts-cli`, `qwen3-tts-server`) linking to the shared lib.
+- **`libggml-git-hip`**: The core shared library (`libggml.so`, `libllama.so`) and dynamically loaded backend modules (`libggml-cpu.so`, `libggml-blas.so`, `libggml-hip.so`, `libggml-vulkan.so` under `/usr/lib/ggml/`).
+- **`llama.cpp-git-ggml-hip`**: Main executables (`llama-cli`, `llama-server`, etc.) dynamically linking to the shared library.
+- **`whisper.cpp-git-ggml-hip`**: Whisper speech-to-text tools (`whisper-cli`, `whisper-server`) dynamically linking to the shared library.
+- **`python-llama-cpp-git-ggml-hip`**: Python bindings (`llama_cpp`) installed into site-packages, dynamically linking to the shared library.
+- **`stable-diffusion.cpp-git-ggml-hip`**: Stable Diffusion Text-to-Image generation tools (`sd-cli`, `sd-server`) dynamically linking to the shared library.
+- **`qwen3-tts.cpp-git-ggml-hip`**: Qwen3-TTS text-to-speech tools (`qwen3-tts-cli`, `qwen3-tts-server`) dynamically linking to the shared library.
 
 ## Key Features
 
-- **Git HEAD Version:** Builds directly from latest GIT HEAD to provide the latest features and improvements.
-- **Unified Shared Library:** `llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp` and `qwen3-tts.cpp` all link dynamically against a single system-wide `libggml-git-hip`. This ensures **consistent backend behavior** and bug compatibility across all tools.
+- **Git HEAD Version:** Builds directly from latest GIT HEAD to provide the latest features, optimizations, and model compatibility.
+- **Dynamic Backend Loading:** `libggml.so` loads backends dynamically at runtime from `/usr/lib/ggml/`. This isolates dependencies and prevents applications from failing to load if a specific GPU runtime (like ROCm) is missing or broken.
+- **Combined Backends:** Supports CPU (AVX/AVX2/AVX512), OpenBLAS, Vulkan, and HIP/ROCm in a single installation. Devices can be listed using `llama-cli --list-devices` and selected at runtime using `--device <name>` (e.g. `--device hip` or `--device vulkan`).
+- **ROCm & Vulkan Support:** Accelerate workloads on AMD GPUs using the highly optimized native HIP backend, or fallback to the cross-vendor Vulkan backend.
+- **CPU Backend Optimization:** Instead of a single static CPU build, compiling with `GGML_CPU_ALL_VARIANTS` builds optimized variants for multiple instruction sets (AVX, AVX2, AVX512, etc.). At runtime, the best matching variant for the host CPU is dynamically loaded (e.g. AVX2/FMA on Zen3+).
 - **RDNA2 Optimization:** Includes `rdna2-optimized-tile.patch` to unlock more performant TILE Flash Attention on RDNA2 GPUs.
 - **Python Bindings:** patched to support the latest git version of libggml and llama.cpp.
-- **OpenBLAS CPU Fallback**: CPU-only layers are uniformly accelerated via a shared linkage to OpenBLAS.
+- **OpenBLAS CPU Fallback:** CPU-only layers are uniformly accelerated via a shared linkage to OpenBLAS, providing faster matrix operations than the standard CPU backend.
 
 ### Package Rationale
 
