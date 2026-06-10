@@ -12,6 +12,8 @@ Archlinux [AUR packages](https://aur.archlinux.org/) i currently maintain:
     - A personal AI gateway written in Rust. One binary, sandboxed, secure. (Git VCS version)
 - [pulumi-git](pulumi-git) - Modern Infrastructure as Code
     - build from the latest git tag with enabled python and nodejs dynamic provider
+- [python-bitsandbytes-rocm-git](python-bitsandbytes-rocm-git)
+    - Accessible large language models via k-bit quantization for PyTorch (GIT Version, with ROCm support)
 - [python-torchao-rocm](python-torchao-rocm)
     - PyTorch native quantization and sparsity for training and inference (with ROCM support)
 - [python-torchaudio-rocm](python-torchaudio-rocm)
@@ -37,9 +39,6 @@ Can be **broken or bitrotten at anytime**.
     - with patches for RDNA2,  Python Bindings to support the latest git version,
     - all packages link dynamically against a single system-wide `libggml-git-hip`.
         - This ensures consistent backend behavior / bug compatibility across all tools.
-
-- [python-bitsandbytes-rocm-git](python-bitsandbytes-rocm-git) - Lightweight wrapper around CUDA/HIP custom functions, in particular 8-bit optimizers, matrix multiplication (LLM.int8()), and quantization functions
-    - switched to main branch, other branch is stale
 
 - [python-vllm-rocm-git](python-vllm-rocm-git) - High-throughput and memory-efficient inference and serving engine for LLMs (ROCm support, Git VCS version)
 
