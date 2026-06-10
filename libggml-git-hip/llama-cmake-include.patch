@@ -1,0 +1,19 @@
+diff --git a/ggml/cmake/ggml-config.cmake.in b/ggml/cmake/ggml-config.cmake.in
+index 23a3066f56..21084f46ce 100644
+--- a/ggml/cmake/ggml-config.cmake.in
++++ b/ggml/cmake/ggml-config.cmake.in
+@@ -121,6 +121,7 @@ if(NOT TARGET ggml::ggml)
+     add_library(ggml::ggml UNKNOWN IMPORTED)
+     set_target_properties(ggml::ggml
+         PROPERTIES
++            INTERFACE_INCLUDE_DIRECTORIES "${GGML_INCLUDE_DIR}"
+             IMPORTED_LOCATION "${GGML_LIBRARY}")
+ 
+     find_library(GGML_BASE_LIBRARY ggml-base
+@@ -131,6 +132,7 @@ if(NOT TARGET ggml::ggml)
+     add_library(ggml::ggml-base UNKNOWN IMPORTED)
+     set_target_properties(ggml::ggml-base
+         PROPERTIES
++            INTERFACE_INCLUDE_DIRECTORIES "${GGML_INCLUDE_DIR}"
+             IMPORTED_LOCATION "${GGML_BASE_LIBRARY}"
+             INTERFACE_LINK_LIBRARIES "${GGML_BASE_INTERFACE_LINK_LIBRARIES}")

@@ -2,7 +2,7 @@
 
 pkgbase=libggml-git-hip
 pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip')
-pkgver=9587.r3.gd2462f8
+pkgver=9589.r1.gd2462f8
 pkgrel=1
 pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
@@ -37,6 +37,8 @@ source=(
     "qwen3-tts-threading.patch"
     "qwen3-tts-backend-allocation.patch"
     "qwen3-tts-hybrid-backend.patch"
+    "llama-cmake-include.patch"
+    "qwen3-tts-dl-shims.patch"
 )
 
 sha256sums=('SKIP'
@@ -54,7 +56,9 @@ sha256sums=('SKIP'
             'fd2119ea37dfb39ac6b2a1513c4e3c150f105bfc1a18d4404fc300f1607d5fc2'
             '606dc666773367146e0b1b8393b173e8c726bea88de8ee4e2e912cbb2650374a'
             'd227edaa98d472090d9bcb613185aaada770900bd3c3f9bc63e849376bfad2fe'
-            '419d7c7d1e325f37256bfab1233c5c75c084dff5e15b850ba32bc137af1c7c6e')
+            '419d7c7d1e325f37256bfab1233c5c75c084dff5e15b850ba32bc137af1c7c6e'
+            'a77d7ad0129022aaa9d976ce3ac064611f7c809da8127440737e8ef859ecc8f0'
+            '651f753e98e42bc394ee81b013f4707b921435efbdb2c3d87b6e2fa75aacddfb')
 
 pkgver() {
     cd llama.cpp
@@ -65,6 +69,7 @@ prepare() {
     # Patch ggml inside llama.cpp (patch path is ggml/src/...)
     cd "${srcdir}/llama.cpp"
     git submodule update --init --recursive
+    patch -p1 <"${srcdir}/llama-cmake-include.patch"
 
     # Manually create ggml.pc.in if it's missing (needed for shared library build)
     if [ ! -f "ggml/ggml.pc.in" ]; then
@@ -122,12 +127,12 @@ prepare() {
     mkdir -p "${srcdir}/stable-diffusion.cpp/ggml/src"
     cp -r "${srcdir}/llama.cpp/ggml/src/"* "${srcdir}/stable-diffusion.cpp/ggml/src/"
 
-    # Prepare qwen3-tts.cpp
     cd "${srcdir}/qwen3-tts.cpp"
     patch -p1 <"${srcdir}/qwen3-tts-system-ggml.patch"
     patch -p1 <"${srcdir}/qwen3-tts-threading.patch"
     patch -p1 <"${srcdir}/qwen3-tts-backend-allocation.patch"
     patch -p1 <"${srcdir}/qwen3-tts-hybrid-backend.patch"
+    patch -p1 <"${srcdir}/qwen3-tts-dl-shims.patch"
     cp "${srcdir}/llama.cpp/LICENSE" "${srcdir}/qwen3-tts.cpp/LICENSE"
 }
 
@@ -144,8 +149,8 @@ build() {
     export ROCM_PATH="$ROCM_HOME"
     export HIP_ROOT_DIR="$ROCM_HOME"
     export HIP_PLATFORM=amd
-    export CC=/opt/rocm/bin/hipcc
-    export CXX=/opt/rocm/bin/hipcc
+    export CC=gcc
+    export CXX=g++
 
     # Clear flags that interfere with HIP/device compilation
     unset CFLAGS CXXFLAGS LDFLAGS CPPFLAGS
@@ -191,7 +196,8 @@ build() {
         -DGGML_NATIVE=OFF \
         -DGGML_CPU_ALL_VARIANTS=ON \
         -DGGML_BLAS=ON \
-        -DGGML_BLAS_VENDOR=OpenBLAS
+        -DGGML_BLAS_VENDOR=OpenBLAS \
+        -DCMAKE_HIP_COMPILER=/opt/rocm/bin/amdclang++
 
     cmake --build build_ggml_hip
 
@@ -211,7 +217,8 @@ build() {
         -DGGML_HIPBLAS=ON \
         -DHIP_PLATFORM=amd \
         -DAMDGPU_TARGETS="${GPU_TARGETS}" \
-        -DGGML_NATIVE=ON
+        -DGGML_NATIVE=ON \
+        -DCMAKE_HIP_COMPILER=/opt/rocm/bin/amdclang++
     cmake --build build_llama_hip
 
     # --- Build whisper.cpp using system ggml ---
@@ -223,7 +230,8 @@ build() {
         -DWHISPER_USE_SYSTEM_GGML=1 \
         -DGGML_HIP=ON \
         -DGGML_HIPBLAS=ON \
-        -DAMDGPU_TARGETS="${GPU_TARGETS}"
+        -DAMDGPU_TARGETS="${GPU_TARGETS}" \
+        -DCMAKE_HIP_COMPILER=/opt/rocm/bin/amdclang++
     cmake --build build_whisper_hip
 
     # --- Build python-llama-cpp ---

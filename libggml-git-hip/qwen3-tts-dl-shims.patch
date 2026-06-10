@@ -1,0 +1,36 @@
+diff --git a/src/gguf_loader.cpp b/src/gguf_loader.cpp
+index 08a39bd..7335bd1 100644
+--- a/src/gguf_loader.cpp
++++ b/src/gguf_loader.cpp
+@@ -270,3 +270,31 @@ void free_ggml_resources(struct ggml_context * ctx, ggml_backend_buffer_t buffer
+ }
+ 
+ } // namespace qwen3_tts
++
++#include <ggml-backend.h>
++
++extern "C" {
++    void ggml_backend_cpu_set_n_threads(ggml_backend_t backend, int n_threads) {
++        if (!backend) return;
++        ggml_backend_dev_t dev = ggml_backend_get_device(backend);
++        if (!dev) return;
++        ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
++        if (!reg) return;
++        auto fn = (ggml_backend_set_n_threads_t)ggml_backend_reg_get_proc_address(reg, "ggml_backend_set_n_threads");
++        if (fn) {
++            fn(backend, n_threads);
++        }
++    }
++
++    void ggml_backend_cpu_set_abort_callback(ggml_backend_t backend, ggml_abort_callback callback, void * data) {
++        if (!backend) return;
++        ggml_backend_dev_t dev = ggml_backend_get_device(backend);
++        if (!dev) return;
++        ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
++        if (!reg) return;
++        auto fn = (ggml_backend_set_abort_callback_t)ggml_backend_reg_get_proc_address(reg, "ggml_backend_set_abort_callback");
++        if (fn) {
++            fn(backend, callback, data);
++        }
++    }
++}
