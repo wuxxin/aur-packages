@@ -90,7 +90,15 @@ diff --git a/src/gguf_loader.cpp b/src/gguf_loader.cpp
 index b83446f..c95b589 100644
 --- a/src/gguf_loader.cpp
 +++ b/src/gguf_loader.cpp
-@@ -163,14 +163,10 @@ bool load_tensor_data_from_file(
+@@ -28,5 +28,7 @@
+ ggml_backend_t init_preferred_backend(const char * component_name, std::string * error_msg) {
+     if (error_msg) error_msg->clear();
+ 
++    ggml_backend_load_all();
++
+     auto & shared = get_shared_backend_state();
+     if (shared.backend) {
+@@ -163,14 +165,10 @@ bool load_tensor_data_from_file(
      const std::map<std::string, struct ggml_tensor *> & tensors,
      ggml_backend_buffer_t & buffer,
      std::string & error_msg,
