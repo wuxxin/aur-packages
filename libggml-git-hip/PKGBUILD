@@ -2,7 +2,7 @@
 
 pkgbase=libggml-git-hip
 pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip')
-pkgver=9590.r0.gd2462f8
+pkgver=9596.r4.g263cc04
 pkgrel=1
 pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
@@ -39,6 +39,7 @@ source=(
     "qwen3-tts-hybrid-backend.patch"
     "llama-cmake-include.patch"
     "qwen3-tts-dl-shims.patch"
+    "whisper-gdn-k.patch"
 )
 
 sha256sums=('SKIP'
@@ -58,7 +59,8 @@ sha256sums=('SKIP'
             '85cb69cc510112d7b6bf15648a59d9ca215c7c55086277a0ff4ca6768f05fd95'
             '419d7c7d1e325f37256bfab1233c5c75c084dff5e15b850ba32bc137af1c7c6e'
             'a77d7ad0129022aaa9d976ce3ac064611f7c809da8127440737e8ef859ecc8f0'
-            '651f753e98e42bc394ee81b013f4707b921435efbdb2c3d87b6e2fa75aacddfb')
+            '651f753e98e42bc394ee81b013f4707b921435efbdb2c3d87b6e2fa75aacddfb'
+            '2d6c05f6af8d4ece4d4ceaa2c9705e530d569eaf7c0659e1e3a44388ed285235')
 
 pkgver() {
     cd llama.cpp
@@ -113,6 +115,10 @@ prepare() {
 
     # Inject Shims (LoRA, Samplers, etc.)
     cat "${srcdir}/llama-shims.py" >>llama_cpp/llama_cpp.py
+
+    # Patch whisper.cpp
+    cd "${srcdir}/whisper.cpp"
+    patch -p1 <"${srcdir}/whisper-gdn-k.patch"
 
     # Prepare stable-diffusion.cpp submodules
     cd "${srcdir}/stable-diffusion.cpp"
