@@ -1,0 +1,47 @@
+diff --git a/src/server.cpp b/src/server.cpp
+index 2f32986..069ad41 100644
+--- a/src/server.cpp
++++ b/src/server.cpp
+@@ -764,18 +764,31 @@ int main(int argc, char ** argv) {
+                 std::lock_guard<std::mutex> lock(voices_mutex);
+                 auto it = voices.find(voice);
+                 if (it == voices.end()) {
+-                    res.status = 400;
+-                    json err = {{"error", {
+-                        {"message", "unknown voice '" + voice + "'"},
+-                        {"type", "invalid_request_error"},
+-                    }}};
+-                    res.set_content(err.dump(), "application/json");
+-                    return;
++                    // Fallback to first built-in speaker or default zero-embedding voice
++                    const auto & builtins = tts.get_speaker_names();
++                    if (!builtins.empty()) {
++                        std::string fallback_voice = builtins[0];
++                        fprintf(stderr, "warning: voice '%s' not found, falling back to built-in voice '%s'\n", voice.c_str(), fallback_voice.c_str());
++                        std::lock_guard<std::mutex> lock2(synth_mutex);
++                        if (!tts.get_speaker_embedding(fallback_voice, voice_embedding)) {
++                            res.status = 500;
++                            json err = {{"error", {
++                                {"message", "failed to get speaker embedding: " + tts.get_error()},
++                                {"type", "server_error"},
++                            }}};
++                            res.set_content(err.dump(), "application/json");
++                            return;
++                        }
++                    } else {
++                        fprintf(stderr, "warning: voice '%s' not found, falling back to default voice\n", voice.c_str());
++                        // default zero-embedding voice is empty voice_embedding
++                    }
++                } else {
++                    voice_embedding = it->second.embedding;
++                    voice_ref_text = it->second.ref_text;
++                    voice_ref_codes = it->second.ref_codes;
++                    voice_n_ref_frames = it->second.n_ref_frames;
+                 }
+-                voice_embedding = it->second.embedding;
+-                voice_ref_text = it->second.ref_text;
+-                voice_ref_codes = it->second.ref_codes;
+-                voice_n_ref_frames = it->second.n_ref_frames;
+             }
+         }
+ 

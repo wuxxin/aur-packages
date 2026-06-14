@@ -18,6 +18,7 @@ An optimized Git HEAD compilation of the GGML tensor library and associated tool
 - **Combined Backends:** Supports CPU (AVX/AVX2/AVX512), OpenBLAS, Vulkan, and HIP/ROCm in a single installation. Devices can be listed using `llama-cli --list-devices` and selected at runtime using `--device <name>` (e.g. `--device hip` or `--device vulkan`).
 - **ROCm & Vulkan Support:** Accelerate workloads on AMD GPUs using the highly optimized native HIP backend, or fallback to the cross-vendor Vulkan backend.
 - **CPU Backend Optimization:** Instead of a single static CPU build, compiling with `GGML_CPU_ALL_VARIANTS` builds optimized variants for multiple instruction sets (AVX, AVX2, AVX512, etc.). At runtime, the best matching variant for the host CPU is dynamically loaded (e.g. AVX2/FMA on Zen3+).
+- **Qwen3 Optimizations:** See (Qwen3-TTS)[qwen3-tts-modifications.md]
 - **RDNA2 Optimization:** Includes `rdna2-optimized-tile.patch` to unlock more performant TILE Flash Attention on RDNA2 GPUs.
 - **Python Bindings:** patched to support the latest git version of libggml and llama.cpp.
 - **OpenBLAS CPU Fallback:** CPU-only layers are uniformly accelerated via a shared linkage to OpenBLAS, providing faster matrix operations than the standard CPU backend.
@@ -64,7 +65,6 @@ This package applies a custom patch to maximize stability and performance on RDN
 | Stock (TILE) | ~280 Char/s | >145k Chars |
 | **Optimized TILE** | **~1485 Char/s**| **>145k Chars** |
 
-**Note:** The build conditionally disables `GGML_HIP_ROCWMMA_FATTN` ONLY for single-target RDNA2 builds to trigger the patch logic, and keeps ROCWMMA_FATTN enabled for other targets
 
 ### 2. Python Binding Fixes (`python-llama-cpp`)
 To bridge the gap between latest `libllama.so` and the `llama-cpp-python` bindings, we apply functional shims and symbol aliasing.
@@ -84,3 +84,37 @@ To bridge the gap between latest `libllama.so` and the `llama-cpp-python` bindin
 | `llama_sampler_init_softmax`| Aliased | Dummied to `llama_get_memory`. Deprecated in library. |
 
 **Implementation:** Shims are injected via `EOF` concatenation at the end of `llama_cpp/llama_cpp.py`. Aliases are applied via `sed` substitutions during the `prepare()` phase.
+
+### 3. Qwen3-TTS Hybrid mode , offload Device selection, Voice Fallback & Built-in Voices 
+
+#### Additional Environment Variables
+
+in addition to khimaros fork, which adds the following new environment variables:
+QWEN3_TTS_FORCE_CPU
+QWEN3_TTS_LOW_MEM
+
+this patch series adds:
+
+
+including a new command line parameter --device ...
+
+
+#### Voice Fallback & Built-in Voices
+
+Standard OpenAI text-to-speech clients (like `librefang`, `moltis`, etc.) default to requesting standard voices (e.g. `alloy`). 
+
+To prevent `400 Bad Request` errors on unmapped voice names, this patch adds an automatic voice fallback in `qwen3-tts-server`:
+- If the requested voice is not found, the server prints a warning and falls back to the first built-in speaker (if available) or the default zero-embedding voice.
+
+The built-in voice names for the `Qwen3-TTS-12Hz-0.6B-CustomVoice-Q8_0.gguf` model are:
+- `default` (zero-embedding baseline voice)
+- `serena`
+- `vivian`
+- `uncle_fu`
+- `ryan`
+- `aiden`
+- `ono_anna`
+- `sohee`
+- `eric`
+- `dylan`
+

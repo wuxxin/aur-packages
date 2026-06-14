@@ -40,6 +40,7 @@ source=(
     "llama-cmake-include.patch"
     "qwen3-tts-dl-shims.patch"
     "whisper-gdn-k.patch"
+    "qwen3-tts-voice-fallback.patch"
 )
 
 sha256sums=('SKIP'
@@ -49,7 +50,7 @@ sha256sums=('SKIP'
             'SKIP'
             'SKIP'
             'SKIP'
-            '9151a1b38e38992a7753ed5f9f1c4fa92409fdc0df3f7367bb1329b84414ea2e'
+            '1d2a9d83b1bad0f25e5c91497263bdcf32f0b20f9e97b803140251c29b5cf7e5'
             '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
             'e7430489ec842c7c10d6976e04c63023c24ebf9fa080ea3fad55ab19c636d875'
             '3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391'
@@ -60,7 +61,8 @@ sha256sums=('SKIP'
             '419d7c7d1e325f37256bfab1233c5c75c084dff5e15b850ba32bc137af1c7c6e'
             'a77d7ad0129022aaa9d976ce3ac064611f7c809da8127440737e8ef859ecc8f0'
             '651f753e98e42bc394ee81b013f4707b921435efbdb2c3d87b6e2fa75aacddfb'
-            '2d6c05f6af8d4ece4d4ceaa2c9705e530d569eaf7c0659e1e3a44388ed285235')
+            '2d6c05f6af8d4ece4d4ceaa2c9705e530d569eaf7c0659e1e3a44388ed285235'
+            '7d2c869ec18d913ccbd535bf0297221d4e67152a8b76ef6564ac50da0d0a73ec')
 
 pkgver() {
     cd llama.cpp
@@ -139,6 +141,7 @@ prepare() {
     patch -p1 <"${srcdir}/qwen3-tts-backend-allocation.patch"
     patch -p1 <"${srcdir}/qwen3-tts-hybrid-backend.patch"
     patch -p1 <"${srcdir}/qwen3-tts-dl-shims.patch"
+    patch -p1 <"${srcdir}/qwen3-tts-voice-fallback.patch"
     cp "${srcdir}/llama.cpp/LICENSE" "${srcdir}/qwen3-tts.cpp/LICENSE"
 }
 
@@ -165,20 +168,6 @@ build() {
     export LDFLAGS=""
     export CPPFLAGS=""
 
-    # WMMA Logic: Disable for single-target RDNA2 (gfx103x) to use TILE kernel for perf.
-    # Enable for everything else (CDNA, RDNA3, or mixed targets) for compatibility.
-    local _WMMA_FLAG="ON"
-    # if [[ "$GPU_TARGETS" == *";"* ]]; then
-    #     echo "Build targets multiple architectures: ${GPU_TARGETS}. Enabling WMMA for compatibility."
-    #     _WMMA_FLAG="ON"
-    # elif [[ "$GPU_TARGETS" =~ ^gfx103[0-6]$ ]]; then
-    #     echo "Build targets single RDNA2 architecture: ${GPU_TARGETS}. Disabling WMMA for better performance (forcing TILE)."
-    #     _WMMA_FLAG="OFF"
-    # else
-    #     echo "Build targets single non-RDNA2 architecture: ${GPU_TARGETS}. Enabling WMMA."
-    #     _WMMA_FLAG="ON"
-    # fi
-
     echo "Building HEAD for ROCm architectures: ${GPU_TARGETS}"
 
     # --- Build ggml FIRST (from llama.cpp/ggml subdir) ---
@@ -194,7 +183,7 @@ build() {
         -DGGML_BACKEND_DIR="/usr/lib/ggml" \
         -DGGML_HIP=ON \
         -DGGML_HIPBLAS=ON \
-        -DGGML_HIP_ROCWMMA_FATTN=${_WMMA_FLAG} \
+        -DGGML_HIP_ROCWMMA_FATTN=ON \
         -DGGML_CUDA_FA_ALL_QUANTS=ON \
         -DAMDGPU_TARGETS="${GPU_TARGETS}" \
         -DGGML_VULKAN=ON \
