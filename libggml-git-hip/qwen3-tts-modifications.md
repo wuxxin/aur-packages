@@ -1,11 +1,8 @@
-# Qwen3-TTS Optimization & Tuning Protocol
+# Qwen3-TTS Modifications
 
-Overview of the source-level modifications made to `qwen3-tts.cpp`, instructions for rebuilding and testing the system-wide package, and a systematic tuning protocol to identify and eliminate performance bottlenecks in the auto-regressive code generation stage.
-
+Overview of the source-level modifications made to `qwen3-tts.cpp`, and a tuning protocol to identify and eliminate performance bottlenecks in the auto-regressive code generation stage.
 
 ## Modifications
-
-To address the performance bottlenecks and memory footprint, modifications were applied across the `qwen3-tts.cpp` codebase. The modifications target **GPU memory offloading**, **dynamic thread management**, and **environment-driven configuration mode presets**.
 
 ### GPU Weight Offloading & Memory Reduction
 
@@ -18,61 +15,11 @@ To address the performance bottlenecks and memory footprint, modifications were 
   * Added `set_n_threads(int32_t n_threads)` methods to all components.
   * In the CPU-backend code paths and fallback nodes, this forces the backend to run exactly with the user-specified thread count (e.g. `--threads 16`), preventing thread contention.
 
-### Unified Configuration Interface
-* **Change Details:**
-  * Integrated environment variable checks (`QWEN3_TTS_FORCE_CPU` and `QWEN3_TTS_LOW_MEM`) into the initialization wrapper to support service presets (`gpu+max-throughput`, `gpu+min.vram`, `cpu-only`).
-
-### PKGBUILD Patch Integration
-* **Change Details:**
-  * Exported modifications to `qwen3-tts-threading.patch` using `git diff src/`.
-  * Added the patch and checksum verification step into `PKGBUILD` so that any subsequent build automatically integrates these enhancements.
-
-## Rebuilding and Local Integration Testing
-
-### Clean Rebuild Instructions
-To build and package the modifications locally using Arch Linux's `makepkg`:
-```bash
-# Force a clean build (this extracts files, applies patches, and compiles)
-makepkg -f
-```
-
-
-### Local Integration Verification
-To verify the service against the local running Speech-to-Text (`local-speech-to-text.sh`) daemon:
-1. Ensure the local Speech-to-Text server is running on its default port (`50890`).
-2. Run the TTS service in the foreground or verify systemd service:
-   ```bash
-   # Run the server binary on the correct port with GPU offloading enabled
-   QWEN3_TTS_LOW_MEM=0 QWEN3_TTS_FORCE_CPU=0 qwen3-tts-server \
-     --model /data/public/machine-learning/models/text-to-speech/Qwen3-TTS-12Hz-0.6B-CustomVoice-Q8_0.gguf \
-     --vocoder /data/public/machine-learning/models/text-to-speech/Qwen3-TTS-Tokenizer-12Hz-F16.gguf \
-     --host 127.0.0.1 \
-     --port 50895 \
-     --threads 8 \
-     --verbose
-   ```
-3. extract commands from the automated integration validation script:
-   ```bash
-   ./assistants/local-text-to-speech.sh test
-   ```
-
-and generate a 50 word test sentence, on the tts endpoint, copies to scratch/tts_test_output.wav, and pipes it directly into the Speech-to-Text transcriber, run tests, and try:
-
-Qwen3-TTS-12Hz-0.6B-Base-Q8_0.gguf
-Qwen3-TTS-12Hz-0.6B-CustomVoice-Q8_0.gguf
-Qwen3-TTS-12Hz-1.7B-Base-Q8_0.gguf
-Qwen3-TTS-12Hz-1.7B-CustomVoice-Q8_0.gguf
-Qwen3-TTS-12Hz-1.7B-VoiceDesign-Q8_0.gguf
-
-
----
-
-## 3. Tuning Results and Optimization
-
+### Tuning Results
 
 While Vocoder decoding has been accelerated to **8.8x real-time**, the auto-regressive **Code Generation (TTSTransformer)** stage remains a bottleneck (74 seconds for 243 frames, ~300ms per frame). The following diagnostic steps should be executed systematically to pinpoint the remaining CPU-GPU serialization overhead.
 
-### Tensor Offloading Verification
+#### Tensor Offloading Verification
 Since GGML splits graphs automatically across backends based on tensor locations, if even one layer's input tensor is stuck on CPU, subsequent layers are forced to copy memory back and forth.
 
 1. **Verify KV Cache Device Memory:**
@@ -82,19 +29,19 @@ Since GGML splits graphs automatically across backends based on tensor locations
    Run the inference with the environment variable `GGML_METADATA=1` or `GGML_SCHED_DEBUG=1` enabled to print graph scheduling assignments.
    * *Protocol:* Identify if `GGML_OP_NONE` or data transfer nodes are heavily present. If the output shows frequent node migrations between `ROCm0` and `CPU`, graph partitioning is failing.
 
-### Matrix Multiplication Quantization Backends
+#### Matrix Multiplication Quantization Backends
 The ROCm/HIP backend compiled via `llama.cpp` uses kernel templates optimized for specific quantization types. 
 * **Hypothesis:** Q8_0 weights in `Qwen3-TTS-12Hz-1.7B-CustomVoice-Q8_0.gguf` may not have an optimized ROCm matrix multiplication kernel template for the custom shape of the Qwen3-TTS Attention layers, forcing the backend scheduler to silently fallback to CPU dequantization.
 * **Protocol:**
   1. Compile a test version with FP16 weights (`Qwen3-TTS-12Hz-1.7B-CustomVoice-F16.gguf` if available) and measure performance.
   2. If FP16 is significantly faster than Q8_0, the bottleneck is missing GPU kernel support for Q8_0.
 
-### GPU Kernel launch Latency & Thread Contention
+#### GPU Kernel launch Latency & Thread Contention
 At 12Hz, the autoregressive decoder executes 243 iterations, each running a small model evaluation. If CPU threads are spinning or sleeping between kernel launches, the synchronization overhead can eclipse GPU execution time.
   1. Test execution speed with different `--threads` parameters (`--threads 1`, `--threads 4`, `--threads 8`, `--threads 16`).
   2. If `--threads 1` or `--threads 4` is faster than `--threads 16` during GPU execution, thread pool synchronization is introducing latency. Adjust `ggml_backend_cpu_set_n_threads` to limit fallback CPU threads to a minimum when GPU execution is active.
 
-## Tuning & Benchmarking Results (2026-05-26)
+## Benchmarking 
 
 ### Thread Count Tuning (on Qwen3-TTS-12Hz-1.7B-CustomVoice-Q8_0.gguf)
 
@@ -122,7 +69,6 @@ At 12Hz, the autoregressive decoder executes 243 iterations, each running a smal
   - **Code Generation (Transformer)**: Offloaded 100% to GPU (`ROCm0`), leaving the CPU mostly idle.
   - **Vocoder Decode**: Contains a few fallback CPU layers (transposed convolutions). During this brief stage (~3s out of 150s), CPU cores are active. Increasing threads from 1 to 4 results in a **2.1x speedup** (7.7s to 3.5s).
 
----
 
 ### Multi-Model Benchmark Statistics (50-word Sample, 8 Threads)
 Tested on exactly 50 words: *"Arch Linux is an independently developed, general-purpose Linux distribution that strives to provide the latest stable versions of most software by following a rolling-release model. The default installation is a minimal base system, configured by the user to only add what is required. By design, Arch Linux has a simple structure."*
@@ -135,12 +81,10 @@ Tested on exactly 50 words: *"Arch Linux is an independently developed, general-
 | **1.7B-CustomVoice-Q8_0** | 82,370 ms | 1,762 ms | 84,133 ms | 21.58 s | **3.89x** |
 | **1.7B-VoiceDesign-Q8_0** | 83,307 ms | 1,783 ms | 85,092 ms | 21.82 s | **3.90x** |
 
-### Key Insights:
+### Key Insights
 1. **0.6B vs 1.7B Scaling:** The 0.6B models perform auto-regressive generation in **2.28x** realtime, whereas the 1.7B models require **3.90x** realtime. The 0.6B models are approximately **1.7x faster** than the 1.7B counterparts.
 2. **Base vs. Custom/Design Profiles:** CustomVoice and VoiceDesign models generate slightly longer audio files for the same input text compared to the Base models, which results in minor proportional increases in generation latency (since they run more auto-regressive steps/tokens).
 3. **Graph Scheduling Analysis (`GGML_SCHED_DEBUG=1`):** 100% of transformer layers are successfully executed on the GPU (`ROCm0`) across all models, confirming that CPU fallback splits have been completely resolved during the autoregressive stage. CPU fallbacks are isolated solely to the upsampling layers of the Vocoder decoder (~1.5s–1.7s per run).
-
----
 
 ### CPU-Only Benchmark Statistics (0.6B-CustomVoice-Q8_0, With OpenBLAS)
 We evaluated the impact of thread count on CPU-only execution (`QWEN3_TTS_FORCE_CPU=1`) for the 0.6B CustomVoice model:
@@ -151,8 +95,6 @@ We evaluated the impact of thread count on CPU-only execution (`QWEN3_TTS_FORCE_
 | **8**   | **20,964 ms**   | **10,061 ms**  | **31,026 ms** | **19.02 s**    | **1.63x**             |
 | 16      | 44,812 ms       | 12,115 ms      | 56,928 ms     | 18.78 s        | 3.03x                 |
 
----
-
 ### CPU-Only Benchmark Statistics (0.6B-CustomVoice-Q8_0, Without OpenBLAS)
 Compiled `libggml` with `-DGGML_BLAS=OFF` (bypassing OpenBLAS linking) on the same 50-word sample:
 
@@ -162,17 +104,14 @@ Compiled `libggml` with `-DGGML_BLAS=OFF` (bypassing OpenBLAS linking) on the sa
 | **8**   | **22,830 ms**   | **10,297 ms**  | **33,128 ms** | **20.14 s**    | **1.64x**             |
 | 16      | 43,790 ms       | 12,423 ms      | 56,215 ms     | 19.58 s        | 2.87x                 |
 
----
 
-### E. Insights on CPU Tuning & OpenBLAS Dependency
+### Insights on CPU Tuning & OpenBLAS Dependency
 1. **OpenBLAS has Negligible Impact:** The performance characteristics, scaling curves, and actual latencies of both runs are nearly identical. 
 2. **Architectural Reason:** For quantized models (like Q8_0), GGML uses its own highly-optimized AVX2/AVX-512 vector assembly dot-product kernels for matrix operations, completely bypassing standard float BLAS libraries (which are only invoked for unquantized float SGEMM operations).
 3. **GPU vs. CPU at 0.6B Scale:** The 0.6B model performs better on CPU at 8 threads (RTF: ~1.63x) than on GPU (RTF: 2.28x) because the CPU avoids GPU kernel launch and synchronization latency.
 4. **Thread Scaling Limits:** For CPU execution, 8 threads represents the peak throughput. Compiling/running at 16 threads introduces severe thread contention, memory bus saturation, and CCD synchronization latency, resulting in a **2.2x slowdown**.
 
----
-
-## 5. Comprehensive Model Execution Matrix: CPU vs. GPU vs. GPU-MinMem (8 Threads)
+###  Execution Matrix: CPU vs. GPU vs. GPU-MinMem (8 Threads)
 
 We ran a full execution matrix for all 5 models under three configurations using 8 threads on the 50-word sample:
 1. **CPU Only** (`QWEN3_TTS_FORCE_CPU=1`)
@@ -205,11 +144,10 @@ Tested on exactly 50 words: *"Arch Linux is an independently developed, general-
 | **1.7B-VoiceDesign** | GPU-MinMem | 83,820 ms | 1,930 ms | 85,757 ms | 22.06 s | 3.89x | 989 MB | 2,884 MB |
 | **1.7B-VoiceDesign** | Hybrid | **69,525 ms** | **1,882 ms** | **71,409 ms** | 23.82 s | **3.00x** | **3,591 MB** | **2,299 MB** |
 
----
 
-## 4. Key Findings & Performance Insights
+## Key Findings
 
-### A. The Hybrid Split Advantage (The Performance Sweet Spot)
+### The Hybrid Split Advantage (The Performance Sweet Spot)
 * **What is it?** We offload Code Generation (`TTSTransformer`) to the CPU, while running Vocoder Decode (`AudioTokenizerDecoder`) on the GPU (`ROCm0`).
 * **Why it works:** 
   1. **Autoregressive Transformer is CPU-Bound:** The Code Generation stage computes token-by-token or frame-by-frame with very small batch sizes (often batch size = 1). On GPUs, the overhead of launching kernels and copying metadata back and forth for such small dimensions exceeds the computation time itself. The CPU, using highly optimized SIMD instructions (AVX2/AVX-512) and zero launch latency, completes this stage **1.3x to 2x faster** than the GPU.
@@ -220,25 +158,25 @@ Tested on exactly 50 words: *"Arch Linux is an independently developed, general-
 * **VRAM Savings:** Because the heavy transformer weights are kept on the CPU, Peak VRAM usage remains flat at **~1.7–2.3 GB** (just the size of the vocoder + HIP runtime), saving **1.5 GB to 2.7 GB of VRAM** compared to full GPU mode.
 * **RAM Savings:** Keeping the vocoder model out of system RAM saves **~500–600 MB** of host RSS compared to CPU-only mode.
 
-### B. VRAM Optimization (GPU-MinMem)
+### VRAM Optimization (GPU-MinMem)
 * Enabling `QWEN3_TTS_LOW_MEM=1` reduces VRAM footprint significantly:
   - **0.6B Models:** Saves **~1.4–1.5 GB VRAM** (from 3.4 GB down to ~2.0 GB).
   - **1.7B Models:** Saves **~1.6–1.8 GB VRAM** (from 4.6 GB down to ~2.9 GB).
 * Since VRAM is saved via weight streaming/lazy loading buffers, there is **zero performance penalty**; RTFs are identical to normal GPU mode.
 
-### C. CPU Thread Scaling Limit
+### CPU Thread Scaling Limit
 * For CPU-bound execution (CPU-only or Hybrid), the optimal thread count is **8 threads**.
 * Raising the threads to 16 threads causes a **2.2x slowdown** due to cache thrashing, CCD boundary hopping, and thread synchronization overhead.
 
-### D. OpenBLAS Analysis
+### OpenBLAS Analysis
 * Standard float matrix libraries like OpenBLAS have **zero effect** on Qwen3-TTS execution. Because the engine runs quantized Q8_0 weights, GGML uses its own highly-optimized AVX2/AVX-512 assembly dot-product kernels, bypassing BLAS completely.
 
 
-### E. Detailed Investigation: Why Code Generation is Slow on the GPU (GEMV Starvation & Latency)
+### Detailed Investigation: Why Code Generation is Slow on the GPU (GEMV Starvation & Latency)
 
 To understand why Code Generation (Talker & Code Predictor stages) is significantly slower on the GPU (`ROCm0`) compared to the CPU, we conducted detailed timing analysis and active hardware monitoring during execution on the **AMD Radeon Pro W6800 (gfx1030)**:
 
-#### 1. Hardware State Verification (Clocks & Utilization)
+#### Hardware State Verification (Clocks & Utilization)
 Active monitoring of `rocm-smi` during inference runs confirmed that:
 * **GPU Memory Clock:** Successfully scales up to **1000 MHz** (its maximum performance state) during execution. It is **not** throttled at its idle clock of 96 MHz.
 * **GPU Graphics Pipe Utilization:** Reports **95% to 99% active utilization** during the code generation loop.
@@ -246,7 +184,7 @@ Active monitoring of `rocm-smi` during inference runs confirmed that:
 
 This rules out low-power state throttling or idle states as the cause of the slowness.
 
-#### 2. Profiling Breakdown: GPU vs. CPU (0.6B CustomVoice, 50-word Sample)
+#### Profiling Breakdown: GPU vs. CPU (0.6B CustomVoice, 50-word Sample)
 
 | Stage / Metric | GPU Backend (`ROCm0`) | CPU Backend (8 Threads) | CPU Speedup |
 | :--- | :--- | :--- | :--- |
@@ -254,7 +192,7 @@ This rules out low-power state throttling or idle states as the cause of the slo
 | **Code Predictor Compute (per-frame)** | **124.9 ms** (14 steps) | **53.3 ms** (14 steps) | **2.34x** |
 | **Code Predictor Step Compute (per-step)**| **8.9 ms** | **3.8 ms** | **2.34x** |
 
-#### 3. Root Cause: GEMV Thread Starvation & Launch Latency
+#### Root Cause: GEMV Thread Starvation & Launch Latency
 * **Autoregressive Step Execution:**
   During code generation, inference is executed sequentially with a **batch size of 1** (predicting one token/frame at a time).
   This forces all weight matrix operations to be **Matrix-Vector Multiplications (GEMV)**. Because there is no token dimension, weights cannot be reused; they must be read from memory once per forward pass.
