@@ -1,0 +1,93 @@
+--- a/src/gguf_loader.cpp
++++ b/src/gguf_loader.cpp
+@@ -51,6 +51,39 @@
+         }
+     }
+ 
++    const char * device_env = std::getenv("QWEN3_TTS_DEVICE");
++    bool has_custom_device = (device_env && device_env[0] != '\0');
++
++    if (has_custom_device) {
++        if (std::strcmp(device_env, "none") == 0 || std::strcmp(device_env, "CPU") == 0 || std::strcmp(device_env, "cpu") == 0) {
++            want_cpu = true;
++        } else {
++            if (shared.gpu_backend) {
++                shared.gpu_ref_count++;
++                return shared.gpu_backend;
++            }
++            ggml_backend_dev_t dev = ggml_backend_dev_by_name(device_env);
++            if (!dev) {
++                if (error_msg) {
++                    *error_msg = "Device not found: " + std::string(device_env);
++                }
++                fprintf(stderr, "error: device '%s' not found\n", device_env);
++                return nullptr;
++            }
++            ggml_backend_t backend = ggml_backend_dev_init(dev, nullptr);
++            if (!backend) {
++                if (error_msg) {
++                    *error_msg = "Failed to initialize device: " + std::string(device_env);
++                }
++                fprintf(stderr, "error: failed to initialize device '%s'\n", device_env);
++                return nullptr;
++            }
++            shared.gpu_backend = backend;
++            shared.gpu_ref_count = 1;
++            return backend;
++        }
++    }
++
+     if (want_cpu) {
+         if (shared.cpu_backend) {
+             shared.cpu_ref_count++;
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -23,6 +23,7 @@
+     fprintf(stderr, "  -i, --instructions <s> Voice steering instructions\n");
+     fprintf(stderr, "  -l, --language <lang>  Language: en,ru,zh,ja,ko,de,fr,es (default: en)\n");
+     fprintf(stderr, "  -j, --threads <n>      Number of threads (default: 4)\n");
++    fprintf(stderr, "  -dev, --device <name>  Device to use for offloading (none = don't offload)\n");
+     fprintf(stderr, "  -h, --help             Show this help\n");
+     fprintf(stderr, "\n");
+     fprintf(stderr, "Example:\n");
+@@ -151,6 +152,16 @@
+                 return 1;
+             }
+             params.n_threads = std::stoi(argv[i]);
++        } else if (arg == "-dev" || arg == "--device") {
++            if (++i >= argc) {
++                fprintf(stderr, "Error: missing device name\n");
++                return 1;
++            }
++            #ifdef _WIN32
++            _putenv_s("QWEN3_TTS_DEVICE", argv[i]);
++            #else
++            setenv("QWEN3_TTS_DEVICE", argv[i], 1);
++            #endif
+         } else {
+             fprintf(stderr, "Error: unknown argument: %s\n", arg.c_str());
+             print_usage(argv[0]);
+--- a/src/server.cpp
++++ b/src/server.cpp
+@@ -325,6 +325,7 @@
+     fprintf(stderr, "  -H,  --host <host>              listen host (default: 127.0.0.1)\n");
+     fprintf(stderr, "  -p,  --port <port>              listen port (default: 8080)\n");
+     fprintf(stderr, "  -j,  --threads <n>              compute threads (default: 4)\n");
++    fprintf(stderr, "  -dev, --device <name>           device to use for offloading (none = don't offload)\n");
+     fprintf(stderr, "  -V,  --verbose                  print per-stage progress and timing\n");
+     fprintf(stderr, "       --temperature <f>           sampling temperature default (default: 0.9)\n");
+     fprintf(stderr, "       --top-k <n>                 top-k sampling default (default: 50)\n");
+@@ -354,6 +355,13 @@
+         } else if (arg == "-j" || arg == "--threads") {
+             if (++i >= argc) { fprintf(stderr, "error: missing threads\n"); return false; }
+             sp.n_threads = std::stoi(argv[i]);
++        } else if (arg == "-dev" || arg == "--device") {
++            if (++i >= argc) { fprintf(stderr, "error: missing device\n"); return false; }
++            #ifdef _WIN32
++            _putenv_s("QWEN3_TTS_DEVICE", argv[i]);
++            #else
++            setenv("QWEN3_TTS_DEVICE", argv[i], 1);
++            #endif
+         } else if (arg == "-V" || arg == "--verbose") {
+             sp.verbose = true;
+         } else if (arg == "-hf" || arg == "--hf-repo") {
