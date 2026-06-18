@@ -44,6 +44,12 @@ Can be **broken or bitrotten at anytime**.
 
 - [python-vllm-omni-rocm-git](python-vllm-omni-rocm-git) - A framework for efficient model inference with omni-modality models (ROCm support, depends on python-vllm-rocm-git)
 
+- [pocket-tts.cpp-git](pocket-tts.cpp-git) - Single-file C++ TTS runtime for Pocket TTS with ONNX Runtime
+    - builds `pocket-tts` C++ executable and shared library `libpocket_tts.so` with support for voice cloning, streaming, HTTP server, and FFI C API.
+
+- [python-pocket-tts](python-pocket-tts) - A TTS that fits in your CPU (and pocket)
+    - builds `pocket-tts` python package by Kyutai Labs.
+
 ### Weekly development activity tracking
 
 Development activity tracking for a few selected packages are available in [weekly-devel-activity.md](weekly-devel-activity.md).
