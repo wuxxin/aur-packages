@@ -121,9 +121,13 @@ build() {
 
 ## Working with This Repository
 1. Test PKGBUILDs with `makepkg --nobuild` first
-2. Follow existing package directory structure
-3. Place patches in package directory, reference in `source` array
-4. Utility scripts go in `scripts/` directory
+2. **Be Smart with Building**: Large packages (such as `llama.cpp` or ROCm libraries) take substantial time to compile. During optimization, debugging, or iteration, avoid running clean builds or forcing a full rebuild (`makepkg -Cf`) repeatedly.
+   - Use `makepkg -e` (or `makepkg --noextract`) to compile while preserving the existing `src` build tree and avoiding re-extracting or re-downloading.
+   - Run tests directly against binaries in the `src/build_*` directories (or staging folders) without executing system-wide installations.
+   - Use environment overrides (such as `GGML_BACKEND_PATH`, `LLAMA_SERVER_BIN`, etc.) to test custom-built dynamic libraries/binaries.
+3. Follow existing package directory structure
+4. Place patches in package directory, reference in `source` array
+5. Utility scripts go in `scripts/` directory
 
 ## Notes for Agents
 - Contains custom builds of complex software (llama.cpp, PyTorch with ROCm)
