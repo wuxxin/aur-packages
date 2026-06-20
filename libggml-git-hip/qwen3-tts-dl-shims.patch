@@ -1,8 +1,8 @@
 diff --git a/src/gguf_loader.cpp b/src/gguf_loader.cpp
-index 08a39bd..7335bd1 100644
+index 77b8211..1cd7f21 100644
 --- a/src/gguf_loader.cpp
 +++ b/src/gguf_loader.cpp
-@@ -270,3 +270,31 @@ void free_ggml_resources(struct ggml_context * ctx, ggml_backend_buffer_t buffer
+@@ -272,3 +272,31 @@ void free_ggml_resources(struct ggml_context * ctx, ggml_backend_buffer_t buffer
  }
  
  } // namespace qwen3_tts

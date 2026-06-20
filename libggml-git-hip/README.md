@@ -1,6 +1,6 @@
 # libggml-git-hip
 
-An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`) for Arch Linux. This package uses **dynamic backends** (`GGML_BACKEND_DL=ON`) to compile and package **CPU** (with auto-selected instruction set variants), **OpenBLAS**, **HIP/ROCm**, and **Vulkan** backends under a unified shared library.
+An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts.cpp`) for Arch Linux. This package uses **dynamic backends** (`GGML_BACKEND_DL=ON`) to compile and package **CPU** (with auto-selected instruction set variants), **OpenBLAS**, **HIP/ROCm**, and **Vulkan** backends under a unified shared library.
 
 ## Split Packages
 
@@ -21,7 +21,7 @@ An optimized Git HEAD compilation of the GGML tensor library and associated tool
 - **Qwen3 Optimizations:** See (Qwen3-TTS)[qwen3-tts-modifications.md]
 - **RDNA2 Optimization:** Includes `rdna2-optimized-tile.patch` to unlock more performant TILE Flash Attention on RDNA2 GPUs.
 - **Python Bindings:** patched to support the latest git version of libggml and llama.cpp.
-- **OpenBLAS CPU Fallback:** CPU-only layers are uniformly accelerated via a shared linkage to OpenBLAS, providing faster matrix operations than the standard CPU backend.
+- **OpenBLAS CPU Fallback:** CPU-only layers are accelerated either via the standard CPU backend, or optional with the OpenBLAS CPU backend, providing alternative matrix operations to the standard CPU backend.
 
 ### Package Rationale
 
@@ -40,7 +40,6 @@ In contrast to the listed AUR packages above, each of which contains their own s
 
 - **Disk, Compute & Memory Savings**: We compile the heavy HIP/ROCm GPU kernels only once.
 - **Unified Backend Upgrades**: A single update to `libggml-git-hip` automatically upgrades GPU kernel performance, RDNA optimizations, and model support across all 5 downstream tools.
-- **OpenBLAS CPU Fallback**: CPU-only layers are uniformly accelerated via a shared linkage to OpenBLAS, providing faster CPU fallback matrix operations than the standard unaccelerated CPU backend.
 
 ### Avoiding Namespace Conflicts
 To prevent conflicts with existing standalone AUR packages (such as `llama.cpp-hip`, `stable-diffusion.cpp-git`, or `qwen3-tts.cpp`), this repository uses the naming suffix `-git-ggml-hip` for all downstream split packages (e.g. `stable-diffusion.cpp-git-ggml-hip` or `qwen3-tts-git-ggml-hip`).
@@ -65,7 +64,6 @@ This package applies a custom patch to maximize stability and performance on RDN
 | Stock (TILE) | ~280 Char/s | >145k Chars |
 | **Optimized TILE** | **~1485 Char/s**| **>145k Chars** |
 
-
 ### 2. Python Binding Fixes (`python-llama-cpp`)
 To bridge the gap between latest `libllama.so` and the `llama-cpp-python` bindings, we apply functional shims and symbol aliasing.
 
@@ -89,19 +87,22 @@ To bridge the gap between latest `libllama.so` and the `llama-cpp-python` bindin
 
 #### Additional Environment Variables
 
-in addition to khimaros fork, which adds the following new environment variables:
-QWEN3_TTS_FORCE_CPU
-QWEN3_TTS_LOW_MEM
+In addition to the upstream khimaros fork, which adds the following environment variables:
+- `QWEN3_TTS_FORCE_CPU`: Force all computations to run on the CPU.
+- `QWEN3_TTS_LOW_MEM`: Enable memory-mapped file loading (mmap) and lazy buffer allocations to keep the VRAM/RAM footprint minimal.
 
-this patch series adds:
+This patch series adds:
+- `QWEN3_TTS_TRANSFORMER_FORCE_CPU`: Force only the TTSTransformer (Code Generation) stage to run on the CPU. When combined with running Vocoder Decode on the GPU, this unlocks **Hybrid Split Mode** (the optimal performance and VRAM sweet spot).
+- `QWEN3_TTS_VOCODER_FORCE_CPU`: Force only the Vocoder Decode (AudioTokenizerDecoder) stage to run on the CPU.
+- `QWEN3_TTS_DEVICE`: Specify a custom backend device by name (e.g. `cpu`, `hip0`, `rocm0`, etc.) to offload the computations.
 
-
-including a new command line parameter --device ...
+We also introduce a new command line parameter to select the preferred offloading device:
+- `-dev`, `--device <name>`: Used in both `qwen3-tts-cli` and `qwen3-tts-server` to specify the offloading device (which sets the `QWEN3_TTS_DEVICE` environment variable internally). Set to `none` (or `cpu`) to disable offloading.
 
 
 #### Voice Fallback & Built-in Voices
 
-Standard OpenAI text-to-speech clients (like `librefang`, `moltis`, etc.) default to requesting standard voices (e.g. `alloy`). 
+Standard OpenAI text-to-speech clients default to requesting standard voices (e.g. `alloy`). 
 
 To prevent `400 Bad Request` errors on unmapped voice names, this patch adds an automatic voice fallback in `qwen3-tts-server`:
 - If the requested voice is not found, the server prints a warning and falls back to the first built-in speaker (if available) or the default zero-embedding voice.

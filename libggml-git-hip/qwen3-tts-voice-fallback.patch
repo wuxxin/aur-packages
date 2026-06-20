@@ -1,8 +1,8 @@
 diff --git a/src/server.cpp b/src/server.cpp
-index 2f32986..069ad41 100644
+index 7e19a8b..a58bb76 100644
 --- a/src/server.cpp
 +++ b/src/server.cpp
-@@ -764,18 +764,31 @@ int main(int argc, char ** argv) {
+@@ -793,18 +793,31 @@ int main(int argc, char ** argv) {
                  std::lock_guard<std::mutex> lock(voices_mutex);
                  auto it = voices.find(voice);
                  if (it == voices.end()) {

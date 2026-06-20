@@ -87,10 +87,10 @@ index 7335bd1..ccae237 100644
      }
      ggml_backend_dev_t device = ggml_backend_get_device(state_.backend);
 diff --git a/src/gguf_loader.cpp b/src/gguf_loader.cpp
-index b83446f..c95b589 100644
+index b83446f..d33f07d 100644
 --- a/src/gguf_loader.cpp
 +++ b/src/gguf_loader.cpp
-@@ -28,5 +28,7 @@
+@@ -28,6 +28,8 @@ GGUFLoader::~GGUFLoader() {
  ggml_backend_t init_preferred_backend(const char * component_name, std::string * error_msg) {
      if (error_msg) error_msg->clear();
  
@@ -98,6 +98,7 @@ index b83446f..c95b589 100644
 +
      auto & shared = get_shared_backend_state();
      if (shared.backend) {
+         shared.ref_count++;
 @@ -163,14 +165,10 @@ bool load_tensor_data_from_file(
      const std::map<std::string, struct ggml_tensor *> & tensors,
      ggml_backend_buffer_t & buffer,
@@ -115,7 +116,7 @@ index b83446f..c95b589 100644
          return false;
      }
      
-@@ -178,7 +174,6 @@ bool load_tensor_data_from_file(
+@@ -178,7 +176,6 @@ bool load_tensor_data_from_file(
      buffer = ggml_backend_alloc_ctx_tensors(model_ctx, backend);
      if (!buffer) {
          error_msg = "Failed to allocate tensor buffer";
@@ -123,7 +124,7 @@ index b83446f..c95b589 100644
          return false;
      }
      
-@@ -186,7 +181,6 @@ bool load_tensor_data_from_file(
+@@ -186,7 +183,6 @@ bool load_tensor_data_from_file(
      FILE * f = fopen(path.c_str(), "rb");
      if (!f) {
          error_msg = "Failed to open file for reading: " + path;
@@ -131,7 +132,7 @@ index b83446f..c95b589 100644
          return false;
      }
      
-@@ -211,14 +205,12 @@ bool load_tensor_data_from_file(
+@@ -211,14 +207,12 @@ bool load_tensor_data_from_file(
          if (fseek(f, (long)(data_offset + offset), SEEK_SET) != 0) {
              error_msg = "Failed to seek to tensor data: " + std::string(name);
              fclose(f);
@@ -146,7 +147,7 @@ index b83446f..c95b589 100644
              return false;
          }
          
-@@ -226,7 +218,6 @@ bool load_tensor_data_from_file(
+@@ -226,7 +220,6 @@ bool load_tensor_data_from_file(
      }
      
      fclose(f);

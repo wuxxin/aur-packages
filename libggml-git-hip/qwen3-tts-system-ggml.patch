@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 80356c2..8cbabf2 100644
+index 817ea74..721845a 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -45,9 +45,18 @@ endif()
+@@ -61,9 +61,18 @@ endif()
  # PIC is needed for the shared library — set globally so GGML libs get it too
  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
  
@@ -24,7 +24,7 @@ index 80356c2..8cbabf2 100644
  
  # Text tokenizer library
  add_library(text_tokenizer STATIC
-@@ -58,7 +67,7 @@ add_library(text_tokenizer STATIC
+@@ -74,7 +83,7 @@ add_library(text_tokenizer STATIC
  )
  target_include_directories(text_tokenizer PUBLIC
      ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -33,7 +33,7 @@ index 80356c2..8cbabf2 100644
  )
  target_link_libraries(text_tokenizer PUBLIC
      ggml
-@@ -82,7 +91,7 @@ add_library(tts_transformer STATIC
+@@ -98,7 +107,7 @@ add_library(tts_transformer STATIC
  )
  target_include_directories(tts_transformer PUBLIC
      ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -42,7 +42,7 @@ index 80356c2..8cbabf2 100644
  )
  target_link_libraries(tts_transformer PUBLIC
      ggml
-@@ -102,7 +111,7 @@ add_library(audio_tokenizer_encoder STATIC
+@@ -118,7 +127,7 @@ add_library(audio_tokenizer_encoder STATIC
  )
  target_include_directories(audio_tokenizer_encoder PUBLIC
      ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -51,7 +51,7 @@ index 80356c2..8cbabf2 100644
  )
  target_link_libraries(audio_tokenizer_encoder PUBLIC
      ggml
-@@ -116,7 +125,7 @@ add_library(audio_codec_encoder STATIC
+@@ -132,7 +141,7 @@ add_library(audio_codec_encoder STATIC
  )
  target_include_directories(audio_codec_encoder PUBLIC
      ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -60,7 +60,7 @@ index 80356c2..8cbabf2 100644
  )
  target_link_libraries(audio_codec_encoder PUBLIC
      ggml
-@@ -130,7 +139,7 @@ add_library(audio_tokenizer_decoder STATIC
+@@ -146,7 +155,7 @@ add_library(audio_tokenizer_decoder STATIC
  )
  target_include_directories(audio_tokenizer_decoder PUBLIC
      ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -69,7 +69,7 @@ index 80356c2..8cbabf2 100644
  )
  target_link_libraries(audio_tokenizer_decoder PUBLIC
      ggml
-@@ -143,7 +152,7 @@ add_library(qwen3_tts STATIC
+@@ -159,7 +168,7 @@ add_library(qwen3_tts STATIC
  )
  target_include_directories(qwen3_tts PUBLIC
      ${CMAKE_CURRENT_SOURCE_DIR}/src

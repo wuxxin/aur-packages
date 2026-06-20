@@ -1,5 +1,5 @@
 diff --git a/src/gguf_loader.cpp b/src/gguf_loader.cpp
-index b83446f..3b5550e 100644
+index d33f07d..77b8211 100644
 --- a/src/gguf_loader.cpp
 +++ b/src/gguf_loader.cpp
 @@ -9,8 +9,11 @@ namespace qwen3_tts {
@@ -16,8 +16,8 @@ index b83446f..3b5550e 100644
  };
  
  shared_backend_state & get_shared_backend_state() {
-@@ -29,37 +32,63 @@ ggml_backend_t init_preferred_backend(const char * component_name, std::string *
-     if (error_msg) error_msg->clear();
+@@ -31,37 +34,63 @@ ggml_backend_t init_preferred_backend(const char * component_name, std::string *
+     ggml_backend_load_all();
  
      auto & shared = get_shared_backend_state();
 -    if (shared.backend) {
@@ -102,7 +102,7 @@ index b83446f..3b5550e 100644
  }
  
  void release_preferred_backend(ggml_backend_t backend) {
-@@ -68,12 +97,21 @@ void release_preferred_backend(ggml_backend_t backend) {
+@@ -70,12 +99,21 @@ void release_preferred_backend(ggml_backend_t backend) {
      }
  
      auto & shared = get_shared_backend_state();

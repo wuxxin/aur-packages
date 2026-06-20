@@ -1,6 +1,8 @@
+diff --git a/src/gguf_loader.cpp b/src/gguf_loader.cpp
+index 1cd7f21..983de34 100644
 --- a/src/gguf_loader.cpp
 +++ b/src/gguf_loader.cpp
-@@ -51,6 +51,39 @@
+@@ -51,6 +51,39 @@ ggml_backend_t init_preferred_backend(const char * component_name, std::string *
          }
      }
  
@@ -40,9 +42,11 @@
      if (want_cpu) {
          if (shared.cpu_backend) {
              shared.cpu_ref_count++;
+diff --git a/src/main.cpp b/src/main.cpp
+index c58c7bf..80fa108 100644
 --- a/src/main.cpp
 +++ b/src/main.cpp
-@@ -23,6 +23,7 @@
+@@ -23,6 +23,7 @@ void print_usage(const char * program) {
      fprintf(stderr, "  -i, --instructions <s> Voice steering instructions\n");
      fprintf(stderr, "  -l, --language <lang>  Language: en,ru,zh,ja,ko,de,fr,es (default: en)\n");
      fprintf(stderr, "  -j, --threads <n>      Number of threads (default: 4)\n");
@@ -50,7 +54,7 @@
      fprintf(stderr, "  -h, --help             Show this help\n");
      fprintf(stderr, "\n");
      fprintf(stderr, "Example:\n");
-@@ -151,6 +152,16 @@
+@@ -151,6 +152,16 @@ int main(int argc, char ** argv) {
                  return 1;
              }
              params.n_threads = std::stoi(argv[i]);
@@ -67,9 +71,11 @@
          } else {
              fprintf(stderr, "Error: unknown argument: %s\n", arg.c_str());
              print_usage(argv[0]);
+diff --git a/src/server.cpp b/src/server.cpp
+index a58bb76..c20c7f2 100644
 --- a/src/server.cpp
 +++ b/src/server.cpp
-@@ -325,6 +325,7 @@
+@@ -342,6 +342,7 @@ static void print_usage(const char * program) {
      fprintf(stderr, "  -H,  --host <host>              listen host (default: 127.0.0.1)\n");
      fprintf(stderr, "  -p,  --port <port>              listen port (default: 8080)\n");
      fprintf(stderr, "  -j,  --threads <n>              compute threads (default: 4)\n");
@@ -77,7 +83,7 @@
      fprintf(stderr, "  -V,  --verbose                  print per-stage progress and timing\n");
      fprintf(stderr, "       --temperature <f>           sampling temperature default (default: 0.9)\n");
      fprintf(stderr, "       --top-k <n>                 top-k sampling default (default: 50)\n");
-@@ -354,6 +355,13 @@
+@@ -371,6 +372,13 @@ static bool parse_args(int argc, char ** argv, server_params & sp) {
          } else if (arg == "-j" || arg == "--threads") {
              if (++i >= argc) { fprintf(stderr, "error: missing threads\n"); return false; }
              sp.n_threads = std::stoi(argv[i]);

@@ -1,6 +1,8 @@
+diff --git llama_cpp/llama_cpp.py llama_cpp/llama_cpp.py
+index 21f85c81..cc35670f 100644
 --- llama_cpp/llama_cpp.py
 +++ llama_cpp/llama_cpp.py
-@@ -37,9 +37,7 @@
+@@ -35,9 +35,7 @@ if TYPE_CHECKING:
  _lib_base_name = "llama"
  _override_base_path = os.environ.get("LLAMA_CPP_LIB_PATH")
  _base_path = (
