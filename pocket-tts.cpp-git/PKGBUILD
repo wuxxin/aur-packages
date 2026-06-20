@@ -1,0 +1,89 @@
+# Maintainer: Wuxxin <wuxxin@gmail.com>
+
+pkgname=pocket-tts.cpp-git
+_pkgname=PocketTTS.cpp
+pkgver=0.1.0.r18.ge801e7d
+pkgrel=1
+pkgdesc="Single-file C++ TTS runtime for Pocket TTS with ONNX Runtime — voice cloning, streaming, HTTP server, FFI C API (Git version)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/VolgaGerm/PocketTTS.cpp"
+license=('MIT')
+depends=(
+    'glibc'
+    'gcc-libs'
+    'onnxruntime'
+    'sentencepiece'
+)
+makedepends=(
+    'git'
+    'cmake'
+)
+optdepends=(
+    'python-pocket-tts: to run the ONNX model exporter script export_onnx.py'
+    'python-pytorch: to run the ONNX model exporter script export_onnx.py'
+    'python-onnx: to run the ONNX model exporter script export_onnx.py'
+    'python-onnxruntime: to run the ONNX model exporter script export_onnx.py'
+)
+provides=('pocket-tts.cpp' 'pockettts.cpp')
+conflicts=('pocket-tts.cpp' 'pockettts.cpp')
+source=(
+    "pocket-tts-cpp::git+https://github.com/VolgaGerm/PocketTTS.cpp.git"
+    "dr_libs::git+https://github.com/mackron/dr_libs.git"
+    "system-onnxruntime.patch"
+    "exporter-multi-config.patch"
+    "README.aur"
+    "export-voices.py"
+)
+sha256sums=('SKIP'
+            'SKIP'
+            '3632d402b644f179882e42eff0636bae384235de32064732e756933f20688eb2'
+            'a077f888287af5c4b73879d509b4b61f7fac226434b5e1183869f332f102ff63'
+            '5d5b7cea136bf00cbb6f3c9f776e99854cea63b12a5297772b5351922c923076'
+            '7de23ec7348f32935ce45f9abf4544d90cddf7f682c3376fa068507790f3584d')
+
+pkgver() {
+    cd "${srcdir}/pocket-tts-cpp"
+    printf "0.1.0.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+    cd "${srcdir}/pocket-tts-cpp"
+    patch -p0 -i "${srcdir}/system-onnxruntime.patch"
+    patch -p0 -i "${srcdir}/exporter-multi-config.patch"
+}
+
+build() {
+    # We configure CMake to use system onnxruntime and system sentencepiece, and local copies of dr_libs
+    cmake -B build -S pocket-tts-cpp \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DUSE_SYSTEM_ONNXRUNTIME=ON \
+        -DUSE_SYSTEM_SENTENCEPIECE=ON \
+        -DBUILD_SHARED_LIB=ON \
+        -DFETCHCONTENT_SOURCE_DIR_DR_LIBS="${srcdir}/dr_libs"
+    cmake --build build
+}
+
+package() {
+    # Executable is built in build/ directory (or CMAKE_RUNTIME_OUTPUT_DIRECTORY which points to pocket-tts-cpp source dir)
+    # Let us check build/ first, and fallback to pocket-tts-cpp
+    local bin_dir="${srcdir}/pocket-tts-cpp"
+    if [ -f "build/pocket-tts" ]; then
+        bin_dir="build"
+    fi
+
+    # Install executable renamed to pocket-tts.cpp to avoid conflict with python-pocket-tts
+    install -Dm755 "${bin_dir}/pocket-tts" "${pkgdir}/usr/bin/pocket-tts.cpp"
+
+    # Install shared library
+    install -Dm755 "${bin_dir}/libpocket_tts.so" "${pkgdir}/usr/lib/libpocket_tts.so"
+
+    # Install exporter script
+    install -Dm755 "${srcdir}/pocket-tts-cpp/export_onnx.py" "${pkgdir}/usr/share/pocket-tts/export_onnx.py"
+    install -Dm755 "${srcdir}/export-voices.py" "${pkgdir}/usr/share/pocket-tts/export_voices.py"
+
+    # Install docs and license
+    install -Dm644 "${srcdir}/pocket-tts-cpp/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+    install -Dm644 "${srcdir}/README.aur" "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+    install -Dm644 "${srcdir}/README.aur" "${pkgdir}/usr/share/pocket-tts/README.md"
+    install -Dm644 "${srcdir}/pocket-tts-cpp/README.md" "${pkgdir}/usr/share/doc/${pkgname}/README-upstream.md"
+}

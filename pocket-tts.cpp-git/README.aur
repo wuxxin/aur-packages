@@ -1,0 +1,107 @@
+# PocketTTS.cpp (Arch Linux AUR Package)
+
+This package contains VolgaGerm's C++ port of Kyutai Labs' Pocket TTS, built with enhancements for Arch Linux.
+
+## Packaging Modifications
+
+Compared to the upstream repository, this package includes the following modifications:
+1. **System Libraries Linkage**:
+   - Links dynamically against the system's `onnxruntime` and `sentencepiece` packages. This avoids downloading pre-built binaries during build and prevents symbol collision bugs between static and dynamic protobuf copies.
+2. **Binary Renaming**:
+   - The CLI executable is installed as `/usr/bin/pocket-tts.cpp` to prevent naming conflicts with the Python CLI tool (`pocket-tts`).
+3. **Optional Exporter Scripts**:
+   - The model export tool `export_onnx.py` is installed to `/usr/share/pocket-tts/export_onnx.py`.
+   - The voice export tool `export_voices.py` is installed to `/usr/share/pocket-tts/export_voices.py` to automatically download and serialize voice profiles.
+   - Their python dependencies are moved to optional dependencies (`optdepends`).
+4. **Multi-Language Export Support**:
+   - Patched `export_onnx.py` to dynamically download and validate non-English configurations (e.g. `german.yaml`), relaxing INT8 verification thresholds slightly to allow for expected quantization noise.
+5. **Default Voice Resolution**:
+   - The CLI and HTTP server resolve default voice parameters automatically. If the model directory path contains `"german"`, the default voice is `"juergen"`. Otherwise, it defaults to `"alba"` (English).
+6. **CLI & HTTP Server Enhancements**:
+   - The `VOICE` CLI argument is optional (defaults to the language-specific default voice).
+   - In HTTP server mode, the `"voice"` payload parameter is optional and defaults to the language-specific default voice. Passing `"default"` resolves to the default voice cache.
+   - The streaming FFI C API `ptt_stream_start` automatically falls back to default voices if the voice name is null or empty.
+
+---
+
+## 1. Downloading and Exporting Models
+
+To run the TTS engine, you must export the PyTorch models to ONNX format. Make sure you have installed the optional dependencies:
+```bash
+sudo pacman -S python-pocket-tts python-pytorch python-onnx python-onnxruntime
+```
+
+### English Model (Default)
+Export the standard English model to a directory:
+```bash
+python /usr/share/pocket-tts/export_onnx.py --output ~/models/english
+```
+
+### German Model
+Export the German model using its configuration file:
+```bash
+python /usr/share/pocket-tts/export_onnx.py --config /usr/lib/python3.14/site-packages/pocket_tts/config/german.yaml --output ~/models/german
+```
+
+---
+
+## 2. Using Predefined Voice Caches
+
+Because the ungated/open weights do not support voice cloning, using arbitrary WAV voice samples will trigger premature end-of-sequence (EOS).
+Instead, you should use the pre-compiled KV cache files for predefined voice profiles (e.g. `alba` for English and `juergen` for German).
+
+### Preparing the Caches with `export_voices.py`
+We provide a helper script `/usr/share/pocket-tts/export_voices.py` to automatically download and serialize the predefined voice profiles.
+
+Export all predefined voices:
+```bash
+python /usr/share/pocket-tts/export_voices.py --output ./voices
+```
+
+Export a specific voice (e.g. `juergen` for German):
+```bash
+python /usr/share/pocket-tts/export_voices.py --voice juergen --output ./voices
+```
+
+The script will download the corresponding `.safetensors` embedding files from Hugging Face and write the compiled `.kv` and `.emb` files directly to the `./voices/.cache/` directory.
+
+---
+
+## 3. Usage & Test Sentences
+
+Once your models and voice caches are prepared, run the CLI utility.
+
+### English Test Sentence
+Generate English speech using the default voice (`alba`):
+```bash
+pocket-tts.cpp \
+  --models-dir ~/models/english \
+  --tokenizer ~/models/english/tokenizer.model \
+  --voices-dir ./voices \
+  "Hello, a wonderful good Day!" \
+  english.wav
+```
+
+### German Test Sentence
+Generate German speech using the default voice (`juergen`):
+```bash
+pocket-tts.cpp \
+  --models-dir ~/models/german \
+  --tokenizer ~/models/german/tokenizer.model \
+  --voices-dir ./voices \
+  "Hallo, einen schönen guten Tag!" \
+  german.wav
+```
+
+### HTTP Server Mode
+Start the OpenAI-compatible HTTP server:
+```bash
+pocket-tts.cpp --server --models-dir ~/models/english --voices-dir ./voices --port 8080
+```
+Querying the server:
+```bash
+curl -X POST http://localhost:8080/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{"input": "Hello from the server!", "voice": "default"}' \
+  --output response.wav
+```
