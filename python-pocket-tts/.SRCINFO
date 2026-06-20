@@ -1,0 +1,32 @@
+pkgbase = python-pocket-tts
+	pkgdesc = A TTS that fits in your CPU (and pocket)
+	pkgver = 2.1.0
+	pkgrel = 1
+	url = https://github.com/kyutai-labs/pocket-tts
+	arch = any
+	license = MIT
+	makedepends = python-build
+	makedepends = python-installer
+	makedepends = python-hatchling
+	depends = python
+	depends = python-numpy
+	depends = python-pytorch>=2.5.0
+	depends = python-pydantic
+	depends = python-sentencepiece
+	depends = python-beartype
+	depends = python-safetensors
+	depends = python-typer
+	depends = python-typing_extensions
+	depends = python-fastapi
+	depends = uvicorn
+	depends = python-python-multipart
+	depends = python-scipy
+	depends = python-einops
+	depends = python-huggingface-hub
+	depends = python-requests
+	optdepends = python-soundfile: audio features
+	optdepends = python-torchao: quantization features
+	source = python-pocket-tts-2.1.0.tar.gz::https://github.com/kyutai-labs/pocket-tts/archive/refs/tags/v2.1.0.tar.gz
+	sha256sums = 88b6487b823d7d77f4d8b120655b97e34da4be63c2201e3c74578e4f03791a18
+
+pkgname = python-pocket-tts

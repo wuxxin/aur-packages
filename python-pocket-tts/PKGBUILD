@@ -1,0 +1,73 @@
+# Maintainer: Wuxxin <wuxxin@gmail.com>
+
+pkgname=python-pocket-tts
+pkgver=2.1.0
+pkgrel=1
+pkgdesc="A TTS that fits in your CPU (and pocket)"
+arch=('any')
+url="https://github.com/kyutai-labs/pocket-tts"
+license=('MIT')
+depends=(
+    'python'
+    'python-numpy'
+    'python-pytorch>=2.5.0'
+    'python-pydantic'
+    'python-sentencepiece'
+    'python-beartype'
+    'python-safetensors'
+    'python-typer'
+    'python-typing_extensions'
+    'python-fastapi'
+    'uvicorn'
+    'python-python-multipart'
+    'python-scipy'
+    'python-einops'
+    'python-huggingface-hub'
+    'python-requests'
+)
+makedepends=(
+    'python-build'
+    'python-installer'
+    'python-hatchling'
+)
+optdepends=(
+    'python-soundfile: audio features'
+    'python-torchao: quantization features'
+)
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/kyutai-labs/pocket-tts/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('88b6487b823d7d77f4d8b120655b97e34da4be63c2201e3c74578e4f03791a18')
+
+prepare() {
+    cd "pocket-tts-${pkgver}"
+
+    # Strip UV tools and CPU-only source/index overrides from pyproject.toml
+    python -c '
+with open("pyproject.toml", "r") as f:
+    lines = f.readlines()
+out = []
+skip = False
+for line in lines:
+    stripped = line.strip()
+    if stripped.startswith("[tool.uv") or stripped.startswith("[[tool.uv"):
+        skip = True
+    elif stripped.startswith("[") and not stripped.startswith("[tool.uv") and not stripped.startswith("[[tool.uv"):
+        skip = False
+    if not skip:
+        out.append(line)
+with open("pyproject.toml", "w") as f:
+    f.writelines(out)
+'
+}
+
+build() {
+    cd "pocket-tts-${pkgver}"
+    python -m build --wheel --no-isolation
+}
+
+package() {
+    cd "pocket-tts-${pkgver}"
+    python -m installer --destdir="${pkgdir}" dist/*.whl
+
+    install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+    install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+}
