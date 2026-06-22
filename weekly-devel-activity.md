@@ -4,24 +4,24 @@ This document tracks repository activity, commit counts, merge frequency, and re
 
 ---
 
-## 📅 Summary of Last 7 Days Activity (June 14, 2026 – June 21, 2026)
+## 📅 Summary of Last 7 Days Activity (June 15, 2026 – June 22, 2026)
 
-<!-- START_WEEKLY_ACTIVITY_TABLES -->
+<!-- START_TABLES -->
 ### AI Backend & Inference Packages
 
 | Package | Upstream Repo | Stars | Forks | Main Branch | Last Commit | Commits (Last Wk) | Merges (Last Wk) | Releases/Tags (Last Wk) | Avg Commits/Wk (4 Wks) | Recent Tags / Versions | Installed Pkg Version | Commits Since Installed | Status |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- | :--- | :---: | :---: |
-| **llama.cpp** | [ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp) | 117,501 | 19,777 | `master` | 2026-06-21 | **116** | 0 | 86 | 110.2 | ` b9632`, ` b9637` | `9742.r1.gc576070-1` (ref `c576070`) | 0 | **Highly Active** |
-| *└─ llama-cpp-python* | [abetlen/llama-cpp-python](https://github.com/abetlen/llama-cpp-python) | 10,423 | 1,418 | `main` | 2026-06-20 | **7** | 0 | 27 | 22.5 | ` v0.3.30`, ` v0.3.30-cu118` | `9742.r1.gc576070-1` (ref `b11fe07`) | 0 | **Active** |
-| *└─ stable-diffusion.cpp* | [leejet/stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) | 6,323 | 671 | `master` | 2026-06-17 | **9** | 0 | 7 | 15.5 | ` master-703-bb90bfa`, ` master-704-6e66a1a` | `9742.r1.gc576070-1` (ref `7f0e728`) | 0 | **Active** |
-| *└─ whisper.cpp* | [ggerganov/whisper.cpp](https://github.com/ggerganov/whisper.cpp) | 50,915 | 5,683 | `master` | 2026-06-19 | **71** | 0 | 3 | 61.0 | ` v1.8.7`, ` v1.9.0` | `9742.r1.gc576070-1` (ref `5ed76e9`) | 0 | **Highly Active** |
-| *└─ qwen3-tts.cpp* | [khimaros/qwen3-tts.cpp](https://github.com/khimaros/qwen3-tts.cpp) | 16 | 5 | `main` | 2026-06-16 | **1** | 0 | 0 | 0.2 | — | `9742.r1.gc576070-1` (ref `0c8b2ba`) | 0 | **Active** |
-| *   └─ [Fork Origin]* | [predict-woo/qwen3-tts.cpp](https://github.com/predict-woo/qwen3-tts.cpp) | 205 | 71 | `main` | 2026-06-03 | 0 | 0 | 0 | 0.2 | — | not installed | - | **Stale** |
-| **bitsandbytes** | [bitsandbytes-foundation/bitsandbytes](https://github.com/bitsandbytes-foundation/bitsandbytes) | 8,279 | 873 | `main` | 2026-06-18 | **3** | 0 | 0 | 3.8 | — | `0.49.2.r91.g435b8b33-1` (ref `435b8b33`) | 0 | **Active** |
-| **vllm** | [vllm-project/vllm](https://github.com/vllm-project/vllm) | 83,452 | 18,278 | `main` | 2026-06-21 | **233** | 0 | 1 | 230.8 | ` v0.23.1rc0` | not installed | - | **Highly Active** |
-| **vllm-omni** | [vllm-project/vllm-omni](https://github.com/vllm-project/vllm-omni) | 5,223 | 1,148 | `main` | 2026-06-21 | **68** | 0 | 0 | 77.8 | — | not installed | - | **Highly Active** |
-| **pockettts.cpp** | [VolgaGerm/PocketTTS.cpp](https://github.com/VolgaGerm/PocketTTS.cpp) | 38 | 8 | `master` | 2026-03-29 | 0 | 0 | 0 | 0.0 | — | `0.1.0.r18.ge801e7d-1` (ref `e801e7d`) | 0 | **Stale** |
-| **pocket-tts** | [kyutai-labs/pocket-tts](https://github.com/kyutai-labs/pocket-tts) | 4,637 | 515 | `main` | 2026-06-03 | 0 | 0 | 0 | 0.5 | — | `2.1.0-1` (ref `v2.1.0`) | 0 | **Stale** |
+| **llama.cpp** | [ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp) | 0 | 0 | `master` | 2026-06-21 | **114** | 0 | 93 | 111.8 | ` b9641`, ` b9642` | `9742.r1.gc576070-1` (ref `c576070`) | 11 | **Highly Active** |
+| *└─ llama-cpp-python* | [abetlen/llama-cpp-python](https://github.com/abetlen/llama-cpp-python) | 0 | 0 | `main` | 2026-06-20 | **7** | 0 | 27 | 22.2 | ` v0.3.30`, ` v0.3.30-cu118` | `9742.r1.gc576070-1` (ref `b11fe07`) | 0 | **Active** |
+| *└─ stable-diffusion.cpp* | [leejet/stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) | 0 | 0 | `master` | 2026-06-22 | **11** | 0 | 11 | 16.5 | ` master-704-6e66a1a`, ` master-705-93527fd` | `9742.r1.gc576070-1` (ref `7f0e728`) | 4 | **Active** |
+| *└─ whisper.cpp* | [ggerganov/whisper.cpp](https://github.com/ggerganov/whisper.cpp) | 0 | 0 | `master` | 2026-06-19 | **71** | 0 | 3 | 61.0 | ` v1.8.7`, ` v1.9.0` | `9742.r1.gc576070-1` (ref `5ed76e9`) | 0 | **Highly Active** |
+| *└─ qwen3-tts.cpp* | [khimaros/qwen3-tts.cpp](https://github.com/khimaros/qwen3-tts.cpp) | 0 | 0 | `main` | 2026-06-16 | **1** | 0 | 0 | 0.2 | — | `9742.r1.gc576070-1` (ref `0c8b2ba`) | 0 | **Active** |
+| *   └─ [Fork Origin]* | [predict-woo/qwen3-tts.cpp](https://github.com/predict-woo/qwen3-tts.cpp) | 0 | 0 | `main` | 2026-06-03 | 0 | 0 | 0 | 0.2 | — | not installed | - | **Stale** |
+| **bitsandbytes** | [bitsandbytes-foundation/bitsandbytes](https://github.com/bitsandbytes-foundation/bitsandbytes) | 0 | 0 | `main` | 2026-06-18 | **3** | 0 | 0 | 3.8 | — | `0.49.2.r91.g435b8b33-1` (ref `435b8b33`) | 0 | **Active** |
+| **vllm** | [vllm-project/vllm](https://github.com/vllm-project/vllm) | 0 | 0 | `main` | 2026-06-22 | **248** | 0 | 1 | 233.8 | ` v0.23.1rc0` | not installed | - | **Highly Active** |
+| **vllm-omni** | [vllm-project/vllm-omni](https://github.com/vllm-project/vllm-omni) | 0 | 0 | `main` | 2026-06-21 | **71** | 0 | 0 | 78.0 | — | not installed | - | **Highly Active** |
+| **pockettts.cpp** | [VolgaGerm/PocketTTS.cpp](https://github.com/VolgaGerm/PocketTTS.cpp) | 0 | 0 | `master` | 2026-03-29 | 0 | 0 | 0 | 0.0 | — | `0.1.0.r18.ge801e7d-1` (ref `e801e7d`) | 0 | **Stale** |
+| **pocket-tts** | [kyutai-labs/pocket-tts](https://github.com/kyutai-labs/pocket-tts) | 0 | 0 | `main` | 2026-06-03 | 0 | 0 | 0 | 0.5 | — | `2.1.0-1` (ref `v2.1.0`) | 5 | **Stale** |
 
 > [!NOTE]
 > `vllm`, `bitsandbytes`, `pocket-tts`, and most split sub-repositories of the `libggml-git-hip` package squash-merge PRs directly into their primary branch instead of creating merge commits, which is why the "Merges" column displays `0`.
@@ -30,94 +30,166 @@ This document tracks repository activity, commit counts, merge frequency, and re
 
 | Package | Upstream Repo | Stars | Forks | Main Branch | Last Commit | Commits (Last Wk) | Merges (Last Wk) | Releases/Tags (Last Wk) | Avg Commits/Wk (4 Wks) | Recent Tags / Versions | Installed Pkg Version | Commits Since Installed | Status |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- | :--- | :---: | :---: |
-| **signal-cli-rest-api** | [bbernhard/signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) | 2,653 | 296 | `master` | 2026-06-11 | 0 | 0 | 0 | 3.5 | — | `0.100.r0.ga4f5855-1` (ref `a4f5855`) | 0 | **Stale** |
+| **signal-cli-rest-api** | [bbernhard/signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) | 0 | 0 | `master` | 2026-06-11 | 0 | 0 | 0 | 2.5 | — | `0.100.r0.ga4f5855-1` (ref `a4f5855`) | 0 | **Stale** |
 
 > [!NOTE]
 > `zeroclaw-git` (upstream: [zeroclaw-labs/zeroclaw](https://github.com/zeroclaw-labs/zeroclaw)) is hosted and tracked separately under the `agents-shared` repository.
-<!-- END_WEEKLY_ACTIVITY_TABLES -->
+<!-- END_TABLES -->
 
 ---
 
 ## 🔍 Repository Focus & Developments
 
 ### llama.cpp (`ggml-org/llama.cpp`)
-* **Status**: Highly Active (116 commits, 86 tags in the last week, as of June 21).
+<!-- START_BD_LLAMA_CPP -->
+* **Status**: Highly Active (114 commits, 93 tags/releases in the last week). **11 commits since installed 9742.r1.gc576070-1 (ref `c576070`).**
+<!-- END_BD_LLAMA_CPP -->
+<!-- START_RF_LLAMA_CPP -->
 * **Recent Focus**:
-  - **Server**: Added real-time model load progress tracking via `/models/sse` (`d6d89958`), refactored child-to-router communication (`2b686a91`), optimized `get_token_probabilities` (`4b48a53b`), and consolidated slot selection (`80452d65`).
-  - **Models & Speculative Decoding**: Supported Step3.5/3.7 flash mtp3 speculative decoding (`d7895274`), supported Eagle3 for Qwen3.5 & 3.6 (`b14e3fb9`), made DSA indexer tensors optional for GLM-DSA (`796f41be`), and added batching support for InternVL in MTMD (`db52540f`).
-  - **GGML & System Sync**: Bumped GGML version to `0.15.2` (`1868af13`, `5fd2dc2c`).
-  - **Grammar & Parsing**: Refactored `common/peg` until gbnf grammar generation (`063d9c15`) and aligned spacing rules with parsers in `common/json-schema-to-grammar` (`c5760701`).
-  - **Hardware Backends & Kernels**:
-    - *CPU*: Added support for K tails in power10 Q8/Q4 MMA matmul (`587f602e`). Conditionally enabled power11 backend based on compiler support (`6aff09ac`).
-    - *CUDA*: Integrated CUDA col2im 1d kernel (`50fd261d`).
-    - *Hexagon*: Added support for fine-grain op-trace logging of HVX/HMX/DMA events (`5cbc2153`), and used padded stride for ssm-conv weights (`4a809431`).
-    - *Metal*: Added BF16 support check in concat kernel (`c39dd2db`), implemented `rope_back` operator (`d9115692`), and f16/bf16 support for concat operator (`ad19c982`).
-    - *Vulkan*: Recorded actual memory properties during buffer creation (`ae09736e`), prefer host-visible memory buffers on UMA devices (`69457918`), and supported `gated_delta_net` with S_v=16 (`93c02083`).
-    - *SYCL*: Renamed `GGML_SYCL_SUPPORT_LEVEL_ZERO` (`4c4f6eac`). Supported MUL_MAT and OUT_PROD with Q1_0 (`69a9798a`). Supported `conv_2d`, `conv_2d_dw`, `conv2d_transpose` (`31203378`). Added dev2dev memcpy by SYCL API (`6772827b`). Supported Conv3D (`01b1c3ad`). Enabled fp16 support for SQR, SQRT, LOG, SIN, COS, CLAMP (`da66f048`). Fixed use-after-free bug in MoE prefill (`fddcda58`). Supported USM system allocations (`dd1a6ca8`).
-    - *OpenCL*: Optimized `mul_mat_f16_f32_l4` for decode (`9f785839`).
-    - *OpenVINO*: Added OpenVINO 2026.2, context-shift, Q5_1 support, gemma4 dense/embedding, and `-fa off` (`5fa14e99`).
-    - *WebGPU*: Added adapter toggles for F16 on Vulkan + NVIDIA (`f449e055`).
-  - **Quantization & Metadata**: Used `LLM_KV` for `quantization_version` and `file_type` (`84de01a1`), and handled rope parameters more consistently during conversion (`f4043fec`).
+  - `52b3df00` common/peg : implement ac parser for stricter grammar generation (#24869)
+  - `7c082bc4` server: fix report progress for loading spec models, add "stages" list (#24870)
+  - `bddfd2b1` server: refactor batch construction (#24843)
+  - `0d135df4` mtmd: fix mtmd_get_memory_usage (#24867)
+  - `bf533823` jinja : implement call statement (#24847)
+  - `2f89acc2` mtmd: add load progress callback (#24865)
+  - `bfa32191` server: add "verbose" field to schema (#24864)
+  - `d6d89958` server: real-time model load progress tracking via /models/sse (#24828)
+  - `8a118ee8` minor : clean-up whitespaces (#24862)
+  - `d7895274` spec : Support Step3.5/3.7 flash mtp3 (#24340)
+  - `063d9c15` common/peg : refactor until gbnf grammar generation (#24839)
+<!-- END_RF_LLAMA_CPP -->
 
 ### llama-cpp-python (`abetlen/llama-cpp-python`)
-* **Status**: Active (7 commits, 27 tags in the last week, as of June 21).
+<!-- START_BD_LLAMA_CPP_PYTHON -->
+* **Status**: Active (7 commits, 27 tags/releases in the last week). **0 commits since installed 9742.r1.gc576070-1 (ref `b11fe07`).**
+<!-- END_BD_LLAMA_CPP_PYTHON -->
+<!-- START_RF_LLAMA_CPP_PYTHON -->
 * **Recent Focus**:
-  - **llama.cpp Sync**: Updated llama.cpp to `6e9007ae6` (`541b08c`), `6eab47181` (`824565a`), `e3a74b299` (`822146b`), and `f449e0553` (`7440aaa`).
-  - **Features**: Added Pyodide wheel support (`a804233`).
-  - **CI & Releases**: Bumped package release version to `v0.3.31` (`b11fe07`) and `v0.3.30` (`ddb6a05`).
+  - No new commits in this period.
+<!-- END_RF_LLAMA_CPP_PYTHON -->
 
 ### stable-diffusion.cpp (`leejet/stable-diffusion.cpp`)
-* **Status**: Active (9 commits, 7 tags in the last week, as of June 21).
+<!-- START_BD_STABLE_DIFFUSION_CPP -->
+* **Status**: Active (11 commits, 11 tags/releases in the last week). **4 commits since installed 9742.r1.gc576070-1 (ref `7f0e728`).**
+<!-- END_BD_STABLE_DIFFUSION_CPP -->
+<!-- START_RF_STABLE_DIFFUSION_CPP -->
 * **Recent Focus**:
-  - **Features**: Added support for cancelling generations (`5a34bc7`), added PuLID-Flux identity-injection support (`93527fd`), and supported backend-specific max-VRAM budgets (`bb90bfa`).
-  - **Fixes**: Normalize CLIP prompts before special-token splitting (`7f0e728`), correct conversion from sd_type_t to ggml_type (`710bc91`), simplify PuLID ID extraction setup (`146b6cc`), and allow oversized Vulkan parameter tensors (`6e66a1a`).
-  - **Sync**: Updated `sdcpp-webui` (`92a3b73`) and synced upstream `ggml` commits (`517abc7`).
+  - `b12098f` feat: add boogu image support (#1688)
+  - `2bd249c` feat: concatenate repeated cli arg strings (#1686)
+  - `e9e9524` fix: workaround for Ernie with Vulkan and Flash Attention (#1680)
+  - `e8e012e` fix: workaround for Anima with Vulkan and Flash Attention (#1678)
+<!-- END_RF_STABLE_DIFFUSION_CPP -->
 
 ### whisper.cpp (`ggerganov/whisper.cpp`)
-* **Status**: Highly Active (71 commits, 3 tags in the last week, as of June 21).
+<!-- START_BD_WHISPER_CPP -->
+* **Status**: Highly Active (71 commits, 3 tags/releases in the last week). **0 commits since installed 9742.r1.gc576070-1 (ref `5ed76e9`).**
+<!-- END_BD_WHISPER_CPP -->
+<!-- START_RF_WHISPER_CPP -->
 * **Recent Focus**:
-  - **Release**: Released `v1.9.1` (`f049fff9`) and `v1.9.0`.
-  - **Sync & GGML**: Synced talk-llama with latest llama.cpp (`5ed76e9a`), bumped GGML version to `0.15.2` (`f92382f1`), and synced upstream ggml commits (`41cf1278`).
-  - **CI**: Added `GGML_NATIVE=OFF` and `GGML_BMI2=OFF` to `windows-blas` CI matrix (`200b1197`).
+  - No new commits in this period.
+<!-- END_RF_WHISPER_CPP -->
 
 ### qwen3-tts.cpp (`khimaros/qwen3-tts.cpp` and fork origin `predict-woo/qwen3-tts.cpp`)
-* **Status**: Active (1 commit on downstream fork, 0 commits on origin, as of June 21).
-* **Fork Focus**:
-  - Downstream fork added support for more audio formats using ffmpeg/libavcodec (`0c8b2ba`).
+* **Downstream Fork**:
+<!-- START_BD_QWEN3_TTS_CPP -->
+* **Status**: Active (1 commits, 0 tags/releases in the last week). **0 commits since installed 9742.r1.gc576070-1 (ref `0c8b2ba`).**
+<!-- END_BD_QWEN3_TTS_CPP -->
+<!-- START_RF_QWEN3_TTS_CPP -->
+* **Recent Focus**:
+  - No new commits in this period.
+<!-- END_RF_QWEN3_TTS_CPP -->
+
+* **Upstream Origin**:
+<!-- START_BD_QWEN3_TTS_UPSTREAM -->
+* **Status**: Stale (0 commits, 0 tags/releases in the last week).
+<!-- END_BD_QWEN3_TTS_UPSTREAM -->
+<!-- START_RF_QWEN3_TTS_UPSTREAM -->
+* **Recent Focus**:
+  - No new commits in this period.
+<!-- END_RF_QWEN3_TTS_UPSTREAM -->
 
 ### bitsandbytes (`bitsandbytes-foundation/bitsandbytes`)
-* **Status**: Active (3 commits, as of June 21).
+<!-- START_BD_BITSANDBYTES -->
+* **Status**: Active (3 commits, 0 tags/releases in the last week). **0 commits since installed 0.49.2.r91.g435b8b33-1 (ref `435b8b33`).**
+<!-- END_BD_BITSANDBYTES -->
+<!-- START_RF_BITSANDBYTES -->
 * **Recent Focus**:
-  - **CI & Fixes**: Fixed CI matrices, pinned GitHub Actions to SHA, and added Dependabot for automatic updates (`435b8b3`). Performed miscellaneous cleanup/improvements (`78a8478`) and added compatibility for Windows 2025 + VS2026 (`aee0ebb`).
+  - No new commits in this period.
+<!-- END_RF_BITSANDBYTES -->
 
 ### vLLM (`vllm-project/vllm`)
-* **Status**: Highly Active (233 commits, 1 tag in the last week, as of June 21).
+<!-- START_BD_VLLM -->
+* **Status**: Highly Active (248 commits, 1 tag/release in the last week).
+<!-- END_BD_VLLM -->
+<!-- START_RF_VLLM -->
 * **Recent Focus**:
-  - **Performance & Scheduler**: Optimized scheduler by skipping/shrinking `all_token_ids` copies for non-async and V2 runners (`6e919960`). Optimized Qwen3-VL multi-video prompt processing (`d272418f`). Exposed CPU cache usage metric for KV offloading (`3b4a76b6`).
-  - **KV Connector & Offloading**: Compacted chunk-hash keys and introduced zero-copy lookup wire format for Mooncake (`ab7fcbdd`). Supported packed HMA KV cache layout (`cc22621b`). Added SimpleCPUOffloadConnector with PCP + DCP support (`c88d3d47`). Supported packing KV caches into contiguous per-block allocations for DeepSeek V4 (`01192139`).
-  - **Models & Emulation**: Supported block-FP8 shared expert TEP=16 in DeepSeek-V4 (`2a6c6b94`), fixed NVFP4/OCP MX MoE emulation (`a346d589`), and fixed memory pointer overflow in Mamba state buffers (`b5495cc5`).
-  - **Frontend & API**: Added cache usage reporting to Anthropic `/v1/messages` API endpoint (`891cc4b9`).
-  - **ROCm/AMD GPU Backend**: Fixed ROCm Sparse Indexer bug (`1bdf9810`). Unlocked AITER hipBLASLt accuracy tests using vLLM's fp8 quant max (`dec860fb`). Fixed VRAM leaks in Phi3V testing (`0fbf42af`).
-  - **Bugfixes**: Prevented `U+FFFD` leaks at reasoning-to-content transition in engine parsers (`859e4d43`), avoided `gridDim.y` overflow for large row counts (`93bad119`), fixed `min_tokens` off-by-one in V2 GPU sampler (`183a430c`), and added OpenAI schema validation fixes.
+  - `485bbe1c` [CI] Fix missing 'tp_size' attribute on 'RoutedExperts' (#46163)
+  - `a19ff221` [Hardware][AMD][CI] Fix Spec Decode Eagle test group (#46018)
+  - `4f0d0049` [Hardware][AMD][CI] Fix Kernels Attention test groups (#46080)
+  - `13b83d77` [ROCm][CI] skip test_double_aiter_rms_quant_fusion (#45967)
+  - `50241602` [Hardware][AMD][CI] Fix gfx942 Kernels MoE test group (#46298)
+  - `12fe2a9a` [Bugfix][Qwen3-VL] Fix multi-video crash with list-valued fps/num_frames (#46305)
+  - `89bd2c14` [Spec Decode] Add Qwen3 architecture support for EAGLE3 (#43132)
+  - `9c450b10` [Kernel][Bugfix] Fix INT8 per-token-head KV cache rounding in Triton reshape-and-cache (#45361)
+  - `635c3833` [Multimodal] Add Qwen2-VL/Qwen2.5-VL processor-mapped video loader (#45555)
+  - `c441ad1c` [KV Offloading] Add labeled metrics support (#45957)
+  - `745bba5e` [Model]Fix MiniMaxM2ForCausalLM perf  regression (#45935)
+  - `2cac89f9` [Spec Decode] Support mixed KV page sizes for DFlash (#45181)
+  - `3e6e3352` [Disagg] return routed_experts on streaming generate responses (#44638)
+  - `b91b7726` [ROCm][P/D] Support MiniMax-M3 mixed KV layouts in MoRIIO READ mode (#46039)
+  - `d3ad8e8b` [Bugfix] Defer offload reads while transfers are pending (#46231)
+<!-- END_RF_VLLM -->
 
 ### vllm-omni (`vllm-project/vllm-omni`)
-* **Status**: Highly Active (68 commits, as of June 21).
+<!-- START_BD_VLLM_OMNI -->
+* **Status**: Highly Active (71 commits, 0 tags/releases in the last week).
+<!-- END_BD_VLLM_OMNI -->
+<!-- START_RF_VLLM_OMNI -->
 * **Recent Focus**:
-  - **Audio & TTS Models**: Fixed Qwen3-Omni `Code2Wav` CUDA-graph output length surplus (`cead6152`). Batched matmul and embedding gather in MOSS-TTS talker (`63ba11b8`). Fixed MOSS-TTS cross-request audio corruption under batching (`1228a109`). Added Voxtral TTS recipe details for 1x RTX A6000 48GB (`13e9094b`).
-  - **Diffusion Models & Pipelines**: Added GR00T-N1.7 pipeline with OpenPI serving (`2d0b1d8a`), simplified CacheDiT integration (`6ff246bf`), configured video storage backends with TTL (`951ae28e`), enabled regional compilation for Cosmos3 HSDP blocks (`14d70d98`), supported NVFP4 W4A4 serving on Blackwell (`2f64c712`), and fixed diffusion profile RPC None results (`1292c478`).
-  - **Multimodal & Interaction**: Added JoyAI-VL-Interaction streaming serving layer (`e241005a`), migrated helios example (`950e66a4`), and added Cosmos3 transfer (`a1e1ac01`).
-  - **Core & Integration**: Aligned vLLM Omni Request input signature with upstream vLLM (`17cf60a6`). Fixed HSDP + FP8 online quantization compatibility (`7e152ca6`). Supported CUDA graph, torch.compile, and DiT Caching for DreamZero (`f05e03ae`).
-  - **Testing**: Added `vllm-omni-test` agent skill for CI-aligned test generation (`dff8cda8`).
+  - `7ff11d8d` [Perf/Fix] Reimplement Batched CFG Forward for Bagel (#4098)
+  - `fc32d9fe` Improve Cosmos3 v2v quality (#4514)
+  - `afbcc516` [Model] Aura support - Non async chunk path (#4257)
+  - `1292c478` [BugFix]Fix diffusion profile RPC None results (#4372)
+  - `e241005a` [Feature] JoyAI-VL-Interaction streaming interaction serving layer (#4575)
+  - `950e66a4` [Feature]Migrate helios example (#4569)
+  - `a1e1ac01` Cosmos3 transfer (#4379)
+  - `cead6152` [Bugfix][Qwen3-Omni] Fix Code2Wav CUDA-graph output length surplus (#4466) (#4525)
+  - `17cf60a6` [Bugfix] Align vLLM Omni Request input signature with vLLM.  (#4568)
+  - `2d0b1d8a` [Diffusion] add GR00T-N1.7 pipeline with OpenPI serving (#3798)
+  - `e70822ed` [ROCm] [CI] Fix diffusion test (#4574)
+  - `6ff246bf` [Cache Refactor 1/N] Simplify CacheDiT Integration (#2527)
+  - `951ae28e` [Frontend] Configurable video storage backends with TTL (#2531)
+  - `7e152ca6` [Bugfix] Fix HSDP + FP8 online quantization compatibility (#4494)
+  - `20893221` [Chore][TTS] Reference recipes.vllm.ai recipes, remove dead code, and fix stale references (#4567)
+<!-- END_RF_VLLM_OMNI -->
 
 ### PocketTTS.cpp (`VolgaGerm/PocketTTS.cpp` & `kyutai-labs/pocket-tts`)
-* **Status**: Stale (0 commits in the last week, as of June 21).
+* **PocketTTS C++ Wrapper**:
+<!-- START_BD_POCKETTTS_CPP -->
+* **Status**: Stale (0 commits, 0 tags/releases in the last week). **0 commits since installed 0.1.0.r18.ge801e7d-1 (ref `e801e7d`).**
+<!-- END_BD_POCKETTTS_CPP -->
+<!-- START_RF_POCKETTTS_CPP -->
 * **Recent Focus**:
-  - No new commits in the last week. `pocket-tts.cpp-git` (upstream clone version `0.1.0.r18.ge801e7d`) and `python-pocket-tts` (upstream version `2.1.0`) remain stable with no new upstream changes.
+  - No new commits in this period.
+<!-- END_RF_POCKETTTS_CPP -->
+
+* **PocketTTS Python Bindings**:
+<!-- START_BD_POCKET_TTS -->
+* **Status**: Stale (0 commits, 0 tags/releases in the last week). **5 commits since installed 2.1.0-1 (ref `v2.1.0`).**
+<!-- END_BD_POCKET_TTS -->
+<!-- START_RF_POCKET_TTS -->
+* **Recent Focus**:
+  - No new commits in this period.
+<!-- END_RF_POCKET_TTS -->
 
 ### signal-cli-rest-api (`bbernhard/signal-cli-rest-api`)
-* **Status**: Active (0 commits in the last week, as of June 21).
+<!-- START_BD_SIGNAL_CLI_REST_API -->
+* **Status**: Stale (0 commits, 0 tags/releases in the last week). **0 commits since installed 0.100.r0.ga4f5855-1 (ref `a4f5855`).**
+<!-- END_BD_SIGNAL_CLI_REST_API -->
+<!-- START_RF_SIGNAL_CLI_REST_API -->
 * **Recent Focus**:
-  - No new commits in the last week. The package is running signal-cli v0.14.5.
+  - No new commits in this period.
+<!-- END_RF_SIGNAL_CLI_REST_API -->
 
 ### Custom AUR Repository Updates
 * **Recent Focus**:
@@ -130,197 +202,7 @@ This document tracks repository activity, commit counts, merge frequency, and re
 
 ## 📋 Instruction Guide: Recreating this Analysis
 
-> [!TIP]
-> **Fully Automated Update**: You can run the automation script `scripts/update-activity.py` with the `--write` (or `-w`) flag to automatically pull all repository updates, calculate the statistics, and write the updated tables directly back into this file:
-> ```bash
-> python scripts/update-activity.py --write
-> ```
-> For manual reproduction steps, follow the guide below.
-
-To re-perform this development activity analysis, follow the steps below.
-
-### Step 1: Repository Reference Map
-
-Here is the list of tracked upstream GitHub repositories and their corresponding local Arch packages:
-
-| Directory Name | GitHub Upstream Repo | System Package | Package Type |
-| :--- | :--- | :--- | :--- |
-| **llama.cpp** | `ggml-org/llama.cpp` | `libggml-git-hip` | AUR VCS (`-git`) |
-| **llama-cpp-python** | `abetlen/llama-cpp-python` | `python-llama-cpp-git-ggml-hip` | AUR VCS (`-git` split) |
-| **stable-diffusion.cpp** | `leejet/stable-diffusion.cpp` | `stable-diffusion.cpp-git-ggml-hip` | AUR VCS (`-git` split) |
-| **whisper.cpp** | `ggerganov/whisper.cpp` | `whisper.cpp-git-ggml-hip` | AUR VCS (`-git` split) |
-| **qwen3-tts.cpp** | `khimaros/qwen3-tts.cpp` (Fork) | `qwen3-tts.cpp-git-ggml-hip` | AUR VCS (`-git` split) |
-| **qwen3-tts-upstream** | `predict-woo/qwen3-tts.cpp` (Origin) | — | not installed |
-| **bitsandbytes** | `bitsandbytes-foundation/bitsandbytes` | `python-bitsandbytes-rocm-git` | AUR VCS (`-git`) |
-| **vllm** | `vllm-project/vllm` | `python-vllm-rocm-git` | AUR VCS (`-git`) |
-| **vllm-omni** | `vllm-project/vllm-omni` | `python-vllm-omni-rocm-git` | AUR VCS (`-git`) |
-| **pockettts.cpp** | `VolgaGerm/PocketTTS.cpp` | `pocket-tts.cpp-git` | AUR VCS (`-git`) |
-| **pocket-tts** | `kyutai-labs/pocket-tts` | `python-pocket-tts` | AUR Tagged Release |
-| **signal-cli-rest-api** | `bbernhard/signal-cli-rest-api` | `signal-cli-rest-api-git` | AUR VCS (`-git`) |
-
-### Step 2: Probe Installed System Versions
-
-Run `pacman -Q` on the target package names to retrieve their current installed version and git commit hashes:
-
+**Fully Automated Update**: You can run the automation script `scripts/update-activity.py` with the `--write` (or `-w`) flag to automatically pull all repository updates, calculate the statistics, and optionally write the updated tables directly back into this file:
 ```bash
-for pkg in libggml-git-hip python-llama-cpp-git-ggml-hip stable-diffusion.cpp-git-ggml-hip whisper.cpp-git-ggml-hip qwen3-tts.cpp-git-ggml-hip python-bitsandbytes-rocm-git python-vllm-rocm-git python-vllm-omni-rocm-git pocket-tts.cpp-git python-pocket-tts signal-cli-rest-api-git; do
-  ver=$(pacman -Q "$pkg" 2>/dev/null | awk '{print $2}')
-  if [ -n "$ver" ]; then
-    echo "$pkg: $ver"
-  else
-    echo "$pkg: not installed"
-  fi
-done
-```
-
-### Step 3: Fetch Upstream Repository History
-
-Update the local checkouts stored under `scratch/` by fetching the latest changes and resetting to the tracking branch:
-
-```bash
-# Clone any missing repositories using shallow clone depth
-for r in llama.cpp llama-cpp-python stable-diffusion.cpp whisper.cpp qwen3-tts.cpp qwen3-tts-upstream bitsandbytes vllm vllm-omni pockettts.cpp pocket-tts signal-cli-rest-api; do
-  if [ ! -d "scratch/$r" ]; then
-    case "$r" in
-      llama.cpp) url="https://github.com/ggml-org/llama.cpp.git" ;;
-      llama-cpp-python) url="https://github.com/abetlen/llama-cpp-python.git" ;;
-      stable-diffusion.cpp) url="https://github.com/leejet/stable-diffusion.cpp.git" ;;
-      whisper.cpp) url="https://github.com/ggerganov/whisper.cpp.git" ;;
-      qwen3-tts.cpp) url="https://github.com/khimaros/qwen3-tts.cpp.git" ;;
-      qwen3-tts-upstream) url="https://github.com/predict-woo/qwen3-tts.cpp.git" ;;
-      bitsandbytes) url="https://github.com/bitsandbytes-foundation/bitsandbytes.git" ;;
-      vllm) url="https://github.com/vllm-project/vllm.git" ;;
-      vllm-omni) url="https://github.com/vllm-project/vllm-omni.git" ;;
-      pockettts.cpp) url="https://github.com/VolgaGerm/PocketTTS.cpp.git" ;;
-      pocket-tts) url="https://github.com/kyutai-labs/pocket-tts.git" ;;
-      signal-cli-rest-api) url="https://github.com/bbernhard/signal-cli-rest-api.git" ;;
-    esac
-    git clone --depth 2000 "$url" "scratch/$r"
-  fi
-done
-
-# Fetch and reset checkouts (note default branch differences)
-git -C scratch/llama.cpp fetch origin && git -C scratch/llama.cpp checkout master && git -C scratch/llama.cpp reset --hard origin/master
-git -C scratch/llama-cpp-python fetch origin && git -C scratch/llama-cpp-python checkout main && git -C scratch/llama-cpp-python reset --hard origin/main
-git -C scratch/stable-diffusion.cpp fetch origin && git -C scratch/stable-diffusion.cpp checkout master && git -C scratch/stable-diffusion.cpp reset --hard origin/master
-git -C scratch/whisper.cpp fetch origin && git -C scratch/whisper.cpp checkout master && git -C scratch/whisper.cpp reset --hard origin/master
-git -C scratch/qwen3-tts.cpp fetch origin && git -C scratch/qwen3-tts.cpp checkout main && git -C scratch/qwen3-tts.cpp reset --hard origin/main
-git -C scratch/qwen3-tts-upstream fetch origin && git -C scratch/qwen3-tts-upstream checkout main && git -C scratch/qwen3-tts-upstream reset --hard origin/main
-git -C scratch/bitsandbytes fetch origin && git -C scratch/bitsandbytes checkout main && git -C scratch/bitsandbytes reset --hard origin/main
-git -C scratch/vllm fetch origin && git -C scratch/vllm checkout main && git -C scratch/vllm reset --hard origin/main
-git -C scratch/vllm-omni fetch origin && git -C scratch/vllm-omni checkout main && git -C scratch/vllm-omni reset --hard origin/main
-git -C scratch/pockettts.cpp fetch origin && git -C scratch/pockettts.cpp checkout master && git -C scratch/pockettts.cpp reset --hard origin/master
-git -C scratch/pocket-tts fetch origin && git -C scratch/pocket-tts checkout main && git -C scratch/pocket-tts reset --hard origin/main
-git -C scratch/signal-cli-rest-api fetch origin && git -C scratch/signal-cli-rest-api checkout master && git -C scratch/signal-cli-rest-api reset --hard origin/master
-```
-
-### Step 4: Batch Statistics Compilation
-
-Run the following script from the root of the `aur-packages` repository to compile the raw statistical metrics:
-
-```bash
-declare -A PKG_MAP=(
-  [llama.cpp]=libggml-git-hip
-  [llama-cpp-python]=python-llama-cpp-git-ggml-hip
-  [stable-diffusion.cpp]=stable-diffusion.cpp-git-ggml-hip
-  [whisper.cpp]=whisper.cpp-git-ggml-hip
-  [qwen3-tts.cpp]=qwen3-tts.cpp-git-ggml-hip
-  [qwen3-tts-upstream]=""
-  [bitsandbytes]=python-bitsandbytes-rocm-git
-  [vllm]=python-vllm-rocm-git
-  [vllm-omni]=python-vllm-omni-rocm-git
-  [pockettts.cpp]=pocket-tts.cpp-git
-  [pocket-tts]=python-pocket-tts
-  [signal-cli-rest-api]=signal-cli-rest-api-git
-)
-
-# Robustly resolve the installed commit reference hash
-get_installed_ref() {
-  local d="$1"
-  local pkg="$2"
-  local src_path=""
-  case "$d" in
-    llama.cpp) src_path="libggml-git-hip/src/llama.cpp" ;;
-    llama-cpp-python) src_path="libggml-git-hip/src/llama-cpp-python" ;;
-    stable-diffusion.cpp) src_path="libggml-git-hip/src/stable-diffusion.cpp" ;;
-    whisper.cpp) src_path="libggml-git-hip/src/whisper.cpp" ;;
-    qwen3-tts.cpp) src_path="libggml-git-hip/src/qwen3-tts.cpp" ;;
-    bitsandbytes) src_path="python-bitsandbytes-rocm-git/src/bitsandbytes" ;;
-    pockettts.cpp) src_path="pocket-tts.cpp-git/src/pockettts.cpp" ;;
-    signal-cli-rest-api) src_path="signal-cli-rest-api-git/src/signal-cli-rest-api" ;;
-  esac
-
-  # 1. Attempt to read from build tree checkout if present
-  if [ -n "$src_path" ] && [ -d "$src_path/.git" ]; then
-    git -C "$src_path" rev-parse --short=7 HEAD 2>/dev/null
-    return
-  fi
-  
-  # 2. Attempt to parse git hash from pacman package version suffix
-  if [ -n "$pkg" ]; then
-    local pkg_ver
-    pkg_ver=$(pacman -Q "$pkg" 2>/dev/null | awk '{print $2}')
-    if [ -n "$pkg_ver" ]; then
-      local parsed_ref
-      parsed_ref=$(echo "$pkg_ver" | sed -nE 's/.*\.g([0-9a-f]{7,})(-.*)?$/\1/p')
-      if [ -n "$parsed_ref" ]; then
-        echo "$parsed_ref"
-        return
-      fi
-    fi
-  fi
-  
-  # 3. Fallback default hashes (June 21, 2026 baseline)
-  case "$d" in
-    llama.cpp) echo "c576070" ;;
-    llama-cpp-python) echo "b11fe07" ;;
-    stable-diffusion.cpp) echo "7f0e728" ;;
-    whisper.cpp) echo "5ed76e9a" ;;
-    qwen3-tts.cpp) echo "0c8b2ba" ;;
-    bitsandbytes) echo "435b8b3" ;;
-    vllm) echo "6bdabba" ;;
-    vllm-omni) echo "5dfdf58" ;;
-    pockettts.cpp) echo "e801e7d" ;;
-    pocket-tts) echo "v2.1.0" ;;
-    signal-cli-rest-api) echo "a4f5855" ;;
-  esac
-}
-
-for d in llama.cpp llama-cpp-python stable-diffusion.cpp whisper.cpp qwen3-tts.cpp qwen3-tts-upstream bitsandbytes vllm vllm-omni pockettts.cpp pocket-tts signal-cli-rest-api; do
-  echo "=== $d ==="
-  cd "scratch/$d" 2>/dev/null || continue
-  
-  commits=$(git log --since="7 days ago" --no-merges --oneline | wc -l)
-  merges=$(git log --since="7 days ago" --merges --oneline | wc -l)
-  last_commit=$(git log -1 --format="%ad" --date=short)
-  commits_28=$(git log --since="28 days ago" --no-merges --oneline | wc -l)
-  avg_commits=$(echo "scale=1; $commits_28 / 4" | bc)
-  tags=$(git log --tags --since="7 days ago" --simplify-by-decoration --pretty="format:%d" | tr -d '()' | tr '\n' ',' | sed 's/,$//')
-  
-  pkg="${PKG_MAP[$d]}"
-  pkg_info="not installed" since_commits="-"
-  if [ -n "$pkg" ]; then
-    pkg_ver=$(pacman -Q "$pkg" 2>/dev/null | awk '{print $2}')
-    if [ -n "$pkg_ver" ]; then
-      installed_ref=$(get_installed_ref "$d" "$pkg")
-      since_commits=$(git log --no-merges --oneline "${installed_ref}..HEAD" 2>/dev/null | wc -l)
-      pkg_info="$pkg_ver (ref=$installed_ref)"
-    fi
-  fi
-  
-  echo "commits=$commits merges=$merges last_commit=$last_commit avg_commits=$avg_commits tags=[$tags]"
-  echo "pkg=$pkg_info since_installed=$since_commits"
-  cd - &>/dev/null
-done
-```
-
-### Step 5: Gather GitHub Metadata (Stars & Forks)
-
-To update the Stars and Forks metrics, query the GitHub API endpoints:
-
-```bash
-for repo in ggml-org/llama.cpp abetlen/llama-cpp-python leejet/stable-diffusion.cpp ggerganov/whisper.cpp khimaros/qwen3-tts.cpp predict-woo/qwen3-tts.cpp bitsandbytes-foundation/bitsandbytes vllm-project/vllm vllm-project/vllm-omni VolgaGerm/PocketTTS.cpp kyutai-labs/pocket-tts bbernhard/signal-cli-rest-api; do
-  echo "=== $repo ==="
-  curl -L -s "https://api.github.com/repos/$repo" | jq '{stargazers_count, forks_count}'
-done
+python scripts/update-activity.py [--write]
 ```
