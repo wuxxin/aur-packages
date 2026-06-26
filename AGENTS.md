@@ -1,4 +1,4 @@
-# AGENTS.md - Guidelines for Agents Working in This Repository
+# AGENTS.md
 
 ## Overview
 
@@ -12,7 +12,7 @@ aur-packages/
 ├── README.md             # Human targeted README.md , list of currently available pkgs
 ├── libggml-git-hip/      # HIP/ROCm accelerated GGML + llama.cpp + whisper.cpp
 ├── python-torch*-rocm/   # PyTorch ROCm builds
-|__ scripts/              #  utility scripts
+|__ scripts/              # utility scripts
 |__ scratch/              # scratch space for agents to work or research (checkedout source code for package or build testing, etc)
 └── ...                   # Other AUR packages (each AUR package has its own directory with PKGBUILD)
 ```
@@ -64,10 +64,10 @@ aur-packages/
 
 ## Working with This Repository
 - This Repository contains custom builds of complex software (llama.cpp, PyTorch with ROCm)
-- Many packages have HIP/ROCm acceleration requirements
+- Many packages have HIP/ROCm hardware acceleration requirements
 - Some packages are experimental or personal forks
-- Verify dependencies when modifying PKGBUILDs
 - Update README.md if significant changes or additions are made
+- Verify dependencies when modifying PKGBUILDs, ask human to install needed dependencies.
 - Test PKGBUILDs with `makepkg --nobuild` first
 - Be Smart how to build: Large packages (such as `llama.cpp` or vllm) take substantial time to compile. During optimization, debugging, or iteration, avoid running clean builds or forcing a full rebuild (`makepkg -Cf`) repeatedly.
    - Use `makepkg -e` (or `makepkg --noextract`) to compile while preserving the existing `src` build tree and avoiding re-extracting or re-downloading.
@@ -75,8 +75,7 @@ aur-packages/
    - Use environment overrides (such as `GGML_BACKEND_PATH`, `LLAMA_SERVER_BIN`, etc.) to test custom-built dynamic libraries/binaries.
 - Follow existing package directory structure
 - Place patches in package directory, reference in `source` array
-- Utility scripts go in `scripts/` directory
-- Regenerating Weekly Development Activity: Run the automation script to compile development statistics, stars/forks, and git logs, and directly write the updated tables back into `weekly-devel-activity.md`:
+- Regenerating the development activity of selected package sources: Run the script to compile development statistics, after a successful run, use "--write" to directly write the updated tables back into `weekly-devel-activity.md`:
    ```bash
-   python scripts/update-activity.py --write
+   python scripts/update-activity.py [--write]
    ```

@@ -17,7 +17,7 @@ import urllib.request
 from typing import Any, Dict, List, Optional
 
 # Define the repositories to track
-TRACKED_REPOS = [
+TRACKED_REPOS: List[Dict[str, Any]] = [
     {
         "name": "llama.cpp",
         "github": "ggml-org/llama.cpp",
@@ -118,6 +118,17 @@ TRACKED_REPOS = [
         "default_ref": "v2.1.0",
     },
     {
+        "name": "ironclaw",
+        "github": "nearai/ironclaw",
+        "pkg": "ironclaw-git",
+        "pkgs": ["ironclaw-git", "ironclaw-reborn-git"],
+        "branch": "main",
+        "src_path": "ironclaw-git/src/ironclaw",
+        "src_paths": ["ironclaw-git/src/ironclaw", "ironclaw-reborn-git/src/ironclaw"],
+        "category": "ai",
+        "default_ref": "811763f",
+    },
+    {
         "name": "signal-cli-rest-api",
         "github": "bbernhard/signal-cli-rest-api",
         "pkg": "signal-cli-rest-api-git",
@@ -147,25 +158,33 @@ def run_cmd(cmd: List[str], cwd: Optional[str] = None) -> str:
 
 def get_git_installed_ref(repo_cfg: Dict[str, Any]) -> str:
     """Resolve the git ref of the currently installed package."""
-    src_path = repo_cfg.get("src_path", "")
-    pkg = repo_cfg.get("pkg", "")
+    src_paths = repo_cfg.get("src_paths") or (
+        [repo_cfg.get("src_path")] if repo_cfg.get("src_path") else []
+    )
+    pkgs = repo_cfg.get("pkgs") or (
+        [repo_cfg.get("pkg")] if repo_cfg.get("pkg") else []
+    )
     default_ref = repo_cfg.get("default_ref", "")
 
     # 1. Check if git repo exists in package src directory
-    if src_path and os.path.isdir(os.path.join(src_path, ".git")):
-        short_ref = run_cmd(["git", "-C", src_path, "rev-parse", "--short=7", "HEAD"])
-        if short_ref:
-            return short_ref
+    for src_path in src_paths:
+        if src_path and os.path.isdir(os.path.join(src_path, ".git")):
+            short_ref = run_cmd(
+                ["git", "-C", src_path, "rev-parse", "--short=7", "HEAD"]
+            )
+            if short_ref:
+                return short_ref
 
     # 2. Extract git suffix from pacman version
-    if pkg:
-        pkg_ver = run_cmd(["pacman", "-Q", pkg])
-        if pkg_ver:
-            # Extract suffix after ".g" or "-g" followed by hex characters
-            ver_part = pkg_ver.split()[-1]
-            match = re.search(r"\.g([0-9a-f]{7,})(-.*)?$", ver_part)
-            if match:
-                return match.group(1)
+    for pkg in pkgs:
+        if pkg:
+            pkg_ver = run_cmd(["pacman", "-Q", pkg])
+            if pkg_ver:
+                # Extract suffix after ".g" or "-g" followed by hex characters
+                ver_part = pkg_ver.split()[-1]
+                match = re.search(r"\.g([0-9a-f]{7,})(-.*)?$", ver_part)
+                if match:
+                    return match.group(1)
 
     return default_ref
 
@@ -260,7 +279,7 @@ def update_assistant_section_with_anchor(
         return content
 
     new_block = f"{start_tag}\n{new_body}\n{end_tag}"
-    return re.sub(pattern, new_block, content)
+    return re.sub(pattern, lambda m: new_block, content)
 
 
 def make_recent_focus_block(stats: Dict[str, Any], repo_dir: str) -> str:
@@ -341,7 +360,7 @@ def update_focus_section_with_anchor(
         return content
 
     new_block = f"{start_tag}\n{focus_block}\n{end_tag}"
-    return re.sub(pattern, new_block, content)
+    return re.sub(pattern, lambda m: new_block, content)
 
 
 def compile_activity(write_to_file: bool = False) -> None:
@@ -481,27 +500,32 @@ def compile_activity(write_to_file: bool = False) -> None:
         installed_ver = "not installed"
         since_commits = "-"
         installed_ref = ""
-        if pkg:
-            pkg_ver_str = run_cmd(["pacman", "-Q", pkg])
-            if pkg_ver_str:
-                installed_ver = pkg_ver_str.split()[-1]
-                installed_ref = get_git_installed_ref(repo)
-                if installed_ref:
-                    # Calculate commits since installed ref
-                    log_since = run_cmd(
-                        [
-                            "git",
-                            "-C",
-                            repo_dir,
-                            "log",
-                            "--no-merges",
-                            "--oneline",
-                            f"{installed_ref}..HEAD",
-                        ]
-                    )
-                    since_commits = (
-                        str(len(log_since.strip().splitlines())) if log_since else "0"
-                    )
+        pkgs = repo.get("pkgs") or ([repo.get("pkg")] if repo.get("pkg") else [])
+        pkg_ver_str = ""
+        for p in pkgs:
+            if p:
+                pkg_ver_str = run_cmd(["pacman", "-Q", p])
+                if pkg_ver_str:
+                    break
+        if pkg_ver_str:
+            installed_ver = pkg_ver_str.split()[-1]
+            installed_ref = get_git_installed_ref(repo)
+            if installed_ref:
+                # Calculate commits since installed ref
+                log_since = run_cmd(
+                    [
+                        "git",
+                        "-C",
+                        repo_dir,
+                        "log",
+                        "--no-merges",
+                        "--oneline",
+                        f"{installed_ref}..HEAD",
+                    ]
+                )
+                since_commits = (
+                    str(len(log_since.strip().splitlines())) if log_since else "0"
+                )
 
         # GitHub Stars & Forks
         github_metrics = query_github_api(github)
@@ -622,7 +646,7 @@ def compile_activity(write_to_file: bool = False) -> None:
             rf"{re.escape(start_tag)}.*?{re.escape(end_tag)}", re.DOTALL
         )
         new_block = f"{start_tag}\n{new_tables_block}\n{end_tag}"
-        content = re.sub(table_pattern, new_block, content)
+        content = re.sub(table_pattern, lambda m: new_block, content)
 
         # Update breakdown and focus sections
         for r in results:
