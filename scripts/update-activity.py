@@ -118,17 +118,6 @@ TRACKED_REPOS: List[Dict[str, Any]] = [
         "default_ref": "v2.1.0",
     },
     {
-        "name": "ironclaw",
-        "github": "nearai/ironclaw",
-        "pkg": "ironclaw-git",
-        "pkgs": ["ironclaw-git", "ironclaw-reborn-git"],
-        "branch": "main",
-        "src_path": "ironclaw-git/src/ironclaw",
-        "src_paths": ["ironclaw-git/src/ironclaw", "ironclaw-reborn-git/src/ironclaw"],
-        "category": "ai",
-        "default_ref": "811763f",
-    },
-    {
         "name": "signal-cli-rest-api",
         "github": "bbernhard/signal-cli-rest-api",
         "pkg": "signal-cli-rest-api-git",
@@ -620,7 +609,8 @@ def compile_activity(write_to_file: bool = False) -> None:
     other_note = (
         "\n> [!NOTE]\n"
         "> `zeroclaw-git` (upstream: [zeroclaw-labs/zeroclaw](https://github.com/zeroclaw-labs/zeroclaw)) "
-        "is hosted and tracked separately under the `agents-shared` repository."
+        "> `ironclaw-git` (upstream: [nearai/ironclaw](https://github.com/nearai/ironclaw)) "
+        "are hosted and tracked separately under the `agents-shared` repository."
     )
 
     new_tables_block = f"{ai_table_str}\n{note_note}\n\n{other_table_str}\n{other_note}"
