@@ -1,0 +1,153 @@
+# Maintainer: Wuxxin <wuxxin@gmail.com>
+# Contributor: Youcef <youcef.nafa@gmail.com>
+# Contributor: Evert <evorster at gmail dot com>
+
+# This is the git-based version of hermes-agent using manual shallow clone depth=1.
+# It uses a venv-based installation built on top of the system's built-in Python with system packages enabled.
+# Eagerly installs local CPU/GPU TTS (piper-tts, neutts) while avoiding runtime pip installs in /opt.
+
+pkgname=hermes-agent-git
+pkgver=0.17.0.r20260701.gb23e1c3
+pkgrel=1
+pkgdesc="Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)"
+arch=('any')
+url="https://github.com/NousResearch/hermes-agent"
+license=('MIT')
+provides=('hermes-agent')
+conflicts=('hermes-agent')
+depends=(
+    'python'
+    'ripgrep'
+    'ffmpeg'
+    'nss'
+    'atk'
+    'at-spi2-core'
+    'cups'
+    'libdrm'
+    'libxkbcommon'
+    'mesa'
+    'pango'
+    'cairo'
+    'alsa-lib'
+    'python-numpy'
+    'python-onnxruntime'
+    'python-huggingface-hub'
+    'python-soundfile'
+    'python-scipy'
+)
+makedepends=('python' 'nodejs' 'npm' 'rsync' 'git')
+source=('hermes-agent.install')
+sha256sums=('SKIP')
+install=hermes-agent.install
+
+pkgver() {
+    cd "${srcdir}/hermes-agent"
+    local _ver=$(grep -m 1 "^version = " pyproject.toml | cut -d '"' -f 2)
+    local _rev=$(git rev-parse --short HEAD)
+    local _date=$(git log -1 --format=%cd --date=format:%Y%m%d)
+    echo "${_ver}.r${_date}.g${_rev}"
+}
+
+prepare() {
+    cd "${srcdir}"
+    echo "==> Cloning hermes-agent main branch via shallow clone (depth 1)..."
+    if [ -d hermes-agent ]; then
+        rm -rf hermes-agent
+    fi
+    git clone --depth 1 https://github.com/NousResearch/hermes-agent.git hermes-agent || return 1
+
+    cd hermes-agent
+    # Raise requires-python ceiling to <3.15 to allow built-in python 3.14
+    sed -i 's/requires-python = ">=3.11,<3.14"/requires-python = ">=3.11,<3.15"/' pyproject.toml
+}
+
+build() {
+    cd "${srcdir}/hermes-agent"
+
+    # vite-plugin-tailwindcss uses the ignore package which walks up the tree to read
+    # .gitignore files. Creating an empty .git directory stops the scan at this level.
+    [ ! -d .git ] && mkdir .git
+
+    echo "==> Installing Node.js dependencies..."
+    if [ -f "package.json" ]; then
+        npm install || return 1
+    fi
+
+    echo "==> Building frontend..."
+    if [ -d "web" ]; then
+        cd web
+        rm -f package-lock.json
+        npm install || return 1
+        npm run build || return 1
+        cd ..
+    fi
+
+    echo "==> Building TUI..."
+    if [ -d "ui-tui" ]; then
+        cd ui-tui
+        npm install --no-fund --no-audit --progress=false || return 1
+        npm run build || return 1
+        cd ..
+    fi
+
+    echo "==> Installing whatsapp-bridge dependencies..."
+    if [ -f "scripts/whatsapp-bridge/package.json" ]; then
+        (cd scripts/whatsapp-bridge && rm -f package-lock.json && npm install --legacy-peer-deps --omit=dev) || return 1
+    fi
+
+    echo "==> Creating Python venv with system site packages..."
+    # Enable --system-site-packages so venv inherits working numpy and onnxruntime from system
+    python -m venv --system-site-packages --clear venv || return 1
+    venv/bin/pip install --upgrade pip || return 1
+
+    # Eager-install everything except: voice (faster-whisper), matrix (python-olm / native builds), and local inference
+    # This includes all cloud API clients (openai, anthropic, gemini, xai, bedrock, vertex, etc.) and Edge TTS
+    venv/bin/pip install .[all] || return 1
+    venv/bin/pip install .[messaging,edge-tts,firecrawl,exa,parallel-web,anthropic,fal] || return 1
+
+    # Eager-install local TTS engines using --no-deps to avoid recompiling system packages
+    echo "==> Eagerly installing local TTS engines (piper-tts, neutts)..."
+    venv/bin/pip install --no-deps piper-tts neutts || return 1
+}
+
+package() {
+    cd "${srcdir}/hermes-agent"
+
+    # Install to /opt/hermes-agent
+    _optdir="$pkgdir/opt/hermes-agent"
+    install -d "$_optdir"
+
+    # Copy application files
+    rsync -a --exclude='__pycache__' --exclude='.git' \
+        --exclude='node_modules' --exclude='web/src' \
+        --exclude='web/package.json' --exclude='web/package-lock.json' \
+        --exclude='web/vite.config.ts' --exclude='web/tsconfig*.json' \
+        --exclude='web/eslint.config.js' --exclude='web/README.md' \
+        --exclude='ui-tui/src' --exclude='ui-tui/node_modules' \
+        --exclude='scripts/tests' --exclude='scripts/install.*' \
+        --exclude='build' \
+        . "$_optdir/"
+
+    echo "console.log('skipping build, using prebuilt dist/entry.js')" >"$_optdir/ui-tui/scripts/build.mjs"
+
+    # Dynamically determine python version in the created venv
+    local _pyver=$(venv/bin/python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+
+    # Correct shebang in hermes launcher to use venv python
+    sed -i "1c#!/opt/hermes-agent/venv/bin/python" "$_optdir/venv/bin/hermes"
+
+    install -d "$_optdir/venv/lib/python${_pyver}/site-packages"
+    {
+        echo "import sys; sys.path.insert(0, \"/opt/hermes-agent\")"
+    } >"$_optdir/venv/lib/python${_pyver}/site-packages/hermes.pth"
+
+    install -d "$pkgdir/usr/bin"
+    {
+        echo "#!/bin/bash"
+        echo "unset PYTHONPATH"
+        echo "unset PYTHONHOME"
+        echo "exec /opt/hermes-agent/venv/bin/hermes" '"$@"'
+    } >"$pkgdir/usr/bin/hermes"
+
+    chmod 755 "$pkgdir/usr/bin/hermes"
+}
