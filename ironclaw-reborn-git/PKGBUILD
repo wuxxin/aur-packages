@@ -2,14 +2,14 @@
 
 _pkgname=ironclaw-reborn
 pkgname=ironclaw-reborn-git
-pkgver=0.29.1.r1499.g44f063d
+pkgver=0.29.1.r1606.g414967d
 pkgrel=1
 pkgdesc='OpenClaw-inspired Rust personal AI assistant - Standalone Reborn CLI'
 arch=('x86_64' 'aarch64')
 url='https://github.com/nearai/ironclaw'
 license=('Apache-2.0 OR MIT')
 depends=('gcc-libs' 'glibc' 'postgresql-libs')
-makedepends=('cargo' 'git' 'rust')
+makedepends=('cargo' 'git' 'rust' 'nodejs' 'npm')
 optdepends=(
     'postgresql: local PostgreSQL database support'
 )
