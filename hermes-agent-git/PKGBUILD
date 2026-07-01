@@ -2,12 +2,12 @@
 # Contributor: Youcef <youcef.nafa@gmail.com>
 # Contributor: Evert <evorster at gmail dot com>
 
-# This is the git-based version of hermes-agent using manual shallow clone depth=1.
+# This is the git-based version of hermes-agent using manual shallow clone depth=2000.
 # It uses a venv-based installation built on top of the system's built-in Python with system packages enabled.
 # Eagerly installs local CPU/GPU TTS (piper-tts, neutts) while avoiding runtime pip installs in /opt.
 
 pkgname=hermes-agent-git
-pkgver=0.18.0.r1.g76a468e
+pkgver=0.18.0.r1.g76a468e51
 pkgrel=1
 pkgdesc="Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)"
 arch=('any')
@@ -44,34 +44,20 @@ pkgver() {
     cd "${srcdir}/hermes-agent"
     local _ver=$(grep -m 1 "^version = " pyproject.toml | cut -d '"' -f 2)
     local _rev=$(git rev-parse --short HEAD)
-    local _full_rev=$(git rev-parse HEAD)
-    
-    # Query GitHub API to get the latest tag name
-    local _tag=$(curl -s "https://api.github.com/repos/NousResearch/hermes-agent/tags" | grep -m 1 '"name":' | cut -d '"' -f 4)
-    
-    # Query GitHub compare API for commit distance
-    local _count=""
-    if [ -n "$_tag" ]; then
-        local _compare=$(curl -s "https://api.github.com/repos/NousResearch/hermes-agent/compare/${_tag}...${_full_rev}")
-        _count=$(echo "$_compare" | grep -w "ahead_by" | cut -d ':' -f 2 | tr -d ' ,')
-    fi
-
+    local _count=$(git describe --long --tags 2>/dev/null | cut -d '-' -f 2)
     if [ -z "$_count" ] || ! [[ "$_count" =~ ^[0-9]+$ ]]; then
-        # Fallback to Unix epoch timestamp if GitHub API is offline or rate-limited
-        local _date=$(git log -1 --format=%ct)
-        echo "${_ver}.r${_date}.g${_rev}"
-    else
-        echo "${_ver}.r${_count}.g${_rev}"
+        _count="0"
     fi
+    echo "${_ver}.r${_count}.g${_rev}"
 }
 
 prepare() {
     cd "${srcdir}"
-    echo "==> Cloning hermes-agent main branch via shallow clone (depth 1)..."
+    echo "==> Cloning hermes-agent main branch via shallow clone (depth 2000)..."
     if [ -d hermes-agent ]; then
         rm -rf hermes-agent
     fi
-    git clone --depth 1 https://github.com/NousResearch/hermes-agent.git hermes-agent || return 1
+    git clone --depth 2000 https://github.com/NousResearch/hermes-agent.git hermes-agent || return 1
 
     cd hermes-agent
     # Raise requires-python ceiling to <3.15 to allow built-in python 3.14
