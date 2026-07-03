@@ -119,3 +119,9 @@ The built-in voice names for the `Qwen3-TTS-12Hz-0.6B-CustomVoice-Q8_0.gguf` mod
 - `eric`
 - `dylan`
 
+
+### 4. Git Commit-Hash Versioning (`whisper-version-commit.patch` and `qwen3-tts-version-commit.patch`)
+
+To assist with version identification and debugging of Git-HEAD packages:
+- **Whisper**: Appends the specific Git commit hash of the whisper.cpp repository to the output of `whisper-cli --version` (e.g., `whisper.cpp version: 1.9.1 (commithash)`).
+- **Qwen3-TTS**: Implements the `--version` flag for `qwen3-tts-cli` to output `qwen3-tts version 0.1-main-commithash` where the branch name (`main`) and short commit hash of the qwen3-tts.cpp repository are dynamically resolved at configure time.

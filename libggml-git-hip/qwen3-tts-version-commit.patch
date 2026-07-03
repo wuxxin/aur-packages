@@ -1,0 +1,58 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 721845a..bdc427d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -201,7 +201,6 @@ target_link_libraries(qwen3tts_shared PRIVATE
+     qwen3_tts
+ )
+ 
+-# CLI executable
+ add_executable(qwen3-tts-cli
+     src/main.cpp
+ )
+@@ -209,6 +208,27 @@ target_link_libraries(qwen3-tts-cli PRIVATE
+     qwen3_tts
+ )
+ 
++# Get git commit hash for versioning
++set(QWEN3_TTS_GIT_COMMIT "unknown")
++set(QWEN3_TTS_GIT_BRANCH "main")
++find_package(Git)
++if(Git_FOUND)
++    execute_process(
++        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
++        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
++        OUTPUT_VARIABLE QWEN3_TTS_COMMIT_OUT
++        OUTPUT_STRIP_TRAILING_WHITESPACE
++        RESULT_VARIABLE RES
++    )
++    if(RES EQUAL 0)
++        set(QWEN3_TTS_GIT_COMMIT ${QWEN3_TTS_COMMIT_OUT})
++    endif()
++endif()
++
++target_compile_definitions(qwen3-tts-cli PRIVATE
++    QWEN3_TTS_VERSION="0.1-${QWEN3_TTS_GIT_BRANCH}-${QWEN3_TTS_GIT_COMMIT}"
++)
++
+ # Test executable for tokenizer
+ add_executable(test_tokenizer
+     tests/test_tokenizer.cpp
+diff --git a/src/main.cpp b/src/main.cpp
+index 80fa108..06901ab 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -48,6 +48,13 @@ int main(int argc, char ** argv) {
+         if (arg == "-h" || arg == "--help") {
+             print_usage(argv[0]);
+             return 0;
++        } else if (arg == "--version") {
++#ifdef QWEN3_TTS_VERSION
++            fprintf(stdout, "qwen3-tts version %s\n", QWEN3_TTS_VERSION);
++#else
++            fprintf(stdout, "qwen3-tts version unknown\n");
++#endif
++            return 0;
+         } else if (arg == "-m" || arg == "--model") {
+             if (++i >= argc) {
+                 fprintf(stderr, "Error: missing model path\n");
