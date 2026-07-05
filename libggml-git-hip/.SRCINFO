@@ -1,6 +1,6 @@
 pkgbase = libggml-git-hip
 	pkgdesc = libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)
-	pkgver = 9860.r0.gfdb1db8
+	pkgver = 9873.r0.ga410713
 	pkgrel = 1
 	url = https://github.com/ggml-org/llama.cpp
 	arch = x86_64
@@ -48,6 +48,7 @@ pkgbase = libggml-git-hip
 	source = qwen3-tts-dl-shims.patch
 	source = qwen3-tts-voice-fallback.patch
 	source = qwen3-tts-device.patch
+	source = qwen3-tts-server-language.patch
 	source = whisper-version-commit.patch
 	source = qwen3-tts-version-commit.patch
 	sha256sums = SKIP
@@ -70,6 +71,7 @@ pkgbase = libggml-git-hip
 	sha256sums = dbaf6c498a0d0a1086daecce51025a0fd30521089735dbd74c95973dab300e58
 	sha256sums = bdfaa2ac8b095b086ca36de39bd37cfd56732ba400688a255d0de7cc005e4e53
 	sha256sums = cc552b3a2051901acee7dfa4dc01b404bdd8f204adb9c112a2830b35ca86b333
+	sha256sums = d1f2f2a5454b335b7e23c82df22753362446d87a889eabb0fe4d6d38a93386cb
 	sha256sums = 3adad2f48b5c0f8f85e4a3dd425475d6597a2ceaa31e18f23bb6913012952f85
 	sha256sums = 9d05bdb874ee51604912d8cb5a404755f4606f12f50cd5ea435622ff573a409b
 

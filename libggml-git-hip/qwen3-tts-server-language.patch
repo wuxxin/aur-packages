@@ -1,0 +1,41 @@
+--- a/src/server.cpp
++++ b/src/server.cpp
+@@ -263,6 +263,7 @@
+     int         top_k              = 50;
+     float       repetition_penalty = 1.05f;
+     int64_t     seed               = -1;
++    std::string language           = "en";
+ };
+ 
+ // download a file from a huggingface repo, returns local cache path
+@@ -348,6 +349,7 @@
+     fprintf(stderr, "       --top-k <n>                 top-k sampling default (default: 50)\n");
+     fprintf(stderr, "       --repetition-penalty <f>    repetition penalty default (default: 1.05)\n");
+     fprintf(stderr, "       --seed <n>                  default sampling seed (default: -1 = random)\n");
++    fprintf(stderr, "  -l,  --language <lang>          default language if not specified in request (default: en)\n");
+     fprintf(stderr, "  -h,  --help                     show this help\n");
+ }
+ 
+@@ -405,6 +407,13 @@
+         } else if (arg == "--seed") {
+             if (++i >= argc) { fprintf(stderr, "error: missing seed\n"); return false; }
+             sp.seed = std::stoll(argv[i]);
++        } else if (arg == "-l" || arg == "--language") {
++            if (++i >= argc) { fprintf(stderr, "error: missing language\n"); return false; }
++            sp.language = argv[i];
++            if (language_to_id(sp.language) < 0) {
++                fprintf(stderr, "error: unsupported language '%s'\n", sp.language.c_str());
++                return false;
++            }
+         } else {
+             fprintf(stderr, "error: unknown argument: %s\n", arg.c_str());
+             return false;
+@@ -715,7 +724,7 @@
+         std::string stream_format   = body.value("stream_format", "");
+         std::string voice           = body.value("voice", "");
+         std::string instructions    = body.value("instructions", "");
+-        std::string language        = body.value("language", "en");
++        std::string language        = body.value("language", sp.language);
+         float       temperature     = body.value("temperature", sp.temperature);
+         int         top_k           = body.value("top_k", sp.top_k);
+         float       repetition_penalty = body.value("repetition_penalty", sp.repetition_penalty);
