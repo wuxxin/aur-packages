@@ -6,8 +6,13 @@
 # It uses a venv-based installation built on top of the system's built-in Python with system packages enabled.
 # Eagerly installs local CPU/GPU TTS (piper-tts, neutts) while avoiding runtime pip installs in /opt.
 
+# GitHub PR numbers to download and apply as patches during prepare().
+# Each PR is fetched as a .patch file from GitHub and applied with git apply.
+# Example: _prs=(57668 12345)
+_prs=(57668)
+
 pkgname=hermes-agent-git
-pkgver=0.18.0.r1.g76a468e51
+pkgver=0.18.0.r332.g7fde19afc
 pkgrel=1
 pkgdesc="Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)"
 arch=('any')
@@ -35,9 +40,11 @@ depends=(
     'python-soundfile'
     'python-scipy'
 )
-makedepends=('python' 'nodejs' 'npm' 'rsync' 'git')
-source=('hermes-agent.install')
-sha256sums=('fff10d8e7839eaaa4847e04f1453259acfe99ba2221a49c32a24202bbc7ce5e2')
+makedepends=('python' 'nodejs' 'npm' 'rsync' 'git' 'curl')
+source=('hermes-agent.install'
+        'hermes-managed-pacman.patch')
+sha256sums=('fff10d8e7839eaaa4847e04f1453259acfe99ba2221a49c32a24202bbc7ce5e2'
+            'fafa699ac1bde48d6d1eeaaeff84cc6035599f099205965bd300bd5798c9c788')
 install=hermes-agent.install
 
 pkgver() {
@@ -62,6 +69,18 @@ prepare() {
     cd hermes-agent
     # Raise requires-python ceiling to <3.15 to allow built-in python 3.14
     sed -i 's/requires-python = ">=3.11,<3.14"/requires-python = ">=3.11,<3.15"/' pyproject.toml
+
+    # Apply GitHub PRs as patches
+    for _pr in "${_prs[@]}"; do
+        echo "==> Applying PR #${_pr}..."
+        curl -sL "https://github.com/NousResearch/hermes-agent/pull/${_pr}.patch" \
+            -o "${srcdir}/pr-${_pr}.patch"
+        git apply "${srcdir}/pr-${_pr}.patch" || return 1
+    done
+
+    # Apply system package patch (pacman managed system, HERMES_SYSTEM_PKG gates)
+    echo "==> Applying hermes-managed-pacman.patch..."
+    git apply "${srcdir}/../hermes-managed-pacman.patch" || return 1
 }
 
 build() {
@@ -71,9 +90,9 @@ build() {
     # .gitignore files. Creating an empty .git directory stops the scan at this level.
     [ ! -d .git ] && mkdir .git
 
-    echo "==> Installing Node.js dependencies..."
+    echo "==> Installing root Node.js dependencies (hoisted workspaces)..."
     if [ -f "package.json" ]; then
-        npm install || return 1
+        npm install --no-fund --no-audit --progress=false || return 1
     fi
 
     echo "==> Building frontend..."
@@ -120,10 +139,10 @@ package() {
     _optdir="$pkgdir/opt/hermes-agent"
     install -d "$_optdir"
 
-    # Copy application files
+    # Copy application files (include root node_modules and workspace packages)
     rsync -a --exclude='__pycache__' --exclude='.git' \
-        --exclude='node_modules' --exclude='web/src' \
-        --exclude='web/package.json' --exclude='web/package-lock.json' \
+        --exclude='apps/*/node_modules' --exclude='web/node_modules' \
+        --exclude='web/src' \
         --exclude='web/vite.config.ts' --exclude='web/tsconfig*.json' \
         --exclude='web/eslint.config.js' --exclude='web/README.md' \
         --exclude='ui-tui/src' --exclude='ui-tui/node_modules' \
@@ -149,6 +168,7 @@ package() {
         echo "#!/bin/bash"
         echo "unset PYTHONPATH"
         echo "unset PYTHONHOME"
+        echo 'export HERMES_SYSTEM_PKG=1'
         echo "exec /opt/hermes-agent/venv/bin/hermes" '"$@"'
     } >"$pkgdir/usr/bin/hermes"
 

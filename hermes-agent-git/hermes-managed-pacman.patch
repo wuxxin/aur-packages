@@ -1,0 +1,86 @@
+diff --git a/hermes_cli/config.py b/hermes_cli/config.py
+index 17f506a5d..c5e6f7d38 100644
+--- a/hermes_cli/config.py
++++ b/hermes_cli/config.py
+@@ -312,6 +312,8 @@ _MANAGED_SYSTEM_NAMES = {
+     "homebrew": "Homebrew",
+     "nix": "NixOS",
+     "nixos": "NixOS",
++    "pacman": "pacman (AUR)",
++    "aur": "pacman (AUR)",
+ }
+ 
+ 
+@@ -350,6 +352,8 @@ def get_managed_update_command() -> Optional[str]:
+         return "brew upgrade hermes-agent"
+     if managed_system == "NixOS":
+         return _NIX_UPDATE_MSG
++    if managed_system == "pacman (AUR)":
++        return "Update your AUR package (e.g. yay -Syu hermes-agent-git)"
+     return None
+ 
+ 
+@@ -605,6 +609,15 @@ def format_managed_message(action: str = "modify this Hermes installation") -> s
+             "  brew upgrade hermes-agent"
+         )
+ 
++    if managed_system == "pacman (AUR)":
++        env_hint = raw or "pacman"
++        return (
++            f"Cannot {action}: this Hermes installation is managed by pacman "
++            f"(HERMES_MANAGED={env_hint}).\n"
++            "Use your AUR helper to upgrade, e.g.:\n"
++            "  yay -Syu hermes-agent-git"
++        )
++
+     return (
+         f"Cannot {action}: this Hermes installation is managed by {managed_system}.\n"
+         "Use your package manager to upgrade or reinstall Hermes."
+diff --git a/hermes_cli/main.py b/hermes_cli/main.py
+index aedcb603e..e7eea532b 100644
+--- a/hermes_cli/main.py
++++ b/hermes_cli/main.py
+@@ -9068,6 +9068,14 @@ def cmd_update(args):
+     runs the update, then restores stdio on the way out (even on
+     ``sys.exit`` or unhandled exceptions).
+     """
++    # System package installs (AUR, deb, etc.) should not self-update —
++    # the package manager owns version management.
++    if os.environ.get("HERMES_SYSTEM_PKG"):
++        print(
++            "⚕ This Hermes installation is a system package.\n"
++            "  Use your package manager to update (e.g. yay -Syu hermes-agent-git)."
++        )
++        return
+     from hermes_cli.config import (
+         detect_install_method,
+         format_docker_update_message,
+diff --git a/hermes_cli/tools_config.py b/hermes_cli/tools_config.py
+index 404796322..c1510d736 100644
+--- a/hermes_cli/tools_config.py
++++ b/hermes_cli/tools_config.py
+@@ -941,6 +941,12 @@ def _run_post_setup(post_setup_key: str):
+     """Run post-setup hooks for tools that need extra installation steps."""
+     import shutil
+     if post_setup_key in {"agent_browser", "browserbase"}:
++        # System package installs ship pre-built node_modules; skip npm install
++        # to avoid writing to the read-only install directory.
++        if os.environ.get("HERMES_SYSTEM_PKG") and not os.access(str(PROJECT_ROOT), os.W_OK):
++            _print_info("    Browser tools: using pre-installed node_modules (system package)")
++            return
++
+         node_modules = PROJECT_ROOT / "node_modules" / "agent-browser"
+         npm_bin = shutil.which("npm")
+         npx_bin = shutil.which("npx")
+@@ -1054,6 +1060,11 @@ def _run_post_setup(post_setup_key: str):
+             _print_info("    Run manually: npx agent-browser install --with-deps")
+ 
+     elif post_setup_key == "camofox":
++        # System package installs: skip npm install to read-only install dir.
++        if os.environ.get("HERMES_SYSTEM_PKG") and not os.access(str(PROJECT_ROOT), os.W_OK):
++            _print_info("    Camofox: skipping npm install (system package)")
++            return
++
+         camofox_dir = PROJECT_ROOT / "node_modules" / "@askjo" / "camofox-browser"
+         _npm_bin = shutil.which("npm")
+         if not camofox_dir.exists() and _npm_bin:

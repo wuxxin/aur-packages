@@ -75,7 +75,7 @@ aur-packages/
    - Use environment overrides (such as `GGML_BACKEND_PATH`, `LLAMA_SERVER_BIN`, etc.) to test custom-built dynamic libraries/binaries.
 - Follow existing package directory structure
 - Place patches in package directory, reference in `source` array
-- Regenerating the development activity of selected package sources: Run the script to compile development statistics, after a successful run, use "--write" to directly write the updated tables back into `weekly-devel-activity.md`:
+- To regenerate the report about the development activity of the upstream sources for the PKGBUILD's of this repo: Run the script on demand to research upstream change statistics. First execute without "--write", if all worked, use "--write" to directly write the updated tables back into `weekly-devel-activity.md`:
    ```bash
    python scripts/update-activity.py [--write]
    ```
