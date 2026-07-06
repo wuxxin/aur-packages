@@ -1,0 +1,15 @@
+diff --git a/tools/daemon_pool.py b/tools/daemon_pool.py
+index 9239842..5489fcd 100644
+--- a/tools/daemon_pool.py
++++ b/tools/daemon_pool.py
+@@ -55,8 +55,8 @@ class DaemonThreadPoolExecutor(ThreadPoolExecutor):
+                 args=(
+                     weakref.ref(self, weakref_cb),
+                     self._work_queue,
+-                    self._initializer,
+-                    self._initargs,
++                    None,
++                    (),
+                 ),
+                 daemon=True,
+             )

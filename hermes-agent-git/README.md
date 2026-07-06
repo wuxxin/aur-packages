@@ -55,3 +55,5 @@ To remove a PR: remove its number from the array and rebuild.
 | Patch | Description |
 |-------|-------------|
 | `hermes-managed-pacman.patch` | Registers pacman/AUR in managed system names, blocks `cmd_update()` via `HERMES_SYSTEM_PKG`, gates runtime npm installs behind writable-dir check |
+| `python314-daemon-pool.patch` | Fixes Python 3.14 compatibility bug in `DaemonThreadPoolExecutor` caused by CPython internal changes (removal of `_initializer`/`_initargs`) |
+

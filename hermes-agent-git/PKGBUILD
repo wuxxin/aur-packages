@@ -12,10 +12,11 @@
 _prs=(57668)
 
 pkgname=hermes-agent-git
-pkgver=0.18.0.r332.g7fde19afc
+pkgver=0.18.0.r418.g6fad6f1dd
 pkgrel=1
 pkgdesc="Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)"
 arch=('any')
+options=('!strip')
 url="https://github.com/NousResearch/hermes-agent"
 license=('MIT')
 provides=('hermes-agent')
@@ -42,9 +43,11 @@ depends=(
 )
 makedepends=('python' 'nodejs' 'npm' 'rsync' 'git' 'curl')
 source=('hermes-agent.install'
-        'hermes-managed-pacman.patch')
+        'hermes-managed-pacman.patch'
+        'python314-daemon-pool.patch')
 sha256sums=('fff10d8e7839eaaa4847e04f1453259acfe99ba2221a49c32a24202bbc7ce5e2'
-            'fafa699ac1bde48d6d1eeaaeff84cc6035599f099205965bd300bd5798c9c788')
+            'fafa699ac1bde48d6d1eeaaeff84cc6035599f099205965bd300bd5798c9c788'
+            'cd94f825e4df766fed4606b9326a05fecefca731fcfa78f7fa5799af8ab67dca')
 install=hermes-agent.install
 
 pkgver() {
@@ -67,8 +70,30 @@ prepare() {
     git clone --depth 2000 https://github.com/NousResearch/hermes-agent.git hermes-agent || return 1
 
     cd hermes-agent
+    # Add @askjo/camofox-browser to dependencies in package.json to fix Camofox installation
+    sed -i 's|"agent-browser": "^0.26.0"|"agent-browser": "^0.26.0",\n    "@askjo/camofox-browser": "*"|' package.json
+
     # Raise requires-python ceiling to <3.15 to allow built-in python 3.14
     sed -i 's/requires-python = ">=3.11,<3.14"/requires-python = ">=3.11,<3.15"/' pyproject.toml
+
+    # Patch OpenAI plugin image generation sizes to custom dimensions (768x512, 768x768, 512x768)
+    python -c '
+with open("plugins/image_gen/openai/__init__.py", "r") as f:
+    code = f.read()
+target = """_SIZES = {
+    "landscape": "1536x1024",
+    "square": "1024x1024",
+    "portrait": "1024x1536",
+}"""
+replacement = """_SIZES = {
+    "landscape": "768x512",
+    "square": "768x768",
+    "portrait": "512x768",
+}"""
+code = code.replace(target, replacement)
+with open("plugins/image_gen/openai/__init__.py", "w") as f:
+    f.write(code)
+'
 
     # Apply GitHub PRs as patches
     for _pr in "${_prs[@]}"; do
@@ -81,6 +106,10 @@ prepare() {
     # Apply system package patch (pacman managed system, HERMES_SYSTEM_PKG gates)
     echo "==> Applying hermes-managed-pacman.patch..."
     git apply "${srcdir}/../hermes-managed-pacman.patch" || return 1
+
+    # Apply Python 3.14 compatibility patch
+    echo "==> Applying python314-daemon-pool.patch..."
+    git apply "${srcdir}/../python314-daemon-pool.patch" || return 1
 }
 
 build() {
@@ -130,6 +159,12 @@ build() {
     # Eager-install local TTS engines using --no-deps to avoid recompiling system packages
     echo "==> Eagerly installing local TTS engines (piper-tts, neutts)..."
     venv/bin/pip install --no-deps piper-tts neutts || return 1
+
+    # Eager-install additional post-setup tools to prevent runtime installs in /opt
+    echo "==> Eagerly installing post-setup tools (kittentts, ddgs)..."
+    venv/bin/pip install --no-deps \
+        "https://github.com/KittenML/KittenTTS/releases/download/0.8.1/kittentts-0.8.1-py3-none-any.whl" || return 1
+    venv/bin/pip install ddgs || return 1
 }
 
 package() {
@@ -149,6 +184,9 @@ package() {
         --exclude='scripts/tests' --exclude='scripts/install.*' \
         --exclude='build' \
         . "$_optdir/"
+
+    # Remove Python 3.14 venv Easter egg symlink as it breaks bsdtar translation to UTF-8
+    rm -f "$_optdir/venv/bin/𝜋thon"
 
     echo "console.log('skipping build, using prebuilt dist/entry.js')" >"$_optdir/ui-tui/scripts/build.mjs"
 
