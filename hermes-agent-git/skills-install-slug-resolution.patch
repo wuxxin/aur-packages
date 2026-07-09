@@ -1,0 +1,26 @@
+diff --git a/hermes_cli/skills_hub.py b/hermes_cli/skills_hub.py
+index ff8f18256..2d4297e39 100644
+--- a/hermes_cli/skills_hub.py
++++ b/hermes_cli/skills_hub.py
+@@ -60,8 +60,19 @@ def _resolve_short_name(name: str, sources, console: Console) -> str:
+ 
+     results = unified_search(name, sources, source_filter="all", limit=20)
+ 
+-    # Filter to exact name matches (case-insensitive)
+-    exact = [r for r in results if r.name.lower() == name.lower()]
++    # Filter to exact matches by name, full identifier, or slug (case-insensitive)
++    exact = []
++    seen_ids = set()
++    for r in results:
++        if r.identifier in seen_ids:
++            continue
++        if (
++            r.name.lower() == name.lower()
++            or r.identifier.lower() == name.lower()
++            or r.identifier.split("/")[-1].lower() == name.lower()
++        ):
++            exact.append(r)
++            seen_ids.add(r.identifier)
+ 
+     if len(exact) == 1:
+         c.print(f"[dim]Resolved to: {exact[0].identifier}[/]")

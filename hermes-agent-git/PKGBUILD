@@ -12,7 +12,7 @@
 _prs=(57668)
 
 pkgname=hermes-agent-git
-pkgver=0.18.0.r418.g6fad6f1dd
+pkgver=0.18.0.r665.g5e51b123f
 pkgrel=1
 pkgdesc="Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)"
 arch=('any')
@@ -43,11 +43,13 @@ depends=(
 )
 makedepends=('python' 'nodejs' 'npm' 'rsync' 'git' 'curl')
 source=('hermes-agent.install'
-        'hermes-managed-pacman.patch'
-        'python314-daemon-pool.patch')
+    'hermes-managed-pacman.patch'
+    'python314-daemon-pool.patch'
+    'skills-install-slug-resolution.patch')
 sha256sums=('fff10d8e7839eaaa4847e04f1453259acfe99ba2221a49c32a24202bbc7ce5e2'
-            'fafa699ac1bde48d6d1eeaaeff84cc6035599f099205965bd300bd5798c9c788'
-            'cd94f825e4df766fed4606b9326a05fecefca731fcfa78f7fa5799af8ab67dca')
+    'fafa699ac1bde48d6d1eeaaeff84cc6035599f099205965bd300bd5798c9c788'
+    'f49f43c9ea891c16198b42f67be52a521fa4092d0df122a2b9820f2c561c9486'
+    'beeef0c5d27fb0f9216810a11b83d42bd30f87c124ad6efe7967117041f05faa')
 install=hermes-agent.install
 
 pkgver() {
@@ -110,6 +112,10 @@ with open("plugins/image_gen/openai/__init__.py", "w") as f:
     # Apply Python 3.14 compatibility patch
     echo "==> Applying python314-daemon-pool.patch..."
     git apply "${srcdir}/../python314-daemon-pool.patch" || return 1
+
+    # Apply skills install slug resolution patch
+    echo "==> Applying skills-install-slug-resolution.patch..."
+    git apply "${srcdir}/../skills-install-slug-resolution.patch" || return 1
 }
 
 build() {
@@ -119,7 +125,7 @@ build() {
     # .gitignore files. Creating an empty .git directory stops the scan at this level.
     [ ! -d .git ] && mkdir .git
 
-    echo "==> Installing root Node.js dependencies (hoisted workspaces)..."
+    echo "==> Installing root Node.js dependencies..."
     if [ -f "package.json" ]; then
         npm install --no-fund --no-audit --progress=false || return 1
     fi
@@ -155,6 +161,15 @@ build() {
     # This includes all cloud API clients (openai, anthropic, gemini, xai, bedrock, vertex, etc.) and Edge TTS
     venv/bin/pip install .[all] || return 1
     venv/bin/pip install .[messaging,edge-tts,firecrawl,exa,parallel-web,anthropic,fal] || return 1
+
+    # Hindsight memory
+    # switch between cloud and local mode via $HERMES_HOME/hindsight/config.json mode: "cloud" vs "local".
+    # hindsight-client (cloud mode, default): talks to vectorize-io API
+    # hindsight-all (local/embedded mode): daemon + client for self-hosted
+    #   PostgreSQL + pgvector + external embedding.
+    #   The daemon connects to any PostgreSQL via DATABASE_URL env var.
+    #   Embeddings are delegated to an openai compatible endpoint via HINDSIGHT_API_* env var
+    venv/bin/pip install "hindsight-client hindsight-all" || return 1
 
     # Eager-install local TTS engines using --no-deps to avoid recompiling system packages
     echo "==> Eagerly installing local TTS engines (piper-tts, neutts)..."

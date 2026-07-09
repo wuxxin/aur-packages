@@ -1,15 +1,27 @@
 diff --git a/tools/daemon_pool.py b/tools/daemon_pool.py
-index 9239842..5489fcd 100644
+index 2fb5a61d0..774e03c18 100644
 --- a/tools/daemon_pool.py
 +++ b/tools/daemon_pool.py
-@@ -55,8 +55,8 @@ class DaemonThreadPoolExecutor(ThreadPoolExecutor):
+@@ -53,10 +53,18 @@ class DaemonThreadPoolExecutor(ThreadPoolExecutor):
+                 name=thread_name,
+                 target=_worker,
                  args=(
-                     weakref.ref(self, weakref_cb),
-                     self._work_queue,
+-                    weakref.ref(self, weakref_cb),
+-                    self._work_queue,
 -                    self._initializer,
 -                    self._initargs,
-+                    None,
-+                    (),
++                    (
++                        weakref.ref(self, weakref_cb),
++                        self._create_worker_context(),
++                        self._work_queue,
++                    )
++                    if hasattr(self, "_create_worker_context")
++                    else (
++                        weakref.ref(self, weakref_cb),
++                        self._work_queue,
++                        self._initializer,
++                        self._initargs,
++                    )
                  ),
                  daemon=True,
              )
