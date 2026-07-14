@@ -1,0 +1,24 @@
+diff --git a/plugins/memory/hindsight/__init__.py b/plugins/memory/hindsight/__init__.py
+index 9f5974b7b..692f7b701 100644
+--- a/plugins/memory/hindsight/__init__.py
++++ b/plugins/memory/hindsight/__init__.py
+@@ -133,7 +133,6 @@ def _check_local_runtime() -> tuple[bool, str | None]:
+     a broken local memory backend.
+     """
+     try:
+-        importlib.import_module("hindsight")
+         importlib.import_module("hindsight_embed.daemon_embed_manager")
+         return True, None
+     except Exception as exc:
+@@ -638,6 +637,11 @@ class HindsightMemoryProvider(MemoryProvider):
+         self._bank_id = "hermes"
+         self._budget = "mid"
+         self._mode = "cloud"
++        # Read mode from config instead of hardcoding "cloud"
++        self._config = _load_config()
++        mode_from_cfg = self._config.get("mode", "cloud")
++        if mode_from_cfg in {"local", "local_embedded"}:
++            self._mode = mode_from_cfg
+         self._llm_base_url = ""
+         self._memory_mode = "hybrid"  # "context", "tools", or "hybrid"
+         self._prefetch_method = "recall"  # "recall" or "reflect"

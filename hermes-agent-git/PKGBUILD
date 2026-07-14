@@ -9,10 +9,10 @@
 # GitHub PR numbers to download and apply as patches during prepare().
 # Each PR is fetched as a .patch file from GitHub and applied with git apply.
 # Example: _prs=(57668 12345)
-_prs=(57668)
+_prs=()
 
 pkgname=hermes-agent-git
-pkgver=0.18.0.r665.g5e51b123f
+pkgver=0.18.2.r624.gdf5700ebe
 pkgrel=1
 pkgdesc="Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)"
 arch=('any')
@@ -40,16 +40,21 @@ depends=(
     'python-huggingface-hub'
     'python-soundfile'
     'python-scipy'
+    'python-litellm'
 )
 makedepends=('python' 'nodejs' 'npm' 'rsync' 'git' 'curl')
 source=('hermes-agent.install'
     'hermes-managed-pacman.patch'
     'python314-daemon-pool.patch'
-    'skills-install-slug-resolution.patch')
+    'skills-install-slug-resolution.patch'
+    'hindsight-dependency-relaxation.patch'
+    'hindsight-provider-patches.patch')
 sha256sums=('fff10d8e7839eaaa4847e04f1453259acfe99ba2221a49c32a24202bbc7ce5e2'
-    'fafa699ac1bde48d6d1eeaaeff84cc6035599f099205965bd300bd5798c9c788'
-    'f49f43c9ea891c16198b42f67be52a521fa4092d0df122a2b9820f2c561c9486'
-    'beeef0c5d27fb0f9216810a11b83d42bd30f87c124ad6efe7967117041f05faa')
+            'fafa699ac1bde48d6d1eeaaeff84cc6035599f099205965bd300bd5798c9c788'
+            'f49f43c9ea891c16198b42f67be52a521fa4092d0df122a2b9820f2c561c9486'
+            'beeef0c5d27fb0f9216810a11b83d42bd30f87c124ad6efe7967117041f05faa'
+            '0fddd4578c648480257463f74bbf85510a8c54501041b43a18b1549dec401a86'
+            '8b315e2b652aad7036c54e70d251e590d98b9742929f22c2c6851ee68f2dbd3e')
 install=hermes-agent.install
 
 pkgver() {
@@ -72,8 +77,12 @@ prepare() {
     git clone --depth 2000 https://github.com/NousResearch/hermes-agent.git hermes-agent || return 1
 
     cd hermes-agent
-    # Add @askjo/camofox-browser to dependencies in package.json to fix Camofox installation
-    sed -i 's|"agent-browser": "^0.26.0"|"agent-browser": "^0.26.0",\n    "@askjo/camofox-browser": "*"|' package.json
+
+    # Add @askjo/camofox-browser to dependencies in package.json for eager installation
+    sed -i 's|"agent-browser": "\([^"]*\)"|"agent-browser": "\1",\n    "@askjo/camofox-browser": "*"|' package.json
+
+    # Add @modelcontextprotocol/server-sequential-thinking for eager installation
+    sed -i 's|"@askjo/camofox-browser": "\*"|"@askjo/camofox-browser": "*",\n    "@modelcontextprotocol/server-sequential-thinking": "*"|' package.json
 
     # Raise requires-python ceiling to <3.15 to allow built-in python 3.14
     sed -i 's/requires-python = ">=3.11,<3.14"/requires-python = ">=3.11,<3.15"/' pyproject.toml
@@ -116,6 +125,14 @@ with open("plugins/image_gen/openai/__init__.py", "w") as f:
     # Apply skills install slug resolution patch
     echo "==> Applying skills-install-slug-resolution.patch..."
     git apply "${srcdir}/../skills-install-slug-resolution.patch" || return 1
+
+    # Apply hindsight dependency relaxation patch
+    echo "==> Applying hindsight-dependency-relaxation.patch..."
+    git apply "${srcdir}/../hindsight-dependency-relaxation.patch" || return 1
+
+    # Apply hindsight provider patches (runtime check & mode initialization)
+    echo "==> Applying hindsight-provider-patches.patch..."
+    git apply "${srcdir}/../hindsight-provider-patches.patch" || return 1
 }
 
 build() {
@@ -155,6 +172,14 @@ build() {
     echo "==> Creating Python venv with system site packages..."
     # Enable --system-site-packages so venv inherits working numpy and onnxruntime from system
     python -m venv --system-site-packages --clear venv || return 1
+
+    # Configure pip inside the venv to silence conflict warnings and disable version checks
+    cat <<EOF >venv/pip.conf
+[global]
+no-warn-conflicts = true
+disable-pip-version-check = true
+EOF
+
     venv/bin/pip install --upgrade pip || return 1
 
     # Eager-install everything except: voice (faster-whisper), matrix (python-olm / native builds), and local inference
@@ -163,13 +188,12 @@ build() {
     venv/bin/pip install .[messaging,edge-tts,firecrawl,exa,parallel-web,anthropic,fal] || return 1
 
     # Hindsight memory
-    # switch between cloud and local mode via $HERMES_HOME/hindsight/config.json mode: "cloud" vs "local".
-    # hindsight-client (cloud mode, default): talks to vectorize-io API
-    # hindsight-all (local/embedded mode): daemon + client for self-hosted
-    #   PostgreSQL + pgvector + external embedding.
-    #   The daemon connects to any PostgreSQL via DATABASE_URL env var.
-    #   Embeddings are delegated to an openai compatible endpoint via HINDSIGHT_API_* env var
-    venv/bin/pip install "hindsight-client hindsight-all" || return 1
+    # Install client and embed packages normally, then api-slim and all-in-one bundle with --no-deps
+    # to bypass the unsatisfied litellm>=1.83.14 constraint on python 3.14.
+    # Note: We temporarily rely on the system-wide python-litellm package (defined in depends)
+    # until litellm's requires-python metadata is updated on PyPI to support Python 3.14+.
+    venv/bin/pip install hindsight-client hindsight-embed || return 1
+    venv/bin/pip install --no-deps hindsight-api-slim hindsight-all || return 1
 
     # Eager-install local TTS engines using --no-deps to avoid recompiling system packages
     echo "==> Eagerly installing local TTS engines (piper-tts, neutts)..."
