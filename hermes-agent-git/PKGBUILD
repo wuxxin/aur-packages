@@ -12,7 +12,7 @@
 _prs=()
 
 pkgname=hermes-agent-git
-pkgver=0.18.2.r624.gdf5700ebe
+pkgver=0.18.2.r626.gbb5fc723b
 pkgrel=1
 pkgdesc="Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)"
 arch=('any')
@@ -40,10 +40,10 @@ depends=(
     'python-huggingface-hub'
     'python-soundfile'
     'python-scipy'
-    'python-litellm'
 )
 makedepends=('python' 'nodejs' 'npm' 'rsync' 'git' 'curl')
-source=('hermes-agent.install'
+source=(
+    'hermes-agent.install'
     'hermes-managed-pacman.patch'
     'python314-daemon-pool.patch'
     'skills-install-slug-resolution.patch'
@@ -54,7 +54,7 @@ sha256sums=('fff10d8e7839eaaa4847e04f1453259acfe99ba2221a49c32a24202bbc7ce5e2'
             'f49f43c9ea891c16198b42f67be52a521fa4092d0df122a2b9820f2c561c9486'
             'beeef0c5d27fb0f9216810a11b83d42bd30f87c124ad6efe7967117041f05faa'
             '0fddd4578c648480257463f74bbf85510a8c54501041b43a18b1549dec401a86'
-            '8b315e2b652aad7036c54e70d251e590d98b9742929f22c2c6851ee68f2dbd3e')
+            'f74885088b479daffa051ca07964bcac2fae19d3131d04a96a6e30a18662d29c')
 install=hermes-agent.install
 
 pkgver() {
@@ -192,8 +192,7 @@ EOF
     # to bypass the unsatisfied litellm>=1.83.14 constraint on python 3.14.
     # Note: We temporarily rely on the system-wide python-litellm package (defined in depends)
     # until litellm's requires-python metadata is updated on PyPI to support Python 3.14+.
-    venv/bin/pip install hindsight-client hindsight-embed || return 1
-    venv/bin/pip install --no-deps hindsight-api-slim hindsight-all || return 1
+    venv/bin/pip install --ignore-requires-python hindsight-client hindsight-all || return 1
 
     # Eager-install local TTS engines using --no-deps to avoid recompiling system packages
     echo "==> Eagerly installing local TTS engines (piper-tts, neutts)..."

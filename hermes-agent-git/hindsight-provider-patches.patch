@@ -1,16 +1,8 @@
 diff --git a/plugins/memory/hindsight/__init__.py b/plugins/memory/hindsight/__init__.py
-index 9f5974b7b..692f7b701 100644
+index 9f5974b7b..1c52765b7 100644
 --- a/plugins/memory/hindsight/__init__.py
 +++ b/plugins/memory/hindsight/__init__.py
-@@ -133,7 +133,6 @@ def _check_local_runtime() -> tuple[bool, str | None]:
-     a broken local memory backend.
-     """
-     try:
--        importlib.import_module("hindsight")
-         importlib.import_module("hindsight_embed.daemon_embed_manager")
-         return True, None
-     except Exception as exc:
-@@ -638,6 +637,11 @@ class HindsightMemoryProvider(MemoryProvider):
+@@ -638,6 +638,11 @@ class HindsightMemoryProvider(MemoryProvider):
          self._bank_id = "hermes"
          self._budget = "mid"
          self._mode = "cloud"
