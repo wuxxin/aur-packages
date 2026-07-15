@@ -1,6 +1,6 @@
 pkgbase = hermes-agent-git
 	pkgdesc = Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)
-	pkgver = 0.18.2.r626.gbb5fc723b
+	pkgver = 0.18.2.r783.g8b209e0dd
 	pkgrel = 1
 	url = https://github.com/NousResearch/hermes-agent
 	install = hermes-agent.install
@@ -30,6 +30,9 @@ pkgbase = hermes-agent-git
 	depends = python-huggingface-hub
 	depends = python-soundfile
 	depends = python-scipy
+	optdepends = postgresql: Hindsight Database support
+	optdepends = pgvector: Hindsight Database support
+	optdepends = nltk-data: Hindsight NLTK Corpora, grammars a.o.
 	provides = hermes-agent
 	conflicts = hermes-agent
 	options = !strip
@@ -44,6 +47,6 @@ pkgbase = hermes-agent-git
 	sha256sums = f49f43c9ea891c16198b42f67be52a521fa4092d0df122a2b9820f2c561c9486
 	sha256sums = beeef0c5d27fb0f9216810a11b83d42bd30f87c124ad6efe7967117041f05faa
 	sha256sums = 0fddd4578c648480257463f74bbf85510a8c54501041b43a18b1549dec401a86
-	sha256sums = f74885088b479daffa051ca07964bcac2fae19d3131d04a96a6e30a18662d29c
+	sha256sums = 19e1ce85b368946dee0d59d9ffabd95a61985df687690c38276a5d21ce99da83
 
 pkgname = hermes-agent-git
