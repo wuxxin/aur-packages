@@ -1,0 +1,20 @@
+diff --git a/hermes_cli/main.py b/hermes_cli/main.py
+index dbabf547f..086542fe8 100644
+--- a/hermes_cli/main.py
++++ b/hermes_cli/main.py
+@@ -80,13 +80,8 @@ def _set_process_title() -> None:
+       4. No-op on Windows (the .exe name is already ``hermes.exe``).
+     """
+     # Strategy 1: setproctitle (best — works on macOS, Linux, BSD)
+-    try:
+-        import setproctitle  # type: ignore[import-untyped]
+-
+-        setproctitle.setproctitle("hermes")
+-        return
+-    except ImportError:
+-        pass
++    # Disabled because rewriting /proc/<pid>/cmdline to "hermes" breaks gateway liveness checks.
++    pass
+ 
+     # Strategy 2/3: platform-specific ctypes fallback
+     import ctypes

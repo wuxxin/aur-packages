@@ -15,18 +15,13 @@ The wrapper script (`/usr/bin/hermes`) sets `HERMES_SYSTEM_PKG=1`. This blocks:
 
 Normal user operations (`hermes setup`, `hermes config set`, `.env` editing) are **not affected** — those write to `~/.hermes/` which is user-owned.
 
-### Desktop App Update Gate (PR #57668)
-
-PR [#57668](https://github.com/NousResearch/hermes-agent/pull/57668) adds the `HERMES_DISABLE_UPDATES` env var for the Electron desktop app. When set:
-- The "Check for Updates…" menu item is removed
-- The `hermes:updates:*` IPC handlers are not registered
-- The `hermes:uninstall:*` IPC handlers are not registered
-
-This is orthogonal to `HERMES_SYSTEM_PKG` (which handles CLI-side concerns).
-
 ### Managed System Registration (pacman/AUR)
 
 The patch adds `pacman` and `aur` to hermes' `_MANAGED_SYSTEM_NAMES` registry. This is **not activated** by the wrapper (we don't set `HERMES_MANAGED`), but is available for locked-down multi-user deployments where an admin sets `HERMES_MANAGED=pacman` to fully lock down config writes.
+
+### Process Title Rewriting Disabled (`disable-setproctitle.patch`)
+
+The gateway process liveness checks (used by the WebUI, Signal channel, and CLI) rely on reading `/proc/<pid>/cmdline` to confirm that the running process is indeed the gateway daemon. Under system-site-package inheritance on Arch Linux, the `setproctitle` module is imported and rewrites the process command line to `"hermes"`. This breaks the liveness check (causing status checks to falsely report the gateway as stopped). This patch disables `setproctitle` to keep the original command line arguments intact.
 
 ### Hindsight Memory Configuration (Environment Variables)
 
@@ -34,13 +29,11 @@ Hindsight memory behavior and constraints can be dynamically configured on a per
 
 * **`HINDSIGHT_MODE`**: Connection mode (choices: `cloud`, `local_embedded`, `local_external`; default: `cloud`).
 * **`HINDSIGHT_API_URL`**: Target server URL (default: `https://api.hindsight.vectorize.io` for cloud, `http://localhost:8888` for local modes).
-* **`HINDSIGHT_API_KEY`**: Cloud or custom server API authorization key (default: empty).
+* **`HINDSIGHT_API_KEY`**: Cloud or custom server API authorization key, no default, should be empty for compatibility
+
+Patched Support for:
 * **`HINDSIGHT_BUDGET`** / **`HINDSIGHT_RECALL_BUDGET`**: Thoroughness level for recall and reflection generation (choices: `low`, `mid`, `high`; default: `mid`).
 * **`HINDSIGHT_RECALL_MAX_TOKENS`**: Limit on the maximum tokens returned by recall/reflection results (default: `4096`).
-* **`HINDSIGHT_TIMEOUT`**: Request timeout in seconds (default: `120`).
-* **`HINDSIGHT_RETAIN_TAGS`**: Default tags attached to newly-stored memories (comma-separated; default: empty).
-* **`HINDSIGHT_RETAIN_USER_PREFIX`**: Prefix for user turns in memory transcripts (default: `User`).
-* **`HINDSIGHT_RETAIN_ASSISTANT_PREFIX`**: Prefix for assistant turns in memory transcripts (default: `Assistant`).
 
 ## PR Patching Mechanism
 
@@ -71,5 +64,6 @@ To remove a PR: remove its number from the array and rebuild.
 | `python314-daemon-pool.patch` | Fixes Python 3.14 compatibility bug in `DaemonThreadPoolExecutor` caused by CPython internal changes (removal of `_initializer`/`_initargs`) |
 | `skills-install-slug-resolution.patch` | Fixes short skill name resolution to match against identifiers/slugs in addition to exact display names |
 | `hindsight-provider-patches.patch` | Fixes local_external Hindsight mode (splits initialization, implements connection health probing, improves setup wizard logic, relaxes dependency version limits, and handles hermes system package environment checks) |
+| `disable-setproctitle.patch` | Disables Strategy 1 (setproctitle) in `_set_process_title` to prevent rewriting the process command line in `/proc/<pid>/cmdline`, which was breaking gateway liveness checks (WebUI/TUI/Signal status detection) |
 
 
