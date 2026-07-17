@@ -1,10 +1,10 @@
 # Maintainer: Wuxxin <wuxxin@gmail.com>
 
 pkgbase=libggml-git-hip
-pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip')
-pkgver=10034.r0.g505b1ed
+pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip' 'crispasr-git-ggml-hip')
+pkgver=10057.r3.g635cdd5
 pkgrel=1
-pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
+pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp, crispasr-git-ggml-hip - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
 url="https://github.com/ggml-org/llama.cpp"
 license=('MIT' 'Apache-2.0' 'GPL-3.0-or-later')
@@ -18,6 +18,7 @@ makedepends=(
     'openblas'
     'pnpm'
     'vulkan-headers' 'vulkan-icd-loader' 'shaderc' 'spirv-headers'
+    'opusfile' 'opencore-amr' 'lame'
 )
 
 source=(
@@ -28,6 +29,7 @@ source=(
     "sdcpp-webui::git+https://github.com/leejet/sdcpp-webui.git"
     "libwebm::git+https://github.com/webmproject/libwebm.git"
     "qwen3-tts.cpp::git+https://github.com/khimaros/qwen3-tts.cpp.git"
+    "crispasr::git+https://github.com/CrispStrobe/CrispASR.git"
     "README.md"
     "ggml.pc.in"
     "llama-patch-abi.py"
@@ -44,6 +46,7 @@ source=(
     "qwen3-tts-server-language.patch"
     "whisper-version-commit.patch"
     "qwen3-tts-version-commit.patch"
+    "fix-opusfile-include-dirs.patch"
 )
 
 sha256sums=('SKIP'
@@ -53,7 +56,8 @@ sha256sums=('SKIP'
             'SKIP'
             'SKIP'
             'SKIP'
-            '5ca9431390dfd4d0e829e37c9e55bb40842b2ea2183a9216de58773d7264e66f'
+            'SKIP'
+            'aef41a6209f5e0864e6a9d510efc4e39b5f9dc0f74629237466bdf950eec80ff'
             '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
             'e7430489ec842c7c10d6976e04c63023c24ebf9fa080ea3fad55ab19c636d875'
             '3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391'
@@ -68,7 +72,8 @@ sha256sums=('SKIP'
             'cc552b3a2051901acee7dfa4dc01b404bdd8f204adb9c112a2830b35ca86b333'
             'd1f2f2a5454b335b7e23c82df22753362446d87a889eabb0fe4d6d38a93386cb'
             '3adad2f48b5c0f8f85e4a3dd425475d6597a2ceaa31e18f23bb6913012952f85'
-            '9d05bdb874ee51604912d8cb5a404755f4606f12f50cd5ea435622ff573a409b')
+            '9d05bdb874ee51604912d8cb5a404755f4606f12f50cd5ea435622ff573a409b'
+            'ab16165e72297bfcb9117a09a7014e792a6633bc56612086a1ff17307035cde1')
 
 pkgver() {
     cd llama.cpp
@@ -141,6 +146,7 @@ prepare() {
     mkdir -p "${srcdir}/stable-diffusion.cpp/ggml/src"
     cp -r "${srcdir}/llama.cpp/ggml/src/"* "${srcdir}/stable-diffusion.cpp/ggml/src/"
 
+    # prepare qwen3-tts
     cd "${srcdir}/qwen3-tts.cpp"
     patch -p1 <"${srcdir}/qwen3-tts-system-ggml.patch"
     patch -p1 <"${srcdir}/qwen3-tts-threading.patch"
@@ -152,6 +158,11 @@ prepare() {
     patch -p1 <"${srcdir}/qwen3-tts-server-language.patch"
     patch -p1 <"${srcdir}/qwen3-tts-version-commit.patch"
     cp "${srcdir}/llama.cpp/LICENSE" "${srcdir}/qwen3-tts.cpp/LICENSE"
+
+    # Prepare crispasr
+    cd "${srcdir}/crispasr"
+    git submodule update --init --recursive
+    patch -p1 <"${srcdir}/fix-opusfile-include-dirs.patch"
 }
 
 build() {
@@ -267,6 +278,18 @@ build() {
         -DCMAKE_INSTALL_PREFIX="/usr" \
         -DQWEN3_TTS_USE_SYSTEM_GGML=ON
     cmake --build build_qwen3_hip
+
+    # --- Build crispasr using system ggml ---
+    echo "--- Building CrispASR ---"
+    cmake -B build_crispasr -S crispasr -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="/usr" \
+        -DCRISPASR_USE_SYSTEM_GGML=ON \
+        -DCRISPASR_BUILD_SERVER=ON \
+        -DCRISPASR_BUILD_EXAMPLES=ON \
+        -DCRISPASR_BUILD_TESTS=OFF \
+        -DBUILD_SHARED_LIBS=OFF
+    cmake --build build_crispasr
 }
 
 package_libggml-git-hip() {
@@ -330,5 +353,17 @@ package_qwen3-tts.cpp-git-ggml-hip() {
     DESTDIR="$pkgdir" cmake --install build_qwen3_hip
 
     install -Dm644 "${srcdir}/qwen3-tts.cpp/LICENSE" \
+        -t "${pkgdir}/usr/share/licenses/${pkgname}"
+}
+
+package_crispasr-git-ggml-hip() {
+    pkgdesc="C++ ggml runtime hub for ASR (fork of whisper.cpp) - git shared library build"
+    depends=('libggml-git-hip' 'libgomp' 'vulkan-icd-loader' 'opusfile' 'opencore-amr' 'lame')
+    provides=('crispasr')
+    conflicts=('crispasr' 'crispasr-git' 'crispasr-release-git')
+
+    DESTDIR="$pkgdir" cmake --install build_crispasr
+
+    install -Dm644 "${srcdir}/crispasr/LICENSE" \
         -t "${pkgdir}/usr/share/licenses/${pkgname}"
 }

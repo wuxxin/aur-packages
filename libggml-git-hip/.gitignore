@@ -5,6 +5,7 @@ stable-diffusion.cpp/
 libwebm/
 qwen3-tts.cpp/
 sdcpp-webui/
+crispasr/
 libggml-git*.pkg.tar*
 llama.cpp*.pkg.tar*
 python-llama-cpp*.pkg.tar*

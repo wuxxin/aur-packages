@@ -10,6 +10,7 @@ An optimized Git HEAD compilation of the GGML tensor library and associated tool
 - **`python-llama-cpp-git-ggml-hip`**: Python bindings (`llama_cpp`) installed into site-packages, dynamically linking to the shared library.
 - **`stable-diffusion.cpp-git-ggml-hip`**: Stable Diffusion Text-to-Image generation tools (`sd-cli`, `sd-server`) dynamically linking to the shared library.
 - **`qwen3-tts.cpp-git-ggml-hip`**: Qwen3-TTS text-to-speech tools (`qwen3-tts-cli`, `qwen3-tts-server`) dynamically linking to the shared library.
+- **`crispasr-git-ggml-hip`**: CrispASR speech-to-text tools (`crispasr`, `crispasr-server`, `crispasr-quantize`) dynamically linking to the shared library. Serves as a high-performance alternative to Whisper, enabling the use of Cohere Transcribe and other modern Conformer-based ASR/TTS architectures.
 
 ## Key Features
 
@@ -35,6 +36,7 @@ Of the current HIP/ROCm-accelerated Archlinux AUR packages for the GGML ecosyste
 This package provides up-to-date replacements for the outdated HIP/ROCm-accelerated builds of the GGML ecosystem on Arch Linux for `llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp` and adds:
 
 - `qwen3-tts.cpp` with HIP/ROCm acceleration.
+- `crispasr` (via `crispasr-git-ggml-hip`) with HIP, Vulkan, CPU, and BLAS acceleration.
 
 In contrast to the listed AUR packages above, each of which contains their own static compilation of `libggml`, this package compiles `libggml` as a single system-wide shared library (`libggml-git-hip`) and dynamically links all downstream packages against it, we achieve:
 
