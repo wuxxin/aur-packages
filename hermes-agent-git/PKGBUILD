@@ -12,7 +12,7 @@
 _prs=()
 
 pkgname=hermes-agent-git
-pkgver=0.18.2.r783.g8b209e0dd
+pkgver=0.18.2.r1040.g56e2ba5e7
 pkgrel=1
 pkgdesc="Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)"
 arch=('any')
@@ -42,9 +42,7 @@ depends=(
     'python-scipy'
 )
 optdepends=(
-    'postgresql: Hindsight Database support'
-    'pgvector: Hindsight Database support'
-    'nltk-data: Hindsight NLTK Corpora, grammars a.o.'
+    'postgresql: Database support'
 )
 makedepends=('python' 'nodejs' 'npm' 'rsync' 'git' 'curl')
 source=(
@@ -52,14 +50,12 @@ source=(
     'hermes-managed-pacman.patch'
     'python314-daemon-pool.patch'
     'skills-install-slug-resolution.patch'
-    'hindsight-dependency-relaxation.patch'
     'hindsight-provider-patches.patch')
 sha256sums=('fff10d8e7839eaaa4847e04f1453259acfe99ba2221a49c32a24202bbc7ce5e2'
             'fafa699ac1bde48d6d1eeaaeff84cc6035599f099205965bd300bd5798c9c788'
             'f49f43c9ea891c16198b42f67be52a521fa4092d0df122a2b9820f2c561c9486'
             'beeef0c5d27fb0f9216810a11b83d42bd30f87c124ad6efe7967117041f05faa'
-            '0fddd4578c648480257463f74bbf85510a8c54501041b43a18b1549dec401a86'
-            '19e1ce85b368946dee0d59d9ffabd95a61985df687690c38276a5d21ce99da83')
+            'c423bae8748d02663ae1269ea629eeab678d794d855fd524df73268ea88e7a95')
 install=hermes-agent.install
 
 pkgver() {
@@ -131,10 +127,6 @@ with open("plugins/image_gen/openai/__init__.py", "w") as f:
     echo "==> Applying skills-install-slug-resolution.patch..."
     git apply "${srcdir}/../skills-install-slug-resolution.patch" || return 1
 
-    # Apply hindsight dependency relaxation patch
-    echo "==> Applying hindsight-dependency-relaxation.patch..."
-    git apply "${srcdir}/../hindsight-dependency-relaxation.patch" || return 1
-
     # Apply hindsight provider patches (runtime check & mode initialization)
     echo "==> Applying hindsight-provider-patches.patch..."
     git apply "${srcdir}/../hindsight-provider-patches.patch" || return 1
@@ -192,12 +184,9 @@ EOF
     venv/bin/pip install .[all] || return 1
     venv/bin/pip install .[messaging,edge-tts,firecrawl,exa,parallel-web,anthropic,fal] || return 1
 
-    # Hindsight memory
-    # Install client and embed packages normally, then api-slim and all-in-one bundle with --no-deps
-    # to bypass the unsatisfied litellm>=1.83.14 constraint on python 3.14.
-    # Note: We temporarily rely on the system-wide python-litellm package (defined in depends)
-    # until litellm's requires-python metadata is updated on PyPI to support Python 3.14+.
-    venv/bin/pip install --ignore-requires-python hindsight-client hindsight-all || return 1
+    # Hindsight memory client library
+    echo "==> Eagerly installing hindsight-client..."
+    venv/bin/pip install hindsight-client || return 1
 
     # Eager-install local TTS engines using --no-deps to avoid recompiling system packages
     echo "==> Eagerly installing local TTS engines (piper-tts, neutts)..."

@@ -28,6 +28,20 @@ This is orthogonal to `HERMES_SYSTEM_PKG` (which handles CLI-side concerns).
 
 The patch adds `pacman` and `aur` to hermes' `_MANAGED_SYSTEM_NAMES` registry. This is **not activated** by the wrapper (we don't set `HERMES_MANAGED`), but is available for locked-down multi-user deployments where an admin sets `HERMES_MANAGED=pacman` to fully lock down config writes.
 
+### Hindsight Memory Configuration (Environment Variables)
+
+Hindsight memory behavior and constraints can be dynamically configured on a per-profile level by adding overrides to the profile's `.env` file (e.g. `~/.hermes/profiles/<profile_name>/.env`). Supported environment variables include:
+
+* **`HINDSIGHT_MODE`**: Connection mode (choices: `cloud`, `local_embedded`, `local_external`; default: `cloud`).
+* **`HINDSIGHT_API_URL`**: Target server URL (default: `https://api.hindsight.vectorize.io` for cloud, `http://localhost:8888` for local modes).
+* **`HINDSIGHT_API_KEY`**: Cloud or custom server API authorization key (default: empty).
+* **`HINDSIGHT_BUDGET`** / **`HINDSIGHT_RECALL_BUDGET`**: Thoroughness level for recall and reflection generation (choices: `low`, `mid`, `high`; default: `mid`).
+* **`HINDSIGHT_RECALL_MAX_TOKENS`**: Limit on the maximum tokens returned by recall/reflection results (default: `4096`).
+* **`HINDSIGHT_TIMEOUT`**: Request timeout in seconds (default: `120`).
+* **`HINDSIGHT_RETAIN_TAGS`**: Default tags attached to newly-stored memories (comma-separated; default: empty).
+* **`HINDSIGHT_RETAIN_USER_PREFIX`**: Prefix for user turns in memory transcripts (default: `User`).
+* **`HINDSIGHT_RETAIN_ASSISTANT_PREFIX`**: Prefix for assistant turns in memory transcripts (default: `Assistant`).
+
 ## PR Patching Mechanism
 
 The `_prs` array in the PKGBUILD allows on-demand application of GitHub pull requests as patches:
@@ -48,7 +62,6 @@ To remove a PR: remove its number from the array and rebuild.
 
 | PR | Description |
 |----|-------------|
-| [#57668](https://github.com/NousResearch/hermes-agent/pull/57668) | `feat(desktop)`: gate self-update and uninstall behind `HERMES_DISABLE_UPDATES` env var |
 
 ## Patch Files
 
@@ -57,5 +70,6 @@ To remove a PR: remove its number from the array and rebuild.
 | `hermes-managed-pacman.patch` | Registers pacman/AUR in managed system names, blocks `cmd_update()` via `HERMES_SYSTEM_PKG`, gates runtime npm installs behind writable-dir check |
 | `python314-daemon-pool.patch` | Fixes Python 3.14 compatibility bug in `DaemonThreadPoolExecutor` caused by CPython internal changes (removal of `_initializer`/`_initargs`) |
 | `skills-install-slug-resolution.patch` | Fixes short skill name resolution to match against identifiers/slugs in addition to exact display names |
+| `hindsight-provider-patches.patch` | Fixes local_external Hindsight mode (splits initialization, implements connection health probing, improves setup wizard logic, relaxes dependency version limits, and handles hermes system package environment checks) |
 
 
