@@ -12,4 +12,5 @@ python-llama-cpp*.pkg.tar*
 whisper.cpp*.pkg.tar*
 stable-diffusion.cpp*.pkg.tar*
 qwen3-tts.cpp*.pkg.tar*
+crispasr*.pkg.tar*
 *.gguf

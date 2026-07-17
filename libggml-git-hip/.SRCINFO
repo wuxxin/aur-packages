@@ -1,6 +1,6 @@
 pkgbase = libggml-git-hip
 	pkgdesc = libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp, crispasr-git-ggml-hip - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)
-	pkgver = 10057.r3.g635cdd5
+	pkgver = 10058.r2.g635cdd5
 	pkgrel = 1
 	url = https://github.com/ggml-org/llama.cpp
 	arch = x86_64
@@ -64,7 +64,7 @@ pkgbase = libggml-git-hip
 	sha256sums = SKIP
 	sha256sums = SKIP
 	sha256sums = SKIP
-	sha256sums = aef41a6209f5e0864e6a9d510efc4e39b5f9dc0f74629237466bdf950eec80ff
+	sha256sums = e5442bfc37252c64ff56d174848b4335bfa11c3f36cab8a1f4f05f3f83e22a2e
 	sha256sums = 2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8
 	sha256sums = e7430489ec842c7c10d6976e04c63023c24ebf9fa080ea3fad55ab19c636d875
 	sha256sums = 3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391

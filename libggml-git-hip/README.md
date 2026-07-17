@@ -20,6 +20,7 @@ An optimized Git HEAD compilation of the GGML tensor library and associated tool
 - **ROCm & Vulkan Support:** Accelerate workloads on AMD GPUs using the highly optimized native HIP backend, or fallback to the cross-vendor Vulkan backend.
 - **CPU Backend Optimization:** Instead of a single static CPU build, compiling with `GGML_CPU_ALL_VARIANTS` builds optimized variants for multiple instruction sets (AVX, AVX2, AVX512, etc.). At runtime, the best matching variant for the host CPU is dynamically loaded (e.g. AVX2/FMA on Zen3+).
 - **Qwen3 Optimizations:** See (Qwen3-TTS)[qwen3-tts-modifications.md]
+- **shared libggml support in CrispASR:** Add the needed additional Conformer functions in libggml, so shared build is possible.
 - **RDNA2 Optimization:** Includes `rdna2-optimized-tile.patch` to unlock more performant TILE Flash Attention on RDNA2 GPUs.
 - **Python Bindings:** patched to support the latest git version of libggml and llama.cpp.
 - **OpenBLAS CPU Fallback:** CPU-only layers are accelerated either via the standard CPU backend, or optional with the OpenBLAS CPU backend, providing alternative matrix operations to the standard CPU backend.
@@ -36,7 +37,7 @@ Of the current HIP/ROCm-accelerated Archlinux AUR packages for the GGML ecosyste
 This package provides up-to-date replacements for the outdated HIP/ROCm-accelerated builds of the GGML ecosystem on Arch Linux for `llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp` and adds:
 
 - `qwen3-tts.cpp` with HIP/ROCm acceleration.
-- `crispasr` (via `crispasr-git-ggml-hip`) with HIP, Vulkan, CPU, and BLAS acceleration.
+- `crispasr` using the shared libggml library  `crispasr-git-ggml-hip`) with HIP, Vulkan, CPU, and BLAS acceleration.
 
 In contrast to the listed AUR packages above, each of which contains their own static compilation of `libggml`, this package compiles `libggml` as a single system-wide shared library (`libggml-git-hip`) and dynamically links all downstream packages against it, we achieve:
 
@@ -57,7 +58,13 @@ makepkg -i
 
 ## Patches & Modifications
 
-### 1. RDNA2 Flash Attention Optimization (`rdna2-optimized-tile.patch`)
+### Unified System GGML with added Conformer operations for CrispASR shared libggml support (`patch-ggml.py`)
+To enable dynamic linking of CrispASR to the system-wide `libggml.so` without missing Conformer functions, we apply a dynamic patching script during the `prepare()` phase:
+- **Missing Functions Synced**: The script `patch-ggml.py` locates and injects the `GGML_OP_NORM_AFFINE` (fused LayerNorm + scale/shift) and `GGML_GLU_OP_SIGLU` (SiGLU activation) operations directly into the standard `llama.cpp/ggml` source tree (handling public headers, core symbol mapping, CPU compute kernels, and HIP/ROCm GPU kernel launchers).
+- **CrispASR Dynamic Linkage**: CrispASR is built with `-DCRISPASR_USE_SYSTEM_GGML=ON`, enabling its binaries to link dynamically to `/usr/lib/libggml.so`. This avoids redundant compilation of massive GPU shaders/kernels.
+- **Bypassing Sentencepiece**: We comment out the search for `libsentencepiece` in CrispASR (`src/CMakeLists.txt`), forcing a fallback to CrispASR's custom Viterbi tokenizer. This avoids linker failures caused by a broken system `sentencepiece` dynamic package on this system and is completely safe since sentencepiece is only utilized by the TTS component, which is unused for our local ASR Speech-to-Text pipeline.
+
+### RDNA2 Flash Attention Optimization (`rdna2-optimized-tile.patch`)
 This package applies a custom patch to maximize stability and performance on RDNA2 GPUs (gfx1030). It bypasses the unstable "VEC" kernel and forces an optimized "TILE" kernel with 256 threads for Head Dim 128.
 
 | Configuration | Throughput (40k Ctx) | Max Stable Context |
@@ -66,7 +73,7 @@ This package applies a custom patch to maximize stability and performance on RDN
 | Stock (TILE) | ~280 Char/s | >145k Chars |
 | **Optimized TILE** | **~1485 Char/s**| **>145k Chars** |
 
-### 2. Python Binding Fixes (`python-llama-cpp`)
+### Python Binding Fixes (`python-llama-cpp`)
 To bridge the gap between latest `libllama.so` and the `llama-cpp-python` bindings, we apply functional shims and symbol aliasing.
 
 #### Symbol Resolution Table
@@ -85,7 +92,7 @@ To bridge the gap between latest `libllama.so` and the `llama-cpp-python` bindin
 
 **Implementation:** Shims are injected via `EOF` concatenation at the end of `llama_cpp/llama_cpp.py`. Aliases are applied via `sed` substitutions during the `prepare()` phase.
 
-### 3. Qwen3-TTS Hybrid mode , offload Device selection, Voice Fallback & Built-in Voices 
+### Qwen3-TTS Hybrid mode , offload Device selection, Voice Fallback & Built-in Voices 
 
 #### Additional Environment Variables
 
@@ -122,8 +129,11 @@ The built-in voice names for the `Qwen3-TTS-12Hz-0.6B-CustomVoice-Q8_0.gguf` mod
 - `dylan`
 
 
-### 4. Git Commit-Hash Versioning (`whisper-version-commit.patch` and `qwen3-tts-version-commit.patch`)
+### Git Commit-Hash Versioning for whisper and qwen3-tts
+
+- patches: `whisper-version-commit.patch` and `qwen3-tts-version-commit.patch`
 
 To assist with version identification and debugging of Git-HEAD packages:
 - **Whisper**: Appends the specific Git commit hash of the whisper.cpp repository to the output of `whisper-cli --version` (e.g., `whisper.cpp version: 1.9.1 (commithash)`).
 - **Qwen3-TTS**: Implements the `--version` flag for `qwen3-tts-cli` to output `qwen3-tts version 0.1-main-commithash` where the branch name (`main`) and short commit hash of the qwen3-tts.cpp repository are dynamically resolved at configure time.
+
