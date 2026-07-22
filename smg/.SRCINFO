@@ -1,0 +1,36 @@
+pkgbase = smg
+	pkgdesc = High-performance model-routing gateway for large-scale LLM deployments
+	pkgver = 1.8.0
+	pkgrel = 1
+	url = https://github.com/lightseekorg/smg
+	arch = x86_64
+	license = Apache-2.0
+	makedepends = cargo
+	makedepends = maturin
+	makedepends = python-build
+	makedepends = python-installer
+	makedepends = python-wheel
+	makedepends = openssl
+	makedepends = protobuf
+	makedepends = cmake
+	source = smg-1.8.0.tar.gz::https://github.com/lightseekorg/smg/archive/refs/tags/v1.8.0.tar.gz
+	sha256sums = cccaf1a43f1350bbef10029c6a07039ffb8241353ce3dd8a1fda786b7d4b1afd
+
+pkgname = smg
+	pkgdesc = High-performance model-routing gateway for large-scale LLM deployments (standalone Rust binary)
+	depends = gcc-libs
+	depends = glibc
+	depends = openssl
+	provides = smg
+	conflicts = smg
+
+pkgname = python-smg
+	pkgdesc = High-performance model-routing gateway for large-scale LLM deployments (Python bindings & CLI)
+	depends = python
+	depends = python-setproctitle
+	depends = python-grpcio
+	depends = python-yaml
+	optdepends = python-httpx: HTTP client support
+	optdepends = python-pydantic: Pydantic models support
+	provides = python-smg
+	conflicts = python-smg
