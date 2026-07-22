@@ -70,6 +70,7 @@ aur-packages/
 - Update README.md if significant changes or additions are made
 - Verify dependencies when modifying PKGBUILDs, ask human to install needed dependencies.
 - Test PKGBUILDs with `makepkg --nobuild` first
+- Create a `.gitignore` if you create a new PKGBUILD package inside the dir, excluding `sourcefile-*.tar*` and `pkgfilename*pkg.tar*`
 - Be Smart how to build: Large packages (such as `llama.cpp` or vllm) take substantial time to compile. During optimization, debugging, or iteration, avoid running clean builds or forcing a full rebuild (`makepkg -Cf`) repeatedly.
    - Use `makepkg -e` (or `makepkg --noextract`) to compile while preserving the existing `src` build tree and avoiding re-extracting or re-downloading.
    - Run tests directly against binaries in the `src/build_*` directories (or staging folders) without executing system-wide installations.
