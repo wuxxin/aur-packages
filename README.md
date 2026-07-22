@@ -47,8 +47,8 @@ Can be **broken or bitrotten at anytime**.
     - Simplified gRPC interceptors for Python (needed by TEI backend)
 - [python-grpcio-reflection](python-grpcio-reflection)
     - Standard Protobuf reflection service for gRPC Python (needed by TEI backend)
-- [tei](tei)
-    - Hugging Face Text Embeddings Inference server configured for ROCm
+- [tei-rocm](tei-rocm)
+    - Hugging Face Text Embeddings Inference (TEI) A blazing fast inference solution for text embeddings models. (with ROCm/HIP support)
 - [mlc-llm](mlc-llm)
     - Universal serving engine for LLM compilation and execution targeting ROCm and Vulkan
 
