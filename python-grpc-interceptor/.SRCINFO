@@ -1,0 +1,16 @@
+pkgbase = python-grpc-interceptor
+	pkgdesc = Simplified gRPC interceptors for Python
+	pkgver = 0.15.4
+	pkgrel = 1
+	url = https://github.com/d5h-foss/grpc-interceptor
+	arch = any
+	license = MIT
+	makedepends = python-build
+	makedepends = python-installer
+	makedepends = python-poetry-core
+	makedepends = python-setuptools
+	depends = python-grpcio
+	source = https://files.pythonhosted.org/packages/source/g/grpc-interceptor/grpc-interceptor-0.15.4.tar.gz
+	sha256sums = 1f45c0bcb58b6f332f37c637632247c9b02bc6af0fdceb7ba7ce8d2ebbfb0926
+
+pkgname = python-grpc-interceptor

@@ -1,0 +1,30 @@
+# Maintainer: Wuxxin <wuxxin@example.com>
+
+pkgname='python-grpc-interceptor'
+_pkgname='grpc-interceptor'
+pkgver=0.15.4
+pkgrel=1
+pkgdesc='Simplified gRPC interceptors for Python'
+arch=('any')
+url='https://github.com/d5h-foss/grpc-interceptor'
+license=('MIT')
+depends=('python-grpcio')
+makedepends=(
+    'python-build'
+    'python-installer'
+    'python-poetry-core'
+    'python-setuptools'
+)
+source=("https://files.pythonhosted.org/packages/source/${_pkgname::1}/${_pkgname}/${_pkgname}-${pkgver}.tar.gz")
+sha256sums=('1f45c0bcb58b6f332f37c637632247c9b02bc6af0fdceb7ba7ce8d2ebbfb0926')
+
+build() {
+    cd "${_pkgname}-${pkgver}"
+    python -m build --wheel --no-isolation
+}
+
+package() {
+    cd "${_pkgname}-${pkgver}"
+    python -m installer --destdir="${pkgdir}" dist/*.whl
+    install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
