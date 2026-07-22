@@ -4,7 +4,7 @@
 A script to automate gathering statistics and recent git history for AUR packages.
 This script checks local pacman installations, fetches upstream repository
 updates, queries GitHub metrics, compiles activity tables, and can optionally
-write them directly to weekly-devel-activity.md.
+write them directly to research/weekly-devel-activity.md.
 """
 
 import datetime
@@ -616,7 +616,7 @@ def compile_activity(write_to_file: bool = False) -> None:
     new_tables_block = f"{ai_table_str}\n{note_note}\n\n{other_table_str}\n{other_note}"
 
     if write_to_file:
-        file_path = "weekly-devel-activity.md"
+        file_path = "research/weekly-devel-activity.md"
         if not os.path.exists(file_path):
             print(f"Error: {file_path} not found in the current directory.")
             return

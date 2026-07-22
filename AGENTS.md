@@ -13,6 +13,7 @@ aur-packages/
 ├── libggml-git-hip/      # HIP/ROCm accelerated GGML + llama.cpp + whisper.cpp
 ├── python-torch*-rocm/   # PyTorch ROCm builds
 |__ scripts/              # utility scripts
+|__ research/             # `weekly-devel-activity.md`,  `tei-and-mlc-build.md` , `research-crispasr-ggml-mod.md`
 |__ scratch/              # scratch space for agents to work or research (checkedout source code for package or build testing, etc)
 └── ...                   # Other AUR packages (each AUR package has its own directory with PKGBUILD)
 ```
@@ -75,7 +76,7 @@ aur-packages/
    - Use environment overrides (such as `GGML_BACKEND_PATH`, `LLAMA_SERVER_BIN`, etc.) to test custom-built dynamic libraries/binaries.
 - Follow existing package directory structure
 - Place patches in package directory, reference in `source` array
-- To regenerate the report about the development activity of the upstream sources for the PKGBUILD's of this repo: Run the script on demand to research upstream change statistics. First execute without "--write", if all worked, use "--write" to directly write the updated tables back into `weekly-devel-activity.md`:
+- To regenerate the report about the development activity of the upstream sources for the PKGBUILD's of this repo: Run the script on demand to research upstream change statistics. First execute without "--write", if all worked, use "--write" to directly write the updated tables back into `research/weekly-devel-activity.md`:
    ```bash
    python scripts/update-activity.py [--write]
    ```
