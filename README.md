@@ -58,3 +58,10 @@ Can be **broken or bitrotten at anytime**.
 ### Weekly development activity tracking
 
 Development activity tracking for a few selected packages are available in [weekly-devel-activity.md](weekly-devel-activity.md).
+
+
+### Notes/Todo
+
+- update salt (3008.1)
+- rebuild signal-cli-res-api-git
+
