@@ -1,0 +1,104 @@
+# Maintainer: Wuxxin <wuxxin@example.com>
+
+pkgname='tei'
+pkgdesc='Hugging Face Text Embeddings Inference (TEI) A blazing fast inference solution for text embeddings models. (with ROCm/HIP support)'
+pkgver=1.9.3
+pkgrel=1
+arch=('x86_64')
+url='https://github.com/huggingface/text-embeddings-inference'
+license=('Apache-2.0')
+depends=(
+    'python-pytorch-opt-rocm'
+    'python-safetensors'
+    'python-einops'
+    'python-packaging'
+    'python-grpcio'
+    'python-grpcio-status'
+    'python-grpcio-reflection'
+    'python-grpc-interceptor'
+    'python-loguru'
+    'python-typer'
+    'python-sentence-transformers'
+    'python-opentelemetry-api'
+    'python-opentelemetry-sdk'
+    'python-opentelemetry-exporter-otlp'
+    'python-opentelemetry-instrumentation-grpc'
+)
+makedepends=(
+    'rust'
+    'cargo'
+    'protobuf'
+    'python-build'
+    'python-installer'
+    'python-poetry-core'
+    'python-setuptools'
+    'python-grpcio-tools'
+    'git'
+)
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/huggingface/text-embeddings-inference/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('85cbe4b18033cd8e84118841a94122a8d4e4bfeeba128c4b0f77bd30d4f1e4ea')
+
+prepare() {
+    cd "text-embeddings-inference-${pkgver}"
+
+    # Copy metrics-0.23.0 from cargo registry cache so we can patch it
+    cp -r /home/wuxxin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/metrics-0.23.0 "${srcdir}/metrics-0.23.0"
+
+    # Patch the pointer cast error in metrics under Rust 1.96 (using std::mem::transmute to bypass fat pointer lifetime extension restrictions)
+    sed -i "s/let recorder_ptr = unsafe { NonNull::new_unchecked(recorder as \*const _ as \*mut _) };/let recorder_ptr = unsafe { let ptr: *const dyn Recorder = recorder; let static_ptr: *const (dyn Recorder + 'static) = std::mem::transmute(ptr); NonNull::new_unchecked(static_ptr as *mut _) };/" "${srcdir}/metrics-0.23.0/src/recorder/mod.rs"
+
+    # Inject the patched metrics dependency into workspace Cargo.toml
+    sed -i '/\[patch.crates-io\]/a metrics = { path = "../metrics-0.23.0" }' Cargo.toml
+
+    # Disable heavy LTO to prevent aws-lc-sys static library linking issues
+    sed -i 's/lto = "fat"/lto = false/' Cargo.toml
+
+    # Generate Python gRPC server stubs from proto definition
+    mkdir -p backends/python/server/text_embeddings_server/pb
+    python -m grpc_tools.protoc -Iproto \
+        --python_out=backends/python/server/text_embeddings_server/pb \
+        --grpc_python_out=backends/python/server/text_embeddings_server/pb \
+        proto/tei.proto
+
+    # Fix relative imports in generated stubs
+    find backends/python/server/text_embeddings_server/pb/ -type f -name "*.py" -print0 | xargs -0 sed -i -e 's/^\(import.*pb2\)/from . \1/g'
+    touch backends/python/server/text_embeddings_server/pb/__init__.py
+
+    # Patch Python dependency restrictions for Python 3.14 compatibility
+    sed -i 's/python = ">=3.9,<3.13"/python = ">=3.9"/' backends/python/server/pyproject.toml
+}
+
+build() {
+    cd "text-embeddings-inference-${pkgver}"
+
+    # Force gnu17 standard and disable treating warnings as errors to prevent glibc memchr compatibility compilation failures
+    export CFLAGS="${CFLAGS} -std=gnu17 -Wno-error"
+    export CXXFLAGS="${CXXFLAGS} -Wno-error"
+
+    # Use Clang for compiling C/C++ dependencies (BoringSSL/AWS-LC) to resolve symbol naming/prefixing bugs
+    export CC=clang
+    export CXX=clang
+    export AWS_LC_SYS_CMAKE_BUILDER=1
+    export AWS_LC_SYS_CFLAGS="-Wno-error"
+
+    # Build the Rust router binary (features http and grpc are mutually exclusive)
+    cargo build --release --features candle,python,http --bin text-embeddings-router
+
+    # Build the Python server backend wheel
+    cd backends/python/server
+    python -m build --wheel --no-isolation
+}
+
+package() {
+    cd "text-embeddings-inference-${pkgver}"
+
+    # Install Rust router binary
+    install -Dm755 target/release/text-embeddings-router "${pkgdir}/usr/bin/text-embeddings-router"
+
+    # Install Python server package
+    cd backends/python/server
+    python -m installer --destdir="${pkgdir}" dist/*.whl
+
+    # Install license
+    install -Dm644 "../../LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

@@ -1,0 +1,5 @@
+# Ignore build directories and archives
+/src/
+/pkg/
+tei-*.tar.gz
+*.pkg.tar.zst
