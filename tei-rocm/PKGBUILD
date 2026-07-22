@@ -1,6 +1,8 @@
 # Maintainer: Wuxxin <wuxxin@example.com>
 
-pkgname='tei'
+pkgname='tei-rocm'
+provides=('tei')
+conflicts=('tei')
 pkgdesc='Hugging Face Text Embeddings Inference (TEI) A blazing fast inference solution for text embeddings models. (with ROCm/HIP support)'
 pkgver=1.9.3
 pkgrel=1
@@ -55,10 +57,10 @@ prepare() {
 
     # Generate Python gRPC server stubs from proto definition
     mkdir -p backends/python/server/text_embeddings_server/pb
-    python -m grpc_tools.protoc -Iproto \
+    python -m grpc_tools.protoc -Ibackends/proto \
         --python_out=backends/python/server/text_embeddings_server/pb \
         --grpc_python_out=backends/python/server/text_embeddings_server/pb \
-        proto/tei.proto
+        backends/proto/embed.proto
 
     # Fix relative imports in generated stubs
     find backends/python/server/text_embeddings_server/pb/ -type f -name "*.py" -print0 | xargs -0 sed -i -e 's/^\(import.*pb2\)/from . \1/g'
@@ -100,5 +102,5 @@ package() {
     python -m installer --destdir="${pkgdir}" dist/*.whl
 
     # Install license
-    install -Dm644 "../../LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+    install -Dm644 "../../../LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 }
