@@ -43,21 +43,26 @@ Can be **broken or bitrotten at anytime**.
         - This ensures consistent backend behavior / bug compatibility across all tools.
 - [smg](smg)
     - High-performance model-routing gateway for large-scale LLM deployments
+- [python-grpc-interceptor](python-grpc-interceptor)
+    - Simplified gRPC interceptors for Python (needed by TEI backend)
+- [python-grpcio-reflection](python-grpcio-reflection)
+    - Standard Protobuf reflection service for gRPC Python (needed by TEI backend)
+- [tei](tei)
+    - Hugging Face Text Embeddings Inference server configured for ROCm
+- [mlc-llm](mlc-llm)
+    - Universal serving engine for LLM compilation and execution targeting ROCm and Vulkan
 
 
-- [python-vllm-rocm-git](python-vllm-rocm-git) - High-throughput and memory-efficient inference and serving engine for LLMs (ROCm support, Git VCS version)
 
-- [python-vllm-omni-rocm-git](python-vllm-omni-rocm-git) - A framework for efficient model inference with omni-modality models (ROCm support, depends on python-vllm-rocm-git)
 
 - [pocket-tts.cpp-git](pocket-tts.cpp-git) - Single-file C++ TTS runtime for Pocket TTS with ONNX Runtime
     - builds `pocket-tts` C++ executable and shared library `libpocket_tts.so` with support for voice cloning, streaming, HTTP server, and FFI C API.
-
 - [python-pocket-tts](python-pocket-tts) - A TTS that fits in your CPU (and pocket)
     - builds `pocket-tts` python package by Kyutai Labs.
 
 ### Weekly development activity tracking
 
-Development activity tracking for a few selected packages are available in [weekly-devel-activity.md](weekly-devel-activity.md).
+Development activity tracking for a few selected packages are available in [research/weekly-devel-activity.md](research/weekly-devel-activity.md).
 
 
 ### Notes/Todo
