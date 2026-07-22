@@ -58,11 +58,6 @@ makepkg -i
 
 ## Patches & Modifications
 
-### Unified System GGML with added Conformer operations for CrispASR shared libggml support (`patch-ggml.py`)
-To enable dynamic linking of CrispASR to the system-wide `libggml.so` without missing Conformer functions, we apply a dynamic patching script during the `prepare()` phase:
-- **Missing Functions Synced**: The script `patch-ggml.py` locates and injects the `GGML_OP_NORM_AFFINE` (fused LayerNorm + scale/shift) and `GGML_GLU_OP_SIGLU` (SiGLU activation) operations directly into the standard `llama.cpp/ggml` source tree (handling public headers, core symbol mapping, CPU compute kernels, and HIP/ROCm GPU kernel launchers).
-- **CrispASR Dynamic Linkage**: CrispASR is built with `-DCRISPASR_USE_SYSTEM_GGML=ON`, enabling its binaries to link dynamically to `/usr/lib/libggml.so`. This avoids redundant compilation of massive GPU shaders/kernels.
-- **Bypassing Sentencepiece**: We comment out the search for `libsentencepiece` in CrispASR (`src/CMakeLists.txt`), forcing a fallback to CrispASR's custom Viterbi tokenizer. This avoids linker failures caused by a broken system `sentencepiece` dynamic package on this system and is completely safe since sentencepiece is only utilized by the TTS component, which is unused for our local ASR Speech-to-Text pipeline.
 
 ### RDNA2 Flash Attention Optimization (`rdna2-optimized-tile.patch`)
 This package applies a custom patch to maximize stability and performance on RDNA2 GPUs (gfx1030). It bypasses the unstable "VEC" kernel and forces an optimized "TILE" kernel with 256 threads for Head Dim 128.
@@ -136,4 +131,23 @@ The built-in voice names for the `Qwen3-TTS-12Hz-0.6B-CustomVoice-Q8_0.gguf` mod
 To assist with version identification and debugging of Git-HEAD packages:
 - **Whisper**: Appends the specific Git commit hash of the whisper.cpp repository to the output of `whisper-cli --version` (e.g., `whisper.cpp version: 1.9.1 (commithash)`).
 - **Qwen3-TTS**: Implements the `--version` flag for `qwen3-tts-cli` to output `qwen3-tts version 0.1-main-commithash` where the branch name (`main`) and short commit hash of the qwen3-tts.cpp repository are dynamically resolved at configure time.
+
+### Extended Unified System GGML & CrispASR Linkage (`patch-ggml.py`)
+To enable dynamic linking of CrispASR to the system-wide `libggml.so` without missing custom activations and operators, we apply a dynamic patching script during the `prepare()` phase:
+- **Custom Operations Synced**: The script `patch-ggml.py` locates and injects `GGML_OP_NORM_AFFINE` (fused LayerNorm), `GGML_GLU_OP_SIGLU` (SiGLU activation), and `GGML_OP_AA_SNAKE_BETA` (anti-aliased SnakeBeta for BigVGAN v2) directly into the standard `llama.cpp/ggml` source tree. This updates public headers, string name/symbol mappings, static assertions, CPU OpenMP-parallelized compute kernels, and HIP/ROCm GPU launchers.
+- **CrispASR Dynamic Linkage**: CrispASR is built with `-DCRISPASR_USE_SYSTEM_GGML=ON` and links dynamically to `/usr/lib/libggml.so`. This avoids duplicate compilation of heavy ROCm/HIP and Vulkan shaders.
+- **Sentencepiece Integration**: Fully integrates and dynamically links CrispASR against the system-wide `/usr/lib/libsentencepiece.so` library, enabling correct tokenization structures for the TTS engine sub-modules.
+
+### Dynamic CPU Backend Compatibility Wrappers (`patch-ggml.py`)
+When compiling with dynamic backend loading (`GGML_BACKEND_DL=ON`), the CPU backend is built as dynamically loaded modules (`libggml-cpu-*.so`). As a result, standard CPU backend symbols (such as `ggml_backend_cpu_init`, `ggml_backend_is_cpu`, `ggml_backend_cpu_set_n_threads`, `ggml_graph_plan`, `ggml_graph_compute`, `ggml_threadpool_new`, and the `ggml_cpu_has_*` feature query checks) are no longer exported by the main `libggml.so`. 
+
+To prevent linker errors in downstream applications (like CrispASR and internal test utilities) that link dynamically to `libggml.so`, `patch-ggml.py` now appends dynamic wrappers in `ggml-backend-reg.cpp`. These wrappers dynamically resolve the active CPU backend and forward calls, maintaining full API compatibility for dynamic linking.
+
+#### Compatibility & Safety
+Adding these custom operators and wrappers to the system-wide `libggml.so` does **not** introduce compile or runtime compatibility issues for standard GGML tools (e.g. `llama.cpp` or third-party wrappers):
+- **ABI Stability**: The new enums are appended cleanly at the end of lists, preserving the exact integer values of all standard GGML operations and keeping structure layouts intact.
+- **Isolating graph execution**: Standard downstream models do not compile or utilize these custom operators, meaning their graph computation and scheduling paths remain completely unaffected.
+- **Heterogeneous Fallback Safety**: GPU backends naturally fall back to CPU OpenMP thread execution for custom operators they do not natively support, ensuring full compatibility across Vulkan-only and ROCm/HIP hardware environments.
+
+
 

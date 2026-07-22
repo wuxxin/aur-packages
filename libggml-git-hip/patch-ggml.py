@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import sys
 import os
+import re
 
-def patch_file(filepath, search, replace):
+def patch_file(filepath, search, replace, is_regex=False):
     print(f"Patching {filepath}...")
     if not os.path.exists(filepath):
         print(f"Error: {filepath} does not exist!")
@@ -12,10 +13,16 @@ def patch_file(filepath, search, replace):
     if replace in content:
         print(f"Already patched: {filepath}")
         return
-    if search not in content:
-        print(f"Error: Search anchor not found in {filepath}!")
-        sys.exit(1)
-    new_content = content.replace(search, replace)
+    if is_regex:
+        if not re.search(search, content):
+            print(f"Error: Regex pattern not found in {filepath}!")
+            sys.exit(1)
+        new_content = re.sub(search, replace, content)
+    else:
+        if search not in content:
+            print(f"Error: Search anchor not found in {filepath}!")
+            sys.exit(1)
+        new_content = content.replace(search, replace)
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write(new_content)
     print(f"Successfully patched {filepath}")
@@ -41,6 +48,10 @@ def main():
     patch_file(ggml_h_path, 
                "        GGML_OP_NORM, // normalize",
                "        GGML_OP_NORM, // normalize\n        GGML_OP_NORM_AFFINE, // fused normalize + affine (w*norm(x)+b)")
+
+    patch_file(ggml_h_path,
+               "        GGML_OP_GLU,",
+               "        GGML_OP_GLU,\n        GGML_OP_AA_SNAKE_BETA,")
                
     patch_file(ggml_h_path,
                "        GGML_GLU_OP_GEGLU_QUICK,",
@@ -62,7 +73,15 @@ def main():
             struct ggml_tensor  * a,
             struct ggml_tensor  * w,
             struct ggml_tensor  * b,
-            float                 eps);""")
+            float                 eps);
+
+    GGML_API struct ggml_tensor * ggml_aa_snake_beta(
+            struct ggml_context * ctx,
+            struct ggml_tensor  * x,
+            struct ggml_tensor  * log_alpha,
+            struct ggml_tensor  * log_beta,
+            struct ggml_tensor  * us_filter,
+            struct ggml_tensor  * ds_filter);""")
 
     patch_file(ggml_h_path,
                "    GGML_API struct ggml_tensor * ggml_swiglu_oai(",
@@ -91,16 +110,27 @@ def main():
                '    "norm(x)",\n    "w*norm(x)+b",')
 
     patch_file(ggml_c_path,
+               '    "GLU",',
+               '    "GLU",\n    "AA_SNAKE_BETA",')
+
+    patch_file(ggml_c_path,
+               '    "glu(x)",',
+               '    "glu(x)",\n    "aa_snake_beta(x, log_a, log_b, usf, dsf)",')
+
+    patch_file(ggml_c_path,
                '    "GEGLU_QUICK",',
                '    "GEGLU_QUICK",\n    "SIGLU",')
 
+    # Fix static assertions in ggml.c dynamically supporting dirty trees
     patch_file(ggml_c_path,
-               'static_assert(GGML_OP_COUNT == 101, "GGML_OP_COUNT != 101");',
-               'static_assert(GGML_OP_COUNT == 102, "GGML_OP_COUNT != 102");')
+               r'static_assert\(GGML_OP_COUNT\s*==\s*\d+,\s*"GGML_OP_COUNT\s*!=\s*\d+"\);',
+               'static_assert(GGML_OP_COUNT == 103, "GGML_OP_COUNT != 103");',
+               is_regex=True)
 
     patch_file(ggml_c_path,
-               'static_assert(GGML_GLU_OP_COUNT == 6, "GGML_GLU_OP_COUNT != 6");',
-               'static_assert(GGML_GLU_OP_COUNT == 7, "GGML_GLU_OP_COUNT != 7");')
+               r'static_assert\(GGML_GLU_OP_COUNT\s*==\s*\d+,\s*"GGML_GLU_OP_COUNT\s*!=\s*\d+"\);',
+               'static_assert(GGML_GLU_OP_COUNT == 7, "GGML_GLU_OP_COUNT != 7");',
+               is_regex=True)
 
     patch_file(ggml_c_path,
                """struct ggml_tensor * ggml_norm_inplace(
@@ -136,6 +166,36 @@ struct ggml_tensor * ggml_norm_affine(
     result->src[1] = w;
     result->src[2] = b;
 
+    return result;
+}
+
+// ggml_aa_snake_beta
+
+struct ggml_tensor * ggml_aa_snake_beta(
+        struct ggml_context * ctx,
+        struct ggml_tensor  * x,
+        struct ggml_tensor  * log_alpha,
+        struct ggml_tensor  * log_beta,
+        struct ggml_tensor  * us_filter,
+        struct ggml_tensor  * ds_filter) {
+    GGML_ASSERT(ggml_is_matrix(x));                  // [T, C]
+    GGML_ASSERT(log_alpha->ne[0] == x->ne[1]);       // C matches
+    GGML_ASSERT(log_beta->ne[0]  == x->ne[1]);
+    GGML_ASSERT(us_filter->ne[0] == 12);             // K fixed at 12 for now
+    GGML_ASSERT(ds_filter->ne[0] == 12);
+    GGML_ASSERT(x->type         == GGML_TYPE_F32);
+    GGML_ASSERT(log_alpha->type == GGML_TYPE_F32);
+    GGML_ASSERT(log_beta->type  == GGML_TYPE_F32);
+    GGML_ASSERT(us_filter->type == GGML_TYPE_F32);
+    GGML_ASSERT(ds_filter->type == GGML_TYPE_F32);
+
+    struct ggml_tensor * result = ggml_dup_tensor(ctx, x);
+    result->op     = GGML_OP_AA_SNAKE_BETA;
+    result->src[0] = x;
+    result->src[1] = log_alpha;
+    result->src[2] = log_beta;
+    result->src[3] = us_filter;
+    result->src[4] = ds_filter;
     return result;
 }""")
 
@@ -178,6 +238,29 @@ struct ggml_tensor * ggml_swiglu_oai(""")
             } break;""")
 
     patch_file(ggml_cpu_c_path,
+               """        case GGML_OP_COL2IM_1D:
+            {
+                ggml_compute_forward_col2im_1d(params, tensor);
+            } break;""",
+               """        case GGML_OP_COL2IM_1D:
+            {
+                ggml_compute_forward_col2im_1d(params, tensor);
+            } break;
+        case GGML_OP_AA_SNAKE_BETA:
+            {
+                ggml_compute_forward_aa_snake_beta(params, tensor);
+            } break;""")
+
+    patch_file(ggml_cpu_c_path,
+               """        case GGML_OP_COL2IM_1D:
+        case GGML_OP_CONV_TRANSPOSE_1D:
+        case GGML_OP_CONV_TRANSPOSE_2D:""",
+               """        case GGML_OP_COL2IM_1D:
+        case GGML_OP_CONV_TRANSPOSE_1D:
+        case GGML_OP_CONV_TRANSPOSE_2D:
+        case GGML_OP_AA_SNAKE_BETA:""")
+
+    patch_file(ggml_cpu_c_path,
                """                case GGML_GLU_OP_GEGLU_QUICK:
                     {
                         n_tasks = n_threads;
@@ -191,7 +274,7 @@ struct ggml_tensor * ggml_swiglu_oai(""")
     # 4. Patch ops.h
     patch_file(ops_h_path,
                "void ggml_compute_forward_norm(const struct ggml_compute_params * params, struct ggml_tensor * dst);",
-               "void ggml_compute_forward_norm(const struct ggml_compute_params * params, struct ggml_tensor * dst);\nvoid ggml_compute_forward_norm_affine(const struct ggml_compute_params * params, struct ggml_tensor * dst);")
+               "void ggml_compute_forward_norm(const struct ggml_compute_params * params, struct ggml_tensor * dst);\nvoid ggml_compute_forward_norm_affine(const struct ggml_compute_params * params, struct ggml_tensor * dst);\nvoid ggml_compute_forward_aa_snake_beta(const struct ggml_compute_params * params, struct ggml_tensor * dst);")
 
     # 5. Patch ops.cpp
     patch_file(ops_cpp_path,
@@ -301,6 +384,162 @@ void ggml_compute_forward_norm_affine(
             {
                 GGML_ABORT("fatal error");
             }
+    }
+}""")
+
+    # Append ggml_compute_forward_aa_snake_beta to ops.cpp
+    patch_file(ops_cpp_path,
+               """void ggml_compute_forward_norm_affine(
+        const ggml_compute_params * params,
+        ggml_tensor * dst) {
+
+    const ggml_tensor * src0 = dst->src[0];
+
+    switch (src0->type) {
+        case GGML_TYPE_F32:
+            {
+                ggml_compute_forward_norm_affine_f32(params, dst);
+            } break;
+        default:
+            {
+                GGML_ABORT("fatal error");
+            }
+    }
+}""",
+               """void ggml_compute_forward_norm_affine(
+        const ggml_compute_params * params,
+        ggml_tensor * dst) {
+
+    const ggml_tensor * src0 = dst->src[0];
+
+    switch (src0->type) {
+        case GGML_TYPE_F32:
+            {
+                ggml_compute_forward_norm_affine_f32(params, dst);
+            } break;
+        default:
+            {
+                GGML_ABORT("fatal error");
+            }
+    }
+}
+
+// ggml_compute_forward_aa_snake_beta (CrispASR addition)
+
+void ggml_compute_forward_aa_snake_beta(
+        const ggml_compute_params * params,
+              ggml_tensor * dst) {
+
+    const ggml_tensor * src_x   = dst->src[0]; // x         [T, C]
+    const ggml_tensor * src_la  = dst->src[1]; // log_alpha [C]
+    const ggml_tensor * src_lb  = dst->src[2]; // log_beta  [C]
+    const ggml_tensor * src_usf = dst->src[3]; // us_filter [K, 1, 1]
+    const ggml_tensor * src_dsf = dst->src[4]; // ds_filter [K, 1, 1]
+
+    GGML_ASSERT(src_x->type   == GGML_TYPE_F32);
+    GGML_ASSERT(src_la->type  == GGML_TYPE_F32);
+    GGML_ASSERT(src_lb->type  == GGML_TYPE_F32);
+    GGML_ASSERT(src_usf->type == GGML_TYPE_F32);
+    GGML_ASSERT(src_dsf->type == GGML_TYPE_F32);
+    GGML_ASSERT(dst->type     == GGML_TYPE_F32);
+    GGML_ASSERT(ggml_is_contiguous(src_x));
+    GGML_ASSERT(ggml_is_contiguous(dst));
+    GGML_ASSERT(ggml_are_same_shape(src_x, dst));
+
+    const int T = (int) src_x->ne[0];
+    const int C = (int) src_x->ne[1];
+    const int K = (int) src_usf->ne[0];
+    GGML_ASSERT(K == 12 && "aa_snake_beta currently requires K=12 taps");
+    GGML_ASSERT((int) src_la->ne[0] == C);
+    GGML_ASSERT((int) src_lb->ne[0] == C);
+    GGML_ASSERT((int) src_dsf->ne[0] == K);
+
+    const int up_pad        = K / 2 - 1;                  // 5
+    const int up_pad_left   = up_pad * 2 + (K - 2) / 2;   // 15
+    const int up_pad_right  = up_pad * 2 + (K - 2 + 1)/2; // 15
+    const int ds_pad_left   = K / 2 - 1;                  // 5
+    const int ds_pad_right  = K / 2;                      // 6
+
+    const int T_padded   = T + 2 * up_pad;
+    const int T_up       = (T_padded - 1) * 2 + K;
+    const int T_cropped  = T_up - up_pad_left - up_pad_right;
+    const int T_ds_pad   = T_cropped + ds_pad_left + ds_pad_right;
+    const int T_out_ds   = (T_ds_pad - K) / 2 + 1;
+    const int T_final    = T_out_ds < T ? T_out_ds : T;
+
+    const float * x_in     = (const float *) src_x->data;
+    float       * x_out    = (float *)       dst->data;
+    const float * log_a    = (const float *) src_la->data;
+    const float * log_b    = (const float *) src_lb->data;
+    const float * us_f_raw = (const float *) src_usf->data;
+    const float * ds_f     = (const float *) src_dsf->data;
+
+    float us_f_x2[12];
+    for (int k = 0; k < K; k++) {
+        us_f_x2[k] = us_f_raw[k] * 2.0f;
+    }
+
+    thread_local std::vector<float> tl_padded;
+    thread_local std::vector<float> tl_upsampled;
+    thread_local std::vector<float> tl_ds_padded;
+    thread_local std::vector<float> tl_snake;
+    if ((int) tl_padded.size()    < T_padded)  tl_padded.resize(T_padded);
+    if ((int) tl_upsampled.size() < T_up)      tl_upsampled.resize(T_up);
+    if ((int) tl_ds_padded.size() < T_ds_pad)  tl_ds_padded.resize(T_ds_pad);
+    if ((int) tl_snake.size()     < T_cropped) tl_snake.resize(T_cropped);
+
+    float * padded     = tl_padded.data();
+    float * upsampled  = tl_upsampled.data();
+    float * ds_padded  = tl_ds_padded.data();
+
+    const int ith = params->ith;
+    const int nth = params->nth;
+    const int c_start = (C * ith) / nth;
+    const int c_end   = (C * (ith + 1)) / nth;
+
+    for (int c = c_start; c < c_end; c++) {
+        const float alpha_c  = expf(log_a[c]);
+        const float beta_c   = expf(log_b[c]);
+        const float inv_beta = 1.0f / beta_c;
+
+        const float * x_in_c  = x_in  + (size_t) c * T;
+        float       * x_out_c = x_out + (size_t) c * T;
+
+        const float left_edge  = x_in_c[0];
+        const float right_edge = x_in_c[T - 1];
+        for (int t = 0; t < up_pad; t++) padded[t] = left_edge;
+        memcpy(padded + up_pad, x_in_c, (size_t) T * sizeof(float));
+        for (int t = 0; t < up_pad; t++) padded[up_pad + T + t] = right_edge;
+
+        memset(upsampled, 0, (size_t) T_up * sizeof(float));
+        for (int t = 0; t < T_padded; t++) {
+            const float v = padded[t];
+            float * dst_row = upsampled + t * 2;
+            for (int k = 0; k < K; k++) {
+                dst_row[k] += v * us_f_x2[k];
+            }
+        }
+
+        float * cropped = upsampled + up_pad_left;
+        for (int t = 0; t < T_cropped; t++) {
+            const float v = cropped[t];
+            const float s = sinf(alpha_c * v);
+            cropped[t] = v + inv_beta * s * s;
+        }
+
+        const float c_left  = cropped[0];
+        const float c_right = cropped[T_cropped - 1];
+        for (int t = 0; t < ds_pad_left; t++) ds_padded[t] = c_left;
+        memcpy(ds_padded + ds_pad_left, cropped, (size_t) T_cropped * sizeof(float));
+        for (int t = 0; t < ds_pad_right; t++) ds_padded[ds_pad_left + T_cropped + t] = c_right;
+
+        for (int t = 0; t < T_final; t++) {
+            const float * row = ds_padded + t * 2;
+            float sum = 0.0f;
+            for (int k = 0; k < K; k++) sum += row[k] * ds_f[k];
+            x_out_c[t] = sum;
+        }
+        for (int t = T_final; t < T; t++) x_out_c[t] = 0.0f;
     }
 }""")
 
@@ -605,7 +844,269 @@ void ggml_cuda_op_siglu(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
         case GGML_OP_L2_NORM:
             return ggml_is_contiguous_rows(op->src[0]);""")
 
+    # 11. Patch ggml-cpu/ggml-cpu.cpp for additional proc address exports
+    ggml_cpu_cpp_path = os.path.join(srcdir, "llama.cpp/ggml/src/ggml-cpu/ggml-cpu.cpp")
+    patch_file(ggml_cpu_cpp_path,
+               """    if (strcmp(name, "ggml_backend_cpu_set_threadpool") == 0) {
+        return (void *)ggml_backend_cpu_set_threadpool;
+    }""",
+               """    if (strcmp(name, "ggml_backend_cpu_set_threadpool") == 0) {
+        return (void *)ggml_backend_cpu_set_threadpool;
+    }
+    if (strcmp(name, "ggml_graph_plan") == 0) {
+        return (void *)ggml_graph_plan;
+    }
+    if (strcmp(name, "ggml_graph_compute") == 0) {
+        return (void *)ggml_graph_compute;
+    }
+    if (strcmp(name, "ggml_graph_compute_with_ctx") == 0) {
+        return (void *)ggml_graph_compute_with_ctx;
+    }
+    if (strcmp(name, "ggml_get_type_traits_cpu") == 0) {
+        return (void *)ggml_get_type_traits_cpu;
+    }
+    if (strcmp(name, "ggml_cpu_has_sse3") == 0) return (void *)ggml_cpu_has_sse3;
+    if (strcmp(name, "ggml_cpu_has_ssse3") == 0) return (void *)ggml_cpu_has_ssse3;
+    if (strcmp(name, "ggml_cpu_has_avx") == 0) return (void *)ggml_cpu_has_avx;
+    if (strcmp(name, "ggml_cpu_has_avx_vnni") == 0) return (void *)ggml_cpu_has_avx_vnni;
+    if (strcmp(name, "ggml_cpu_has_avx2") == 0) return (void *)ggml_cpu_has_avx2;
+    if (strcmp(name, "ggml_cpu_has_bmi2") == 0) return (void *)ggml_cpu_has_bmi2;
+    if (strcmp(name, "ggml_cpu_has_f16c") == 0) return (void *)ggml_cpu_has_f16c;
+    if (strcmp(name, "ggml_cpu_has_fma") == 0) return (void *)ggml_cpu_has_fma;
+    if (strcmp(name, "ggml_cpu_has_avx512") == 0) return (void *)ggml_cpu_has_avx512;
+    if (strcmp(name, "ggml_cpu_has_avx512_vbmi") == 0) return (void *)ggml_cpu_has_avx512_vbmi;
+    if (strcmp(name, "ggml_cpu_has_avx512_vnni") == 0) return (void *)ggml_cpu_has_avx512_vnni;
+    if (strcmp(name, "ggml_cpu_has_avx512_bf16") == 0) return (void *)ggml_cpu_has_avx512_bf16;
+    if (strcmp(name, "ggml_cpu_has_amx_int8") == 0) return (void *)ggml_cpu_has_amx_int8;
+    if (strcmp(name, "ggml_cpu_has_neon") == 0) return (void *)ggml_cpu_has_neon;
+    if (strcmp(name, "ggml_cpu_has_arm_fma") == 0) return (void *)ggml_cpu_has_arm_fma;
+    if (strcmp(name, "ggml_cpu_has_fp16_va") == 0) return (void *)ggml_cpu_has_fp16_va;
+    if (strcmp(name, "ggml_cpu_has_dotprod") == 0) return (void *)ggml_cpu_has_dotprod;
+    if (strcmp(name, "ggml_cpu_has_matmul_int8") == 0) return (void *)ggml_cpu_has_matmul_int8;
+    if (strcmp(name, "ggml_cpu_has_sve") == 0) return (void *)ggml_cpu_has_sve;
+    if (strcmp(name, "ggml_cpu_get_sve_cnt") == 0) return (void *)ggml_cpu_get_sve_cnt;
+    if (strcmp(name, "ggml_cpu_has_sme") == 0) return (void *)ggml_cpu_has_sme;
+    if (strcmp(name, "ggml_cpu_has_sme2") == 0) return (void *)ggml_cpu_has_sme2;
+    if (strcmp(name, "ggml_cpu_has_riscv_v") == 0) return (void *)ggml_cpu_has_riscv_v;
+    if (strcmp(name, "ggml_cpu_get_rvv_vlen") == 0) return (void *)ggml_cpu_get_rvv_vlen;
+    if (strcmp(name, "ggml_cpu_has_vsx") == 0) return (void *)ggml_cpu_has_vsx;
+    if (strcmp(name, "ggml_cpu_has_vxe") == 0) return (void *)ggml_cpu_has_vxe;
+    if (strcmp(name, "ggml_cpu_has_wasm_simd") == 0) return (void *)ggml_cpu_has_wasm_simd;
+    if (strcmp(name, "ggml_cpu_has_llamafile") == 0) return (void *)ggml_cpu_has_llamafile;""")
+
+    # 12. Patch ggml-backend-reg.cpp for dynamic CPU backend symbols fallback
+    backend_reg_cpp_path = os.path.join(srcdir, "llama.cpp/ggml/src/ggml-backend-reg.cpp")
+    with open(backend_reg_cpp_path, 'r', encoding='utf-8') as f:
+        backend_reg_content = f.read()
+    if "get_cpu_proc_address" not in backend_reg_content:
+        print(f"Appending CPU backend compatibility wrappers to {backend_reg_cpp_path}...")
+        cpu_wrappers = """
+#include "ggml-cpu.h"
+
+#ifdef GGML_BACKEND_DL
+extern "C" {
+
+static void * get_cpu_proc_address(const char * name) {
+    ggml_backend_dev_t dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
+    if (!dev) {
+        ggml_backend_load_all();
+        dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
+    }
+    if (!dev) {
+        return nullptr;
+    }
+    ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
+    if (!reg) {
+        return nullptr;
+    }
+    return ggml_backend_reg_get_proc_address(reg, name);
+}
+
+GGML_BACKEND_API ggml_backend_t ggml_backend_cpu_init(void) {
+    ggml_backend_dev_t dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
+    if (!dev) {
+        ggml_backend_load_all();
+        dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
+    }
+    if (!dev) {
+        return nullptr;
+    }
+    return ggml_backend_dev_init(dev, nullptr);
+}
+
+GGML_BACKEND_API bool ggml_backend_is_cpu(ggml_backend_t backend) {
+    if (!backend) {
+        return false;
+    }
+    ggml_backend_dev_t dev = ggml_backend_get_device(backend);
+    if (!dev) {
+        return false;
+    }
+    return ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_CPU;
+}
+
+GGML_BACKEND_API void ggml_backend_cpu_set_n_threads(ggml_backend_t backend_cpu, int n_threads) {
+    if (!backend_cpu || !ggml_backend_is_cpu(backend_cpu)) {
+        return;
+    }
+    ggml_backend_dev_t dev = ggml_backend_get_device(backend_cpu);
+    ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
+    if (!reg) {
+        return;
+    }
+    auto fct = (ggml_backend_set_n_threads_t) ggml_backend_reg_get_proc_address(reg, "ggml_backend_set_n_threads");
+    if (fct) {
+        fct(backend_cpu, n_threads);
+    }
+}
+
+typedef void (*ggml_backend_cpu_set_threadpool_t)(ggml_backend_t backend_cpu, ggml_threadpool_t threadpool);
+typedef void (*ggml_backend_cpu_set_abort_callback_t)(ggml_backend_t backend_cpu, ggml_abort_callback abort_callback, void * abort_callback_data);
+typedef void (*ggml_backend_cpu_set_use_ref_t)(ggml_backend_t backend_cpu, bool use_ref);
+
+GGML_BACKEND_API void ggml_backend_cpu_set_threadpool(ggml_backend_t backend_cpu, ggml_threadpool_t threadpool) {
+    if (!backend_cpu || !ggml_backend_is_cpu(backend_cpu)) {
+        return;
+    }
+    ggml_backend_dev_t dev = ggml_backend_get_device(backend_cpu);
+    ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
+    if (!reg) {
+        return;
+    }
+    auto fct = (ggml_backend_cpu_set_threadpool_t) ggml_backend_reg_get_proc_address(reg, "ggml_backend_cpu_set_threadpool");
+    if (fct) {
+        fct(backend_cpu, threadpool);
+    }
+}
+
+GGML_BACKEND_API void ggml_backend_cpu_set_abort_callback(ggml_backend_t backend_cpu, ggml_abort_callback abort_callback, void * abort_callback_data) {
+    if (!backend_cpu || !ggml_backend_is_cpu(backend_cpu)) {
+        return;
+    }
+    ggml_backend_dev_t dev = ggml_backend_get_device(backend_cpu);
+    ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
+    if (!reg) {
+        return;
+    }
+    auto fct = (ggml_backend_cpu_set_abort_callback_t) ggml_backend_reg_get_proc_address(reg, "ggml_backend_set_abort_callback");
+    if (fct) {
+        fct(backend_cpu, abort_callback, abort_callback_data);
+    }
+}
+
+GGML_BACKEND_API void ggml_backend_cpu_set_use_ref(ggml_backend_t backend_cpu, bool use_ref) {
+    if (!backend_cpu || !ggml_backend_is_cpu(backend_cpu)) {
+        return;
+    }
+    ggml_backend_dev_t dev = ggml_backend_get_device(backend_cpu);
+    ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
+    if (!reg) {
+        return;
+    }
+    auto fct = (ggml_backend_cpu_set_use_ref_t) ggml_backend_reg_get_proc_address(reg, "ggml_backend_cpu_set_use_ref");
+    if (fct) {
+        fct(backend_cpu, use_ref);
+    }
+}
+
+GGML_BACKEND_API ggml_backend_reg_t ggml_backend_cpu_reg(void) {
+    ggml_backend_dev_t dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
+    if (!dev) {
+        ggml_backend_load_all();
+        dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
+    }
+    if (!dev) {
+        return nullptr;
+    }
+    return ggml_backend_dev_backend_reg(dev);
+}
+
+GGML_BACKEND_API struct ggml_threadpool * ggml_threadpool_new(struct ggml_threadpool_params * params) {
+    typedef struct ggml_threadpool * (*fn_t)(struct ggml_threadpool_params *);
+    auto fn = (fn_t) get_cpu_proc_address("ggml_threadpool_new");
+    return fn ? fn(params) : nullptr;
+}
+
+GGML_BACKEND_API void ggml_threadpool_free(struct ggml_threadpool * threadpool) {
+    typedef void (*fn_t)(struct ggml_threadpool *);
+    auto fn = (fn_t) get_cpu_proc_address("ggml_threadpool_free");
+    if (fn) fn(threadpool);
+}
+
+GGML_BACKEND_API struct ggml_cplan ggml_graph_plan(const struct ggml_cgraph * cgraph, int n_threads, struct ggml_threadpool * threadpool) {
+    typedef struct ggml_cplan (*fn_t)(const struct ggml_cgraph *, int, struct ggml_threadpool *);
+    auto fn = (fn_t) get_cpu_proc_address("ggml_graph_plan");
+    if (fn) return fn(cgraph, n_threads, threadpool);
+    struct ggml_cplan empty = {};
+    return empty;
+}
+
+GGML_BACKEND_API enum ggml_status ggml_graph_compute(struct ggml_cgraph * cgraph, struct ggml_cplan * cplan) {
+    typedef enum ggml_status (*fn_t)(struct ggml_cgraph *, struct ggml_cplan *);
+    auto fn = (fn_t) get_cpu_proc_address("ggml_graph_compute");
+    return fn ? fn(cgraph, cplan) : GGML_STATUS_FAILED;
+}
+
+GGML_BACKEND_API enum ggml_status ggml_graph_compute_with_ctx(struct ggml_context * ctx, struct ggml_cgraph * cgraph, int n_threads) {
+    typedef enum ggml_status (*fn_t)(struct ggml_context *, struct ggml_cgraph *, int);
+    auto fn = (fn_t) get_cpu_proc_address("ggml_graph_compute_with_ctx");
+    return fn ? fn(ctx, cgraph, n_threads) : GGML_STATUS_FAILED;
+}
+
+GGML_BACKEND_API const struct ggml_type_traits_cpu * ggml_get_type_traits_cpu(enum ggml_type type) {
+    typedef const struct ggml_type_traits_cpu * (*fn_t)(enum ggml_type);
+    auto fn = (fn_t) get_cpu_proc_address("ggml_get_type_traits_cpu");
+    return fn ? fn(type) : nullptr;
+}
+
+#define DEFINE_GGML_CPU_HAS(fn_name) \
+GGML_BACKEND_API int fn_name(void) { \
+    typedef int (*fn_t)(void); \
+    auto fn = (fn_t) get_cpu_proc_address(#fn_name); \
+    return fn ? fn() : 0; \
+}
+
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_sse3)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_ssse3)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_avx)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_avx_vnni)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_avx2)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_bmi2)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_f16c)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_fma)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_avx512)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_avx512_vbmi)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_avx512_vnni)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_avx512_bf16)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_amx_int8)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_neon)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_arm_fma)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_fp16_va)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_dotprod)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_matmul_int8)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_sve)
+DEFINE_GGML_CPU_HAS(ggml_cpu_get_sve_cnt)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_sme)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_sme2)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_riscv_v)
+DEFINE_GGML_CPU_HAS(ggml_cpu_get_rvv_vlen)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_vsx)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_vxe)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_wasm_simd)
+DEFINE_GGML_CPU_HAS(ggml_cpu_has_llamafile)
+#undef DEFINE_GGML_CPU_HAS
+
+} // extern "C"
+#endif
+"""
+        with open(backend_reg_cpp_path, 'a', encoding='utf-8') as f:
+            f.write(cpu_wrappers)
+        print(f"Successfully appended CPU backend compatibility wrappers to {backend_reg_cpp_path}")
+
     print("All system ggml patches applied successfully!")
 
 if __name__ == '__main__':
     main()
+
+
+

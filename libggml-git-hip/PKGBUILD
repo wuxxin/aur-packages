@@ -2,7 +2,7 @@
 
 pkgbase=libggml-git-hip
 pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip' 'crispasr-git-ggml-hip')
-pkgver=10058.r2.g635cdd5
+pkgver=10075.r1.g305ba51
 pkgrel=1
 pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp, crispasr-git-ggml-hip - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
@@ -57,7 +57,7 @@ sha256sums=('SKIP'
             'SKIP'
             'SKIP'
             'SKIP'
-            'e5442bfc37252c64ff56d174848b4335bfa11c3f36cab8a1f4f05f3f83e22a2e'
+            '5917d936d4902205408fa2377bf23910fac0073f4353da8360cd996516e115e6'
             '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
             'e7430489ec842c7c10d6976e04c63023c24ebf9fa080ea3fad55ab19c636d875'
             '3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391'
@@ -164,7 +164,8 @@ prepare() {
     git submodule update --init --recursive
     patch -p1 <"${srcdir}/fix-opusfile-include-dirs.patch"
     sed -i 's|add_subdirectory(src)|include(GNUInstallDirs)\nadd_subdirectory(src)|' CMakeLists.txt
-    sed -i 's|find_library(SENTENCEPIECE_LIB sentencepiece)|# find_library(SENTENCEPIECE_LIB sentencepiece)|' src/CMakeLists.txt
+    sed -i 's|add_library(ggml ALIAS ggml::ggml)|add_library(ggml ALIAS ggml::ggml)\n        add_library(ggml-cpu INTERFACE)|' CMakeLists.txt
+    sed -i 's|ggml_gated_delta_net(ctx0, q, k, v, g, b, s)|ggml_gated_delta_net(ctx0, q, k, v, g, b, s, 1)|g' examples/talk-llama/models/delta-net-base.cpp
 
     # Patch system ggml inside llama.cpp using the python script
     python3 "${startdir}/patch-ggml.py" "${srcdir}"
@@ -293,8 +294,7 @@ build() {
         -DCRISPASR_BUILD_SERVER=ON \
         -DCRISPASR_BUILD_EXAMPLES=ON \
         -DCRISPASR_BUILD_TESTS=OFF \
-        -DBUILD_SHARED_LIBS=OFF \
-        -DSENTENCEPIECE_LIB=NOTFOUND
+        -DBUILD_SHARED_LIBS=OFF
     cmake --build build_crispasr
 }
 
@@ -364,7 +364,7 @@ package_qwen3-tts.cpp-git-ggml-hip() {
 
 package_crispasr-git-ggml-hip() {
     pkgdesc="C++ ggml runtime hub for ASR (fork of whisper.cpp) - git shared library build"
-    depends=('libggml-git-hip' 'libgomp' 'vulkan-icd-loader' 'opusfile' 'opencore-amr' 'lame')
+    depends=('libggml-git-hip' 'libgomp' 'vulkan-icd-loader' 'opusfile' 'opencore-amr' 'lame' 'sentencepiece')
     provides=('crispasr')
     conflicts=('crispasr' 'crispasr-git' 'crispasr-release-git')
 
