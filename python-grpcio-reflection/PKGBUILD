@@ -1,0 +1,31 @@
+# Maintainer: Wuxxin <wuxxin@example.com>
+
+pkgname='python-grpcio-reflection'
+_pkgname='grpcio-reflection'
+_pyname='grpcio_reflection'
+pkgver=1.81.0
+pkgrel=1
+pkgdesc='Standard Protobuf reflection service for gRPC Python'
+arch=('any')
+url='https://grpc.io'
+license=('Apache-2.0')
+depends=('python-grpcio' 'python-protobuf')
+makedepends=(
+    'python-build'
+    'python-installer'
+    'python-setuptools'
+    'python-wheel'
+)
+source=("https://files.pythonhosted.org/packages/source/${_pkgname::1}/${_pkgname}/${_pyname}-${pkgver}.tar.gz")
+sha256sums=('5191db7aa6cab1b6981b0879fa44fdcdd43ba644f0301c40b976f813eb4eff06')
+
+build() {
+    cd "${_pyname}-${pkgver}"
+    python -m build --wheel --no-isolation
+}
+
+package() {
+    cd "${_pyname}-${pkgver}"
+    python -m installer --destdir="${pkgdir}" dist/*.whl
+}
+
