@@ -41,6 +41,9 @@ Can be **broken or bitrotten at anytime**.
     - with patches for RDNA2,  Python Bindings to support the latest git version,
     - all packages link dynamically against a single system-wide `libggml-git-hip`.
         - This ensures consistent backend behavior / bug compatibility across all tools.
+- [smg](smg)
+    - High-performance model-routing gateway for large-scale LLM deployments
+
 
 - [python-vllm-rocm-git](python-vllm-rocm-git) - High-throughput and memory-efficient inference and serving engine for LLMs (ROCm support, Git VCS version)
 
