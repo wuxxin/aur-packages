@@ -1,0 +1,120 @@
+# Maintainer: Felix Erkinger <wuxxin@gmail.com>
+
+pkgbase=mlc-llm
+pkgname=(mlc-llm python-mlc-llm python-tvm-ffi-mlc)
+pkgver=0.20.0
+pkgrel=1
+pkgdesc="Universal LLM deployment engine via ML compilation (ROCm & Vulkan)"
+arch=('x86_64')
+url="https://github.com/mlc-ai/mlc-llm"
+license=('Apache-2.0')
+makedepends=('cmake' 'ninja' 'git' 'python-build' 'python-installer' 'python-scikit-build-core' 'rocm-hip-sdk' 'vulkan-headers' 'llvm' 'cython' 'python-setuptools-scm')
+source=("mlc-llm::git+https://github.com/mlc-ai/mlc-llm.git#tag=v${pkgver}")
+sha256sums=('342de77156c9a8ce2afff16ed47c44c821f31fe68d1e11f5434c5a676998b6da')
+
+prepare() {
+    cd "${srcdir}/mlc-llm"
+    # Recursively update submodules
+    git submodule update --init --recursive
+
+    # Enable building full libtvm.so compiler library
+    sed -i 's/set(BUILD_DUMMY_LIBTVM ON)/set(BUILD_DUMMY_LIBTVM OFF)/' CMakeLists.txt
+}
+
+build() {
+    cd "${srcdir}/mlc-llm"
+    
+    # Configure CMake arguments for scikit-build-core
+    export SKBUILD_CMAKE_ARGS="-DUSE_CUDA=OFF;-DUSE_ROCM=ON;-DUSE_VULKAN=ON;-DUSE_METAL=OFF;-DUSE_OPENCL=OFF;-DUSE_LLVM=ON;-DUSE_FLASHINFER=ON;-DCMAKE_SHARED_LINKER_FLAGS=-lonig"
+                               
+    # Build the python wheel (which compiles the C++ libraries)
+    python -m build --wheel --no-isolation
+    
+    # Explicitly compile the tvm_compiler C++ target (which CMake excludes from all by default)
+    cmake --build build --target tvm_compiler
+
+    # Staging area for splitting packages
+    rm -rf "${srcdir}/stage"
+    mkdir -p "${srcdir}/stage"
+    python -m installer --destdir="${srcdir}/stage" dist/*.whl
+
+    # Build the tvm-ffi Python package from the local submodule
+    cd "${srcdir}/mlc-llm/3rdparty/tvm/3rdparty/tvm-ffi"
+    SKBUILD_CMAKE_ARGS="-DTVM_FFI_BUILD_PYTHON_MODULE=ON;-DTVM_FFI_BUILD_TESTS=OFF" python -m build --wheel --no-isolation
+}
+
+package_mlc-llm() {
+    pkgdesc="Universal LLM deployment engine (shared libraries and executables)"
+    depends=('rocm-hip-sdk' 'vulkan-icd-loader' 'llvm-libs' 'libbacktrace' 'oniguruma')
+    provides=('libmlc_llm.so' 'libtvm_runtime.so' 'libtvm_ffi.so' 'libtvm_compiler.so')
+    conflicts=('tvm')
+    
+    cd "${srcdir}/stage"
+    
+    # Install binaries
+    if [ -d usr/bin ]; then
+        install -d "${pkgdir}/usr/bin"
+        cp -a --no-preserve=ownership usr/bin/* "${pkgdir}/usr/bin/"
+    fi
+    
+    # Install shared libraries
+    install -d "${pkgdir}/usr/lib"
+    # Find libraries in site-packages
+    find usr/lib/python*/site-packages/mlc_llm/ -name "*.so" -exec cp -a --no-preserve=ownership {} "${pkgdir}/usr/lib/" \;
+
+    # Copy libtvm_ffi.so and libtvm_compiler.so from CMake build directory
+    cp -a --no-preserve=ownership "${srcdir}/mlc-llm/build/lib/libtvm_ffi.so" "${pkgdir}/usr/lib/"
+    if [ -f "${srcdir}/mlc-llm/build/lib/libtvm_compiler.so" ]; then
+        cp -a --no-preserve=ownership "${srcdir}/mlc-llm/build/lib/libtvm_compiler.so" "${pkgdir}/usr/lib/"
+    fi
+}
+
+package_python-mlc-llm() {
+    pkgdesc="Python bindings for MLC-LLM"
+    depends=('mlc-llm' 'python' 'python-numpy' 'python-pytorch' 'python-transformers' 'python-fastapi' 'python-openai' 'python-safetensors' 'python-sentencepiece' 'python-tqdm' 'python-tiktoken' 'python-shortuuid' 'python-ml-dtypes' 'uvicorn' 'python-flashinfer-rocm' 'python-msgpack' 'python-psutil' 'python-peft' 'python-prompt_toolkit' 'python-aiohttp' 'python-datasets' 'python-pytest' 'python-tvm-ffi-mlc')
+    provides=('python-tvm')
+    conflicts=('python-tvm')
+    
+    cd "${srcdir}/stage"
+    
+    # Copy site-packages
+    install -d "${pkgdir}/usr/lib"
+    cp -a --no-preserve=ownership usr/lib/python* "${pkgdir}/usr/lib/"
+    
+    # Remove compiled shared libraries from python package and symlink them to the system libraries
+    local py_ver=$(python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    local site_pkgs="${pkgdir}/usr/lib/python${py_ver}/site-packages/mlc_llm"
+    
+    rm -f "${site_pkgs}"/*.so
+    
+    # Symlink to system libraries (from mlc-llm package, resolved at install time)
+    ln -sr "${pkgdir}/usr/lib/libmlc_llm.so" "${site_pkgs}/libmlc_llm.so"
+    ln -sr "${pkgdir}/usr/lib/libtvm_runtime.so" "${site_pkgs}/libtvm_runtime.so"
+    ln -sr "${pkgdir}/usr/lib/libmlc_llm_module.so" "${site_pkgs}/libmlc_llm_module.so"
+
+    # Copy TVM python bindings to site-packages
+    cp -a --no-preserve=ownership "${srcdir}/mlc-llm/3rdparty/tvm/python/tvm" "${pkgdir}/usr/lib/python${py_ver}/site-packages/"
+
+    # Symlink libtvm_runtime.so to tvm/lib/ so TVM finds it
+    install -d "${pkgdir}/usr/lib/python${py_ver}/site-packages/tvm/lib"
+    ln -sr "${pkgdir}/usr/lib/libtvm_runtime.so" "${pkgdir}/usr/lib/python${py_ver}/site-packages/tvm/lib/libtvm_runtime.so"
+    ln -sr "${pkgdir}/usr/lib/libtvm_compiler.so" "${pkgdir}/usr/lib/python${py_ver}/site-packages/tvm/lib/libtvm_compiler.so"
+}
+
+package_python-tvm-ffi-mlc() {
+    pkgdesc="Open ABI and FFI for Machine Learning Systems (MLC Relax Fork)"
+    depends=('python' 'python-typing_extensions' 'libbacktrace')
+    provides=('python-tvm-ffi')
+    conflicts=('python-tvm-ffi')
+
+    cd "${srcdir}/mlc-llm/3rdparty/tvm/3rdparty/tvm-ffi"
+    python -m pip install --root="${pkgdir}" --no-deps --ignore-installed --break-system-packages dist/*.whl
+
+    local py_ver=$(python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    local ffi_lib_dir="${pkgdir}/usr/lib/python${py_ver}/site-packages/tvm_ffi"
+
+    # Remove the duplicate build of libtvm_ffi.so and symlink to system libtvm_ffi.so
+    rm -f "${ffi_lib_dir}/lib/libtvm_ffi.so"
+    install -d "${ffi_lib_dir}/lib"
+    ln -sr "${pkgdir}/usr/lib/libtvm_ffi.so" "${ffi_lib_dir}/lib/libtvm_ffi.so"
+}

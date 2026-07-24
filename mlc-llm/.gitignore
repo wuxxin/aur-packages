@@ -1,0 +1,8 @@
+# Ignore build and packaging outputs
+/src/
+/pkg/
+/mlc-llm/
+/dist/
+*.log
+*.pkg.tar.zst
+*.src.tar.gz
