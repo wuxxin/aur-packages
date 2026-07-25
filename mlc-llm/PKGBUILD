@@ -76,7 +76,17 @@ package_python-mlc-llm() {
     conflicts=('python-tvm')
     
     cd "${srcdir}/stage"
-    
+
+    # Install mlc_llm CLI entry point
+    install -d "${pkgdir}/usr/bin"
+    cat > "${pkgdir}/usr/bin/mlc_llm" << 'EOF'
+#!/usr/bin/env python
+"""MLC LLM CLI entry point."""
+from mlc_llm.__main__ import main
+main()
+EOF
+    chmod 755 "${pkgdir}/usr/bin/mlc_llm"
+
     # Copy site-packages
     install -d "${pkgdir}/usr/lib"
     cp -a --no-preserve=ownership usr/lib/python* "${pkgdir}/usr/lib/"
