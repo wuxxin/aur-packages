@@ -5,7 +5,7 @@ provides=('tei')
 conflicts=('tei')
 pkgdesc='Hugging Face Text Embeddings Inference (TEI) A blazing fast inference solution for text embeddings models. (with ROCm/HIP support)'
 pkgver=1.9.3
-pkgrel=1
+pkgrel=3
 arch=('x86_64')
 url='https://github.com/huggingface/text-embeddings-inference'
 license=('Apache-2.0')
@@ -37,14 +37,19 @@ makedepends=(
     'python-grpcio-tools'
     'git'
 )
-source=("${pkgname}-${pkgver}.tar.gz::https://github.com/huggingface/text-embeddings-inference/archive/refs/tags/v${pkgver}.tar.gz")
-sha256sums=('85cbe4b18033cd8e84118841a94122a8d4e4bfeeba128c4b0f77bd30d4f1e4ea')
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/huggingface/text-embeddings-inference/archive/refs/tags/v${pkgver}.tar.gz"
+        "metrics-0.23.0.crate::https://static.crates.io/crates/metrics/metrics-0.23.0.crate"
+        "jina-reranker-v3.patch")
+sha256sums=('85cbe4b18033cd8e84118841a94122a8d4e4bfeeba128c4b0f77bd30d4f1e4ea'
+            '884adb57038347dfbaf2d5065887b6cf4312330dc8e94bc30a1a839bd79d3261'
+            '527fa72357c163b980ee14319da05b899bf510ce5d9904b377bfbc54b0deba02')
 
 prepare() {
     cd "text-embeddings-inference-${pkgver}"
 
-    # Copy metrics-0.23.0 from cargo registry cache so we can patch it
-    cp -r /home/wuxxin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/metrics-0.23.0 "${srcdir}/metrics-0.23.0"
+    # Extract metrics-0.23.0 crate so we can patch it
+    mkdir -p "${srcdir}/metrics-0.23.0"
+    bsdtar -xf "../metrics-0.23.0.crate" -C "${srcdir}/metrics-0.23.0"
 
     # Patch the pointer cast error in metrics under Rust 1.96 (using std::mem::transmute to bypass fat pointer lifetime extension restrictions)
     sed -i "s/let recorder_ptr = unsafe { NonNull::new_unchecked(recorder as \*const _ as \*mut _) };/let recorder_ptr = unsafe { let ptr: *const dyn Recorder = recorder; let static_ptr: *const (dyn Recorder + 'static) = std::mem::transmute(ptr); NonNull::new_unchecked(static_ptr as *mut _) };/" "${srcdir}/metrics-0.23.0/src/recorder/mod.rs"
@@ -68,20 +73,27 @@ prepare() {
 
     # Patch Python dependency restrictions for Python 3.14 compatibility
     sed -i 's/python = ">=3.9,<3.13"/python = ">=3.9"/' backends/python/server/pyproject.toml
+
+    # Patch: Add support for "Ranking" architectures (e.g. JinaForRanking)
+    # TEI v1.9.3 only detects "Classification" suffix. This adds "Ranking" suffix
+    # support and handles missing id2label/label2id for ranking models.
+    patch -p1 -i "${srcdir}/jina-reranker-v3.patch"
 }
 
 build() {
     cd "text-embeddings-inference-${pkgver}"
 
     # Force gnu17 standard and disable treating warnings as errors to prevent glibc memchr compatibility compilation failures
-    export CFLAGS="${CFLAGS} -std=gnu17 -Wno-error"
-    export CXXFLAGS="${CXXFLAGS} -Wno-error"
+    # -Wno-incompatible-pointer-types-discards-qualifiers: suppress glibc 2.41+ memchr const-qualifier mismatch in aws-lc-sys
+    export CFLAGS="${CFLAGS} -std=gnu17 -Wno-incompatible-pointer-types-discards-qualifiers -Wno-error"
+    export CXXFLAGS="${CXXFLAGS} -Wno-incompatible-pointer-types-discards-qualifiers -Wno-error"
 
     # Use Clang for compiling C/C++ dependencies (BoringSSL/AWS-LC) to resolve symbol naming/prefixing bugs
     export CC=clang
     export CXX=clang
     export AWS_LC_SYS_CMAKE_BUILDER=1
-    export AWS_LC_SYS_CFLAGS="-Wno-error"
+    export AWS_LC_SYS_CFLAGS="-Wno-incompatible-pointer-types-discards-qualifiers -Wno-error"
+    export AWS_LC_SYS_C_STD=11
 
     # Build the Rust router binary (features http and grpc are mutually exclusive)
     cargo build --release --features candle,python,http --bin text-embeddings-router

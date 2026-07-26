@@ -1,0 +1,42 @@
+--- a/router/src/lib.rs
++++ b/router/src/lib.rs
+@@ -117,15 +117,24 @@
+     // Info model type
+     let model_type = match &backend_model_type {
+         text_embeddings_backend::ModelType::Classifier => {
+-            let id2label = config
+-                .id2label
+-                .context("`config.json` does not contain `id2label`")?;
++            let is_ranking_arch = config.architectures.iter().any(|a| a.ends_with("Ranking"));
++            let id2label = match config.id2label.clone() {
++                Some(labels) => labels,
++                None if is_ranking_arch => {
++                    HashMap::from([("0".to_string(), "score".to_string())])
++                }
++                None => return Err(anyhow!("`config.json` does not contain `id2label`").into()),
++            };
+             let n_classes = id2label.len();
+             let classifier_model = ClassifierModel {
+                 id2label,
+-                label2id: config
+-                    .label2id
+-                    .context("`config.json` does not contain `label2id`")?,
++                label2id: match config.label2id.clone() {
++                    Some(labels) => labels,
++                    None if is_ranking_arch => {
++                        HashMap::from([("score".to_string(), 0)])
++                    }
++                    None => return Err(anyhow!("`config.json` does not contain `label2id`").into()),
++                },
+             };
+             if n_classes > 1 {
+                 ModelType::Classifier(classifier_model)
+@@ -409,7 +418,7 @@
+             return Ok(text_embeddings_backend::ModelType::Embedding(
+                 text_embeddings_backend::Pool::Splade,
+             ));
+-        } else if arch.ends_with("Classification") {
++        } else if arch.ends_with("Classification") || arch.ends_with("Ranking") {
+             if pooling.is_some() {
+                 tracing::warn!(
+                     "`--pooling` arg is set but model is a classifier. Ignoring `--pooling` arg."
