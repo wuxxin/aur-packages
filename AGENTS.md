@@ -63,6 +63,15 @@ aur-packages/
 - **TryExec**: Check if command exists before showing in menu
 - **Categories**: Follow FreeDesktop.org standards
 
+## Agent Delegation Rules
+
+- **Delegate implementation work by default.** For any non-trivial change (multi-file edits, PKGBUILD patch creation), spawn a `@fixer` specialist. Do not perform multi-step implementation serially yourself.
+- **Orchestrator handles only**: single-file trivial edits, documentation edits, research synthesis, delegation coordination, and final verification.
+- If you catch yourself reaching for `edit`/`write`/`bash` to implement something a `@fixer` could do — stop and delegate.
+- **Research tasks**: delegate to `@explorer` (codebase search) or `@librarian` (external docs/web). Never grep/glob around hunting for patterns manually when an explorer can do it faster.
+- **Design tasks**: delegate to `@designer` for any UI/UX work.
+- **Architecture/debugging**: escalate to `@oracle` when uncertain or after 2+ failed fix attempts.
+
 ## Working with This Repository
 - This Repository contains custom builds of complex software (llama.cpp, PyTorch with ROCm)
 - Many packages have HIP/ROCm hardware acceleration requirements
