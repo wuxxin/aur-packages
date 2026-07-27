@@ -1,0 +1,169 @@
+diff --git a/conversion/qwen.py b/conversion/qwen.py
+index 9bc2b99fde..c898e5d744 100644
+--- a/conversion/qwen.py
++++ b/conversion/qwen.py
+@@ -250,6 +250,19 @@ class Qwen3Model(Qwen2Model):
+         yield from super().modify_tensors(data_torch, name, bid)
+ 
+ 
++@ModelBase.register("JinaForRanking")
++class JinaForRankingModel(Qwen3Model):
++    model_arch = gguf.MODEL_ARCH.QWEN3
++
++    def _is_qwen3_reranker(self) -> bool:
++        return False
++
++    def set_gguf_parameters(self):
++        super().set_gguf_parameters()
++        self.gguf_writer.add_pooling_type(gguf.PoolingType.LAST)
++        self.gguf_writer.add_embedding_length_out(512)
++
++
+ @ModelBase.register("Qwen3MoeForCausalLM")
+ class Qwen3MoeModel(Qwen2MoeModel):
+     model_arch = gguf.MODEL_ARCH.QWEN3MOE
+diff --git a/gguf-py/gguf/constants.py b/gguf-py/gguf/constants.py
+index 2071e3eaa8..b81176580b 100644
+--- a/gguf-py/gguf/constants.py
++++ b/gguf-py/gguf/constants.py
+@@ -2208,6 +2208,8 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
+         MODEL_TENSOR.FFN_GATE,
+         MODEL_TENSOR.FFN_DOWN,
+         MODEL_TENSOR.FFN_UP,
++        MODEL_TENSOR.DENSE_2_OUT,
++        MODEL_TENSOR.DENSE_3_OUT,
+     ],
+     MODEL_ARCH.QWEN3MOE: [
+         MODEL_TENSOR.TOKEN_EMBD,
+@@ -2225,6 +2227,8 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
+         MODEL_TENSOR.FFN_GATE_EXP,
+         MODEL_TENSOR.FFN_DOWN_EXP,
+         MODEL_TENSOR.FFN_UP_EXP,
++        MODEL_TENSOR.DENSE_2_OUT,
++        MODEL_TENSOR.DENSE_3_OUT,
+     ],
+     MODEL_ARCH.QWEN3NEXT: [
+         MODEL_TENSOR.TOKEN_EMBD,
+@@ -2255,7 +2259,9 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
+         MODEL_TENSOR.SSM_NORM,
+         MODEL_TENSOR.SSM_IN,
+         MODEL_TENSOR.SSM_BETA_ALPHA,
+-        MODEL_TENSOR.SSM_OUT
++        MODEL_TENSOR.SSM_OUT,
++        MODEL_TENSOR.DENSE_2_OUT,
++        MODEL_TENSOR.DENSE_3_OUT,
+     ],
+     MODEL_ARCH.QWEN3VL: [
+         MODEL_TENSOR.TOKEN_EMBD,
+@@ -2273,6 +2279,8 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
+         MODEL_TENSOR.FFN_GATE,
+         MODEL_TENSOR.FFN_DOWN,
+         MODEL_TENSOR.FFN_UP,
++        MODEL_TENSOR.DENSE_2_OUT,
++        MODEL_TENSOR.DENSE_3_OUT,
+     ],
+     MODEL_ARCH.QWEN3VLMOE: [
+         MODEL_TENSOR.TOKEN_EMBD,
+@@ -2290,6 +2298,8 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
+         MODEL_TENSOR.FFN_GATE_EXP,
+         MODEL_TENSOR.FFN_DOWN_EXP,
+         MODEL_TENSOR.FFN_UP_EXP,
++        MODEL_TENSOR.DENSE_2_OUT,
++        MODEL_TENSOR.DENSE_3_OUT,
+     ],
+     MODEL_ARCH.QWEN35: [
+         MODEL_TENSOR.TOKEN_EMBD,
+diff --git a/gguf-py/gguf/tensor_mapping.py b/gguf-py/gguf/tensor_mapping.py
+index 62d7a827e3..51a2a3d80d 100644
+--- a/gguf-py/gguf/tensor_mapping.py
++++ b/gguf-py/gguf/tensor_mapping.py
+@@ -89,9 +89,11 @@ class TensorNameMap:
+         ),
+         MODEL_TENSOR.DENSE_2_OUT: (
+             "dense_2_out",  # embeddinggemma
++            "projector.0",  # jina-reranker-v3
+         ),
+         MODEL_TENSOR.DENSE_3_OUT: (
+             "dense_3_out",  # embeddinggemma
++            "projector.2",  # jina-reranker-v3
+         ),
+         # Output norm
+         MODEL_TENSOR.OUTPUT_NORM: (
+diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp
+index 6d1c8f4e42..a4b563d908 100644
+--- a/src/llama-graph.cpp
++++ b/src/llama-graph.cpp
+@@ -3287,7 +3287,9 @@ llm_graph_input_mem_hybrid_iswa * llm_graph_context::build_inp_mem_hybrid_iswa()
+ void llm_graph_context::build_dense_out(
+     ggml_tensor * dense_2,
+     ggml_tensor * dense_2_b,
+-    ggml_tensor * dense_3) const {
++    ggml_tensor * dense_3,
++    ggml_tensor * dense_3_b,
++    llm_ffn_op_type act) const {
+     if (!cparams.embeddings || !(dense_2 || dense_2_b || dense_3)) {
+         return;
+     }
+@@ -3300,9 +3302,15 @@ void llm_graph_context::build_dense_out(
+     if (dense_2_b) {
+         cur = ggml_add(ctx0, cur, dense_2_b);
+     }
++    if (dense_3 && act != LLM_FFN_SILU) {
++        cur = ggml_relu(ctx0, cur);
++    }
+     if (dense_3) {
+         cur = ggml_mul_mat(ctx0, dense_3, cur);
+     }
++    if (dense_3_b) {
++        cur = ggml_add(ctx0, cur, dense_3_b);
++    }
+     cb(cur, "result_embd_pooled", -1);
+     res->t_embd_pooled = cur;
+     ggml_build_forward_expand(gf, cur);
+diff --git a/src/llama-graph.h b/src/llama-graph.h
+index 7ed490ce67..1200b89cb5 100644
+--- a/src/llama-graph.h
++++ b/src/llama-graph.h
+@@ -1248,7 +1248,9 @@ struct llm_graph_context {
+     void build_dense_out(
+             ggml_tensor * dense_2,
+             ggml_tensor * dense_2_b,
+-            ggml_tensor * dense_3) const;
++            ggml_tensor * dense_3,
++            ggml_tensor * dense_3_b,
++            llm_ffn_op_type act) const;
+ };
+ 
+ // TODO: better name
+diff --git a/src/llama-model.cpp b/src/llama-model.cpp
+index 5179692108..9774a92ee2 100644
+--- a/src/llama-model.cpp
++++ b/src/llama-model.cpp
+@@ -2307,7 +2307,11 @@ ggml_cgraph * llama_model::build_graph(const llm_graph_params & params) const {
+     // there will be two additional dense projection layers
+     // dense linear projections are applied after pooling
+     // TODO: move reranking logic here and generalize
+-    llm->build_dense_out(dense_2_out_layers, dense_2_out_layers_b, dense_3_out_layers);
++    llm_ffn_op_type dense_out_act = LLM_FFN_SILU;
++    if (arch == LLM_ARCH_QWEN3 || arch == LLM_ARCH_QWEN3VL) {
++        dense_out_act = LLM_FFN_RELU;
++    }
++    llm->build_dense_out(dense_2_out_layers, dense_2_out_layers_b, dense_3_out_layers, nullptr, dense_out_act);
+ 
+     llm->res->set_outputs(params);
+ 
+diff --git a/src/models/qwen3.cpp b/src/models/qwen3.cpp
+index f4b2a2aebe..3017a113ff 100644
+--- a/src/models/qwen3.cpp
++++ b/src/models/qwen3.cpp
+@@ -28,6 +28,10 @@ void llama_model_qwen3::load_arch_tensors(llama_model_loader &) {
+     // output rerank head
+     cls_out = create_tensor(tn(LLM_TENSOR_CLS_OUT, "weight"), {n_embd, hparams.n_cls_out}, TENSOR_NOT_REQUIRED);
+ 
++    // Dense output layers for jina-reranker-v3 projector
++    dense_2_out_layers = create_tensor(tn(LLM_TENSOR_DENSE_2_OUT, "weight"), {n_embd, hparams.n_embd_out()}, TENSOR_NOT_REQUIRED);
++    dense_3_out_layers = create_tensor(tn(LLM_TENSOR_DENSE_3_OUT, "weight"), {hparams.n_embd_out(), hparams.n_embd_out()}, TENSOR_NOT_REQUIRED);
++
+     for (int i = 0; i < n_layer; ++i) {
+         auto & layer = layers[i];
+ 

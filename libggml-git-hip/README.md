@@ -132,6 +132,17 @@ To assist with version identification and debugging of Git-HEAD packages:
 - **Whisper**: Appends the specific Git commit hash of the whisper.cpp repository to the output of `whisper-cli --version` (e.g., `whisper.cpp version: 1.9.1 (commithash)`).
 - **Qwen3-TTS**: Implements the `--version` flag for `qwen3-tts-cli` to output `qwen3-tts version 0.1-main-commithash` where the branch name (`main`) and short commit hash of the qwen3-tts.cpp repository are dynamically resolved at configure time.
 
+### Jina Reranker v3 Cross-Encoder Support (`jina-reranker-v3.patch`)
+
+Adds upstream support for the [jina-reranker-v3](https://huggingface.co/jinaai/jina-reranker-v3) cross-encoder reranking model to llama.cpp. This model is based on Qwen3 with a dense projector MLP for cosine similarity scoring.
+
+- **Architecture**: Qwen3 base (hidden_size=1024) with a 2-layer projector MLP (1024 → 512 → 512 with ReLU activation)
+- **Pooling**: LAST token pooling
+- **Output**: 512-dimensional embeddings for cosine similarity scoring
+- **Converter**: `JinaForRankingModel` class registered for GGUF conversion of HuggingFace models
+- **Dense tensor support**: Adds `DENSE_2_OUT`/`DENSE_3_OUT` tensor mappings to QWEN3-family architectures
+- **Usage**: `llama-embedding --pooling last -m model.gguf -p "your text"`
+
 ### Extended Unified System GGML & CrispASR Linkage (`patch-ggml.py`)
 To enable dynamic linking of CrispASR to the system-wide `libggml.so` without missing custom activations and operators, we apply a dynamic patching script during the `prepare()` phase:
 - **Custom Operations Synced**: The script `patch-ggml.py` locates and injects `GGML_OP_NORM_AFFINE` (fused LayerNorm), `GGML_GLU_OP_SIGLU` (SiGLU activation), and `GGML_OP_AA_SNAKE_BETA` (anti-aliased SnakeBeta for BigVGAN v2) directly into the standard `llama.cpp/ggml` source tree. This updates public headers, string name/symbol mappings, static assertions, CPU OpenMP-parallelized compute kernels, and HIP/ROCm GPU launchers.
