@@ -27,6 +27,52 @@ def patch_file(filepath, search, replace, is_regex=False):
         f.write(new_content)
     print(f"Successfully patched {filepath}")
 
+
+def patch_definitions(filepath, definitions, anchor=None):
+    """Insert per-definition code blocks with individual dedup checks.
+
+    Args:
+        filepath: Path to the source file to patch.
+        definitions: List of (name, definition_text) tuples. Each definition
+                     is checked independently — if it already exists anywhere
+                     in the file, it is skipped with a warning.
+        anchor: Text to insert each definition AFTER. If None, definitions
+                are appended to the end of the file. If specified and not
+                found, the script bails out.
+    """
+    print(f"Patching definitions in {filepath}...")
+    if not os.path.exists(filepath):
+        print(f"Error: {filepath} does not exist!")
+        sys.exit(1)
+
+    with open(filepath, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    if anchor is not None and anchor not in content:
+        print(f"Error: Anchor not found in {filepath}!")
+        sys.exit(1)
+
+    inserted = 0
+    for name, defn in definitions:
+        if defn in content:
+            print(f"  WARNING: definition '{name}' already exists, skipping")
+            continue
+        if anchor is not None:
+            # Insert after the anchor (replace first occurrence of anchor with anchor+defn)
+            content = content.replace(anchor, anchor + "\n" + defn, 1)
+        else:
+            content += "\n" + defn + "\n"
+        print(f"  Added '{name}'")
+        inserted += 1
+
+    if inserted == 0:
+        print(f"  All definitions already present — no changes needed")
+        return
+
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
+    print(f"Successfully patched {inserted} definition(s) in {filepath}")
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: patch-ggml.py <srcdir>")
@@ -844,63 +890,36 @@ void ggml_cuda_op_siglu(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
         case GGML_OP_L2_NORM:
             return ggml_is_contiguous_rows(op->src[0]);""")
 
-    # 11. Patch ggml-cpu/ggml-cpu.cpp for additional proc address exports
+    # 11. Add proc address exports to ggml-cpu.cpp (per-definition dedup)
     ggml_cpu_cpp_path = os.path.join(srcdir, "llama.cpp/ggml/src/ggml-cpu/ggml-cpu.cpp")
-    patch_file(ggml_cpu_cpp_path,
-               """    if (strcmp(name, "ggml_backend_cpu_set_threadpool") == 0) {
+    cpu_proc_anchor = """    if (strcmp(name, "ggml_backend_cpu_set_threadpool") == 0) {
         return (void *)ggml_backend_cpu_set_threadpool;
-    }""",
-               """    if (strcmp(name, "ggml_backend_cpu_set_threadpool") == 0) {
-        return (void *)ggml_backend_cpu_set_threadpool;
-    }
-    if (strcmp(name, "ggml_graph_plan") == 0) {
-        return (void *)ggml_graph_plan;
-    }
-    if (strcmp(name, "ggml_graph_compute") == 0) {
-        return (void *)ggml_graph_compute;
-    }
-    if (strcmp(name, "ggml_graph_compute_with_ctx") == 0) {
-        return (void *)ggml_graph_compute_with_ctx;
-    }
-    if (strcmp(name, "ggml_get_type_traits_cpu") == 0) {
-        return (void *)ggml_get_type_traits_cpu;
-    }
-    if (strcmp(name, "ggml_cpu_has_sse3") == 0) return (void *)ggml_cpu_has_sse3;
-    if (strcmp(name, "ggml_cpu_has_ssse3") == 0) return (void *)ggml_cpu_has_ssse3;
-    if (strcmp(name, "ggml_cpu_has_avx") == 0) return (void *)ggml_cpu_has_avx;
-    if (strcmp(name, "ggml_cpu_has_avx_vnni") == 0) return (void *)ggml_cpu_has_avx_vnni;
-    if (strcmp(name, "ggml_cpu_has_avx2") == 0) return (void *)ggml_cpu_has_avx2;
-    if (strcmp(name, "ggml_cpu_has_bmi2") == 0) return (void *)ggml_cpu_has_bmi2;
-    if (strcmp(name, "ggml_cpu_has_f16c") == 0) return (void *)ggml_cpu_has_f16c;
-    if (strcmp(name, "ggml_cpu_has_fma") == 0) return (void *)ggml_cpu_has_fma;
-    if (strcmp(name, "ggml_cpu_has_avx512") == 0) return (void *)ggml_cpu_has_avx512;
-    if (strcmp(name, "ggml_cpu_has_avx512_vbmi") == 0) return (void *)ggml_cpu_has_avx512_vbmi;
-    if (strcmp(name, "ggml_cpu_has_avx512_vnni") == 0) return (void *)ggml_cpu_has_avx512_vnni;
-    if (strcmp(name, "ggml_cpu_has_avx512_bf16") == 0) return (void *)ggml_cpu_has_avx512_bf16;
-    if (strcmp(name, "ggml_cpu_has_amx_int8") == 0) return (void *)ggml_cpu_has_amx_int8;
-    if (strcmp(name, "ggml_cpu_has_neon") == 0) return (void *)ggml_cpu_has_neon;
-    if (strcmp(name, "ggml_cpu_has_arm_fma") == 0) return (void *)ggml_cpu_has_arm_fma;
-    if (strcmp(name, "ggml_cpu_has_fp16_va") == 0) return (void *)ggml_cpu_has_fp16_va;
-    if (strcmp(name, "ggml_cpu_has_dotprod") == 0) return (void *)ggml_cpu_has_dotprod;
-    if (strcmp(name, "ggml_cpu_has_matmul_int8") == 0) return (void *)ggml_cpu_has_matmul_int8;
-    if (strcmp(name, "ggml_cpu_has_sve") == 0) return (void *)ggml_cpu_has_sve;
-    if (strcmp(name, "ggml_cpu_get_sve_cnt") == 0) return (void *)ggml_cpu_get_sve_cnt;
-    if (strcmp(name, "ggml_cpu_has_sme") == 0) return (void *)ggml_cpu_has_sme;
-    if (strcmp(name, "ggml_cpu_has_sme2") == 0) return (void *)ggml_cpu_has_sme2;
-    if (strcmp(name, "ggml_cpu_has_riscv_v") == 0) return (void *)ggml_cpu_has_riscv_v;
-    if (strcmp(name, "ggml_cpu_get_rvv_vlen") == 0) return (void *)ggml_cpu_get_rvv_vlen;
-    if (strcmp(name, "ggml_cpu_has_vsx") == 0) return (void *)ggml_cpu_has_vsx;
-    if (strcmp(name, "ggml_cpu_has_vxe") == 0) return (void *)ggml_cpu_has_vxe;
-    if (strcmp(name, "ggml_cpu_has_wasm_simd") == 0) return (void *)ggml_cpu_has_wasm_simd;
-    if (strcmp(name, "ggml_cpu_has_llamafile") == 0) return (void *)ggml_cpu_has_llamafile;""")
+    }"""
+    cpu_proc_defs = [
+        ("ggml_graph_plan",         '    if (strcmp(name, "ggml_graph_plan") == 0) {\n        return (void *)ggml_graph_plan;\n    }'),
+        ("ggml_graph_compute",      '    if (strcmp(name, "ggml_graph_compute") == 0) {\n        return (void *)ggml_graph_compute;\n    }'),
+        ("ggml_graph_compute_with_ctx", '    if (strcmp(name, "ggml_graph_compute_with_ctx") == 0) {\n        return (void *)ggml_graph_compute_with_ctx;\n    }'),
+        ("ggml_get_type_traits_cpu", '    if (strcmp(name, "ggml_get_type_traits_cpu") == 0) {\n        return (void *)ggml_get_type_traits_cpu;\n    }'),
+    ]
+    # Short-form proc addresses (single-line entries for CPU feature checks)
+    _cpu_short_names = [
+        "ggml_cpu_has_sse3", "ggml_cpu_has_ssse3", "ggml_cpu_has_avx", "ggml_cpu_has_avx_vnni",
+        "ggml_cpu_has_avx2", "ggml_cpu_has_bmi2", "ggml_cpu_has_f16c", "ggml_cpu_has_fma",
+        "ggml_cpu_has_avx512", "ggml_cpu_has_avx512_vbmi", "ggml_cpu_has_avx512_vnni",
+        "ggml_cpu_has_avx512_bf16", "ggml_cpu_has_amx_int8", "ggml_cpu_has_neon",
+        "ggml_cpu_has_arm_fma", "ggml_cpu_has_fp16_va", "ggml_cpu_has_dotprod",
+        "ggml_cpu_has_matmul_int8", "ggml_cpu_has_sve", "ggml_cpu_get_sve_cnt",
+        "ggml_cpu_has_sme", "ggml_cpu_has_sme2", "ggml_cpu_has_riscv_v",
+        "ggml_cpu_get_rvv_vlen", "ggml_cpu_has_vsx", "ggml_cpu_has_vxe",
+        "ggml_cpu_has_wasm_simd", "ggml_cpu_has_llamafile",
+    ]
+    for name in _cpu_short_names:
+        cpu_proc_defs.append((name, f'    if (strcmp(name, "{name}") == 0) return (void *){name};'))
+    patch_definitions(ggml_cpu_cpp_path, cpu_proc_defs, anchor=cpu_proc_anchor)
 
-    # 12. Patch ggml-backend-reg.cpp for dynamic CPU backend symbols fallback
+    # 12. Add CPU backend compatibility wrappers to ggml-backend-reg.cpp (per-definition dedup)
     backend_reg_cpp_path = os.path.join(srcdir, "llama.cpp/ggml/src/ggml-backend-reg.cpp")
-    with open(backend_reg_cpp_path, 'r', encoding='utf-8') as f:
-        backend_reg_content = f.read()
-    if "get_cpu_proc_address" not in backend_reg_content:
-        print(f"Appending CPU backend compatibility wrappers to {backend_reg_cpp_path}...")
-        cpu_wrappers = """
+    _BACKEND_REG_PREAMBLE = """#include <dlfcn.h>
 #include "ggml-cpu.h"
 
 #ifdef GGML_BACKEND_DL
@@ -920,21 +939,19 @@ static void * get_cpu_proc_address(const char * name) {
         return nullptr;
     }
     return ggml_backend_reg_get_proc_address(reg, name);
-}
+}"""
 
-GGML_BACKEND_API ggml_backend_t ggml_backend_cpu_init(void) {
-    ggml_backend_dev_t dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
-    if (!dev) {
-        ggml_backend_load_all();
-        dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
-    }
-    if (!dev) {
-        return nullptr;
-    }
-    return ggml_backend_dev_init(dev, nullptr);
-}
-
-GGML_BACKEND_API bool ggml_backend_is_cpu(ggml_backend_t backend) {
+    _BACKEND_REG_EPILOGUE = """} // extern "C"
+#endif"""
+    backend_reg_wrappers = [
+        ("get_cpu_proc_address", _BACKEND_REG_PREAMBLE),
+        ("ggml_backend_cpu_init", """GGML_BACKEND_API ggml_backend_t ggml_backend_cpu_init(void) {
+    // Pass through to real implementation via dlsym (requires cpu variant promoted to RTLD_GLOBAL)
+    typedef ggml_backend_t (*real_init_t)(void);
+    real_init_t real_init = (real_init_t) dlsym(RTLD_NEXT, "ggml_backend_cpu_init");
+    return real_init ? real_init() : nullptr;
+}"""),
+        ("ggml_backend_is_cpu", """GGML_BACKEND_API bool ggml_backend_is_cpu(ggml_backend_t backend) {
     if (!backend) {
         return false;
     }
@@ -943,9 +960,8 @@ GGML_BACKEND_API bool ggml_backend_is_cpu(ggml_backend_t backend) {
         return false;
     }
     return ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_CPU;
-}
-
-GGML_BACKEND_API void ggml_backend_cpu_set_n_threads(ggml_backend_t backend_cpu, int n_threads) {
+}"""),
+        ("ggml_backend_cpu_set_n_threads", """GGML_BACKEND_API void ggml_backend_cpu_set_n_threads(ggml_backend_t backend_cpu, int n_threads) {
     if (!backend_cpu || !ggml_backend_is_cpu(backend_cpu)) {
         return;
     }
@@ -958,9 +974,8 @@ GGML_BACKEND_API void ggml_backend_cpu_set_n_threads(ggml_backend_t backend_cpu,
     if (fct) {
         fct(backend_cpu, n_threads);
     }
-}
-
-typedef void (*ggml_backend_cpu_set_threadpool_t)(ggml_backend_t backend_cpu, ggml_threadpool_t threadpool);
+}"""),
+        ("ggml_backend_cpu_set_threadpool (wrapper+typedef)", """typedef void (*ggml_backend_cpu_set_threadpool_t)(ggml_backend_t backend_cpu, ggml_threadpool_t threadpool);
 typedef void (*ggml_backend_cpu_set_abort_callback_t)(ggml_backend_t backend_cpu, ggml_abort_callback abort_callback, void * abort_callback_data);
 typedef void (*ggml_backend_cpu_set_use_ref_t)(ggml_backend_t backend_cpu, bool use_ref);
 
@@ -1007,63 +1022,50 @@ GGML_BACKEND_API void ggml_backend_cpu_set_use_ref(ggml_backend_t backend_cpu, b
     if (fct) {
         fct(backend_cpu, use_ref);
     }
-}
-
-GGML_BACKEND_API ggml_backend_reg_t ggml_backend_cpu_reg(void) {
-    ggml_backend_dev_t dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
-    if (!dev) {
-        ggml_backend_load_all();
-        dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
-    }
-    if (!dev) {
-        return nullptr;
-    }
-    return ggml_backend_dev_backend_reg(dev);
-}
-
-GGML_BACKEND_API struct ggml_threadpool * ggml_threadpool_new(struct ggml_threadpool_params * params) {
+}"""),
+        ("ggml_backend_cpu_reg", """GGML_BACKEND_API ggml_backend_reg_t ggml_backend_cpu_reg(void) {
+    // Pass through to real implementation via dlsym (requires cpu variant promoted to RTLD_GLOBAL)
+    typedef ggml_backend_reg_t (*real_fn_t)(void);
+    real_fn_t real_fn = (real_fn_t) dlsym(RTLD_NEXT, "ggml_backend_cpu_reg");
+    return real_fn ? real_fn() : nullptr;
+}"""),
+        ("ggml_threadpool_new", """GGML_BACKEND_API struct ggml_threadpool * ggml_threadpool_new(struct ggml_threadpool_params * params) {
     typedef struct ggml_threadpool * (*fn_t)(struct ggml_threadpool_params *);
     auto fn = (fn_t) get_cpu_proc_address("ggml_threadpool_new");
     return fn ? fn(params) : nullptr;
-}
-
-GGML_BACKEND_API void ggml_threadpool_free(struct ggml_threadpool * threadpool) {
+}"""),
+        ("ggml_threadpool_free", """GGML_BACKEND_API void ggml_threadpool_free(struct ggml_threadpool * threadpool) {
     typedef void (*fn_t)(struct ggml_threadpool *);
     auto fn = (fn_t) get_cpu_proc_address("ggml_threadpool_free");
     if (fn) fn(threadpool);
-}
-
-GGML_BACKEND_API struct ggml_cplan ggml_graph_plan(const struct ggml_cgraph * cgraph, int n_threads, struct ggml_threadpool * threadpool) {
+}"""),
+        ("ggml_graph_plan (wrapper)", """GGML_BACKEND_API struct ggml_cplan ggml_graph_plan(const struct ggml_cgraph * cgraph, int n_threads, struct ggml_threadpool * threadpool) {
     typedef struct ggml_cplan (*fn_t)(const struct ggml_cgraph *, int, struct ggml_threadpool *);
     auto fn = (fn_t) get_cpu_proc_address("ggml_graph_plan");
     if (fn) return fn(cgraph, n_threads, threadpool);
     struct ggml_cplan empty = {};
     return empty;
-}
-
-GGML_BACKEND_API enum ggml_status ggml_graph_compute(struct ggml_cgraph * cgraph, struct ggml_cplan * cplan) {
+}"""),
+        ("ggml_graph_compute (wrapper)", """GGML_BACKEND_API enum ggml_status ggml_graph_compute(struct ggml_cgraph * cgraph, struct ggml_cplan * cplan) {
     typedef enum ggml_status (*fn_t)(struct ggml_cgraph *, struct ggml_cplan *);
     auto fn = (fn_t) get_cpu_proc_address("ggml_graph_compute");
     return fn ? fn(cgraph, cplan) : GGML_STATUS_FAILED;
-}
-
-GGML_BACKEND_API enum ggml_status ggml_graph_compute_with_ctx(struct ggml_context * ctx, struct ggml_cgraph * cgraph, int n_threads) {
+}"""),
+        ("ggml_graph_compute_with_ctx (wrapper)", """GGML_BACKEND_API enum ggml_status ggml_graph_compute_with_ctx(struct ggml_context * ctx, struct ggml_cgraph * cgraph, int n_threads) {
     typedef enum ggml_status (*fn_t)(struct ggml_context *, struct ggml_cgraph *, int);
     auto fn = (fn_t) get_cpu_proc_address("ggml_graph_compute_with_ctx");
     return fn ? fn(ctx, cgraph, n_threads) : GGML_STATUS_FAILED;
-}
-
-GGML_BACKEND_API const struct ggml_type_traits_cpu * ggml_get_type_traits_cpu(enum ggml_type type) {
+}"""),
+        ("ggml_get_type_traits_cpu (wrapper)", """GGML_BACKEND_API const struct ggml_type_traits_cpu * ggml_get_type_traits_cpu(enum ggml_type type) {
     typedef const struct ggml_type_traits_cpu * (*fn_t)(enum ggml_type);
     auto fn = (fn_t) get_cpu_proc_address("ggml_get_type_traits_cpu");
     return fn ? fn(type) : nullptr;
-}
-
-#define DEFINE_GGML_CPU_HAS(fn_name) \
-GGML_BACKEND_API int fn_name(void) { \
-    typedef int (*fn_t)(void); \
-    auto fn = (fn_t) get_cpu_proc_address(#fn_name); \
-    return fn ? fn() : 0; \
+}"""),
+        ("DEFINE_GGML_CPU_HAS macro + all instances", """#define DEFINE_GGML_CPU_HAS(fn_name) \\
+GGML_BACKEND_API int fn_name(void) { \\
+    typedef int (*fn_t)(void); \\
+    auto fn = (fn_t) get_cpu_proc_address(#fn_name); \\
+    return fn ? fn() : 0; \\
 }
 
 DEFINE_GGML_CPU_HAS(ggml_cpu_has_sse3)
@@ -1094,14 +1096,10 @@ DEFINE_GGML_CPU_HAS(ggml_cpu_has_vsx)
 DEFINE_GGML_CPU_HAS(ggml_cpu_has_vxe)
 DEFINE_GGML_CPU_HAS(ggml_cpu_has_wasm_simd)
 DEFINE_GGML_CPU_HAS(ggml_cpu_has_llamafile)
-#undef DEFINE_GGML_CPU_HAS
-
-} // extern "C"
-#endif
-"""
-        with open(backend_reg_cpp_path, 'a', encoding='utf-8') as f:
-            f.write(cpu_wrappers)
-        print(f"Successfully appended CPU backend compatibility wrappers to {backend_reg_cpp_path}")
+#undef DEFINE_GGML_CPU_HAS"""),
+        ("backend_reg_epilogue", _BACKEND_REG_EPILOGUE),
+    ]
+    patch_definitions(backend_reg_cpp_path, backend_reg_wrappers, anchor=None)
 
     print("All system ggml patches applied successfully!")
 
