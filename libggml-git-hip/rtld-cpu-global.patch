@@ -1,0 +1,219 @@
+diff --git a/ggml/src/ggml-backend-reg.cpp b/ggml/src/ggml-backend-reg.cpp
+index e595946707..53158fea07 100644
+--- a/ggml/src/ggml-backend-reg.cpp
++++ b/ggml/src/ggml-backend-reg.cpp
+@@ -546,6 +546,10 @@ static ggml_backend_reg_t ggml_backend_load_best(const char * name, bool silent,
+             fs::path filename = backend_filename_prefix().native() + name_path.native() + backend_filename_extension().native();
+             fs::path path = search_path / filename;
+             if (std::error_code ec; fs::exists(path, ec)) {
++                // Promote CPU variant before loading so recursive calls during init find real symbols
++                if (strcmp(name, "cpu") == 0) {
++                    dlopen(path.string().c_str(), RTLD_NOW | RTLD_GLOBAL);
++                }
+                 return get_reg().load_backend(path, silent);
+             } else {
+                 if (ec) {
+@@ -556,6 +560,10 @@ static ggml_backend_reg_t ggml_backend_load_best(const char * name, bool silent,
+         return nullptr;
+     }
+ 
++    // Promote CPU variant before loading so recursive calls during init find real symbols
++    if (strcmp(name, "cpu") == 0) {
++        dlopen(best_path.string().c_str(), RTLD_NOW | RTLD_GLOBAL);
++    }
+     return get_reg().load_backend(best_path, silent);
+ }
+ 
+@@ -591,3 +599,192 @@ void ggml_backend_load_all_from_path(const char * dir_path) {
+         ggml_backend_load(backend_path);
+     }
+ }
++
++#include <dlfcn.h>
++#include "ggml-cpu.h"
++
++#ifdef GGML_BACKEND_DL
++extern "C" {
++
++static void * get_cpu_proc_address(const char * name) {
++    ggml_backend_dev_t dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
++    if (!dev) {
++        ggml_backend_load_all();
++        dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
++    }
++    if (!dev) {
++        return nullptr;
++    }
++    ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
++    if (!reg) {
++        return nullptr;
++    }
++    return ggml_backend_reg_get_proc_address(reg, name);
++}
++
++GGML_BACKEND_API ggml_backend_t ggml_backend_cpu_init(void) {
++    // Pass through to real implementation via dlsym (requires cpu variant promoted to RTLD_GLOBAL)
++    typedef ggml_backend_t (*real_init_t)(void);
++    real_init_t real_init = (real_init_t) dlsym(RTLD_NEXT, "ggml_backend_cpu_init");
++    return real_init ? real_init() : nullptr;
++}
++
++GGML_BACKEND_API bool ggml_backend_is_cpu(ggml_backend_t backend) {
++    if (!backend) {
++        return false;
++    }
++    ggml_backend_dev_t dev = ggml_backend_get_device(backend);
++    if (!dev) {
++        return false;
++    }
++    return ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_CPU;
++}
++
++GGML_BACKEND_API void ggml_backend_cpu_set_n_threads(ggml_backend_t backend_cpu, int n_threads) {
++    if (!backend_cpu || !ggml_backend_is_cpu(backend_cpu)) {
++        return;
++    }
++    ggml_backend_dev_t dev = ggml_backend_get_device(backend_cpu);
++    ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
++    if (!reg) {
++        return;
++    }
++    auto fct = (ggml_backend_set_n_threads_t) ggml_backend_reg_get_proc_address(reg, "ggml_backend_set_n_threads");
++    if (fct) {
++        fct(backend_cpu, n_threads);
++    }
++}
++
++typedef void (*ggml_backend_cpu_set_threadpool_t)(ggml_backend_t backend_cpu, ggml_threadpool_t threadpool);
++typedef void (*ggml_backend_cpu_set_abort_callback_t)(ggml_backend_t backend_cpu, ggml_abort_callback abort_callback, void * abort_callback_data);
++typedef void (*ggml_backend_cpu_set_use_ref_t)(ggml_backend_t backend_cpu, bool use_ref);
++
++GGML_BACKEND_API void ggml_backend_cpu_set_threadpool(ggml_backend_t backend_cpu, ggml_threadpool_t threadpool) {
++    if (!backend_cpu || !ggml_backend_is_cpu(backend_cpu)) {
++        return;
++    }
++    ggml_backend_dev_t dev = ggml_backend_get_device(backend_cpu);
++    ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
++    if (!reg) {
++        return;
++    }
++    auto fct = (ggml_backend_cpu_set_threadpool_t) ggml_backend_reg_get_proc_address(reg, "ggml_backend_cpu_set_threadpool");
++    if (fct) {
++        fct(backend_cpu, threadpool);
++    }
++}
++
++GGML_BACKEND_API void ggml_backend_cpu_set_abort_callback(ggml_backend_t backend_cpu, ggml_abort_callback abort_callback, void * abort_callback_data) {
++    if (!backend_cpu || !ggml_backend_is_cpu(backend_cpu)) {
++        return;
++    }
++    ggml_backend_dev_t dev = ggml_backend_get_device(backend_cpu);
++    ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
++    if (!reg) {
++        return;
++    }
++    auto fct = (ggml_backend_cpu_set_abort_callback_t) ggml_backend_reg_get_proc_address(reg, "ggml_backend_set_abort_callback");
++    if (fct) {
++        fct(backend_cpu, abort_callback, abort_callback_data);
++    }
++}
++
++GGML_BACKEND_API void ggml_backend_cpu_set_use_ref(ggml_backend_t backend_cpu, bool use_ref) {
++    if (!backend_cpu || !ggml_backend_is_cpu(backend_cpu)) {
++        return;
++    }
++    ggml_backend_dev_t dev = ggml_backend_get_device(backend_cpu);
++    ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
++    if (!reg) {
++        return;
++    }
++    auto fct = (ggml_backend_cpu_set_use_ref_t) ggml_backend_reg_get_proc_address(reg, "ggml_backend_cpu_set_use_ref");
++    if (fct) {
++        fct(backend_cpu, use_ref);
++    }
++}
++
++GGML_BACKEND_API ggml_backend_reg_t ggml_backend_cpu_reg(void) {
++    // Pass through to real implementation via dlsym (requires cpu variant promoted to RTLD_GLOBAL)
++    typedef ggml_backend_reg_t (*real_fn_t)(void);
++    real_fn_t real_fn = (real_fn_t) dlsym(RTLD_NEXT, "ggml_backend_cpu_reg");
++    return real_fn ? real_fn() : nullptr;
++}
++
++GGML_BACKEND_API struct ggml_threadpool * ggml_threadpool_new(struct ggml_threadpool_params * params) {
++    typedef struct ggml_threadpool * (*fn_t)(struct ggml_threadpool_params *);
++    auto fn = (fn_t) get_cpu_proc_address("ggml_threadpool_new");
++    return fn ? fn(params) : nullptr;
++}
++
++GGML_BACKEND_API void ggml_threadpool_free(struct ggml_threadpool * threadpool) {
++    typedef void (*fn_t)(struct ggml_threadpool *);
++    auto fn = (fn_t) get_cpu_proc_address("ggml_threadpool_free");
++    if (fn) fn(threadpool);
++}
++
++GGML_BACKEND_API struct ggml_cplan ggml_graph_plan(const struct ggml_cgraph * cgraph, int n_threads, struct ggml_threadpool * threadpool) {
++    typedef struct ggml_cplan (*fn_t)(const struct ggml_cgraph *, int, struct ggml_threadpool *);
++    auto fn = (fn_t) get_cpu_proc_address("ggml_graph_plan");
++    if (fn) return fn(cgraph, n_threads, threadpool);
++    struct ggml_cplan empty = {};
++    return empty;
++}
++
++GGML_BACKEND_API enum ggml_status ggml_graph_compute(struct ggml_cgraph * cgraph, struct ggml_cplan * cplan) {
++    typedef enum ggml_status (*fn_t)(struct ggml_cgraph *, struct ggml_cplan *);
++    auto fn = (fn_t) get_cpu_proc_address("ggml_graph_compute");
++    return fn ? fn(cgraph, cplan) : GGML_STATUS_FAILED;
++}
++
++GGML_BACKEND_API enum ggml_status ggml_graph_compute_with_ctx(struct ggml_context * ctx, struct ggml_cgraph * cgraph, int n_threads) {
++    typedef enum ggml_status (*fn_t)(struct ggml_context *, struct ggml_cgraph *, int);
++    auto fn = (fn_t) get_cpu_proc_address("ggml_graph_compute_with_ctx");
++    return fn ? fn(ctx, cgraph, n_threads) : GGML_STATUS_FAILED;
++}
++
++GGML_BACKEND_API const struct ggml_type_traits_cpu * ggml_get_type_traits_cpu(enum ggml_type type) {
++    typedef const struct ggml_type_traits_cpu * (*fn_t)(enum ggml_type);
++    auto fn = (fn_t) get_cpu_proc_address("ggml_get_type_traits_cpu");
++    return fn ? fn(type) : nullptr;
++}
++
++#define DEFINE_GGML_CPU_HAS(fn_name) \
++GGML_BACKEND_API int fn_name(void) { \
++    typedef int (*fn_t)(void); \
++    auto fn = (fn_t) get_cpu_proc_address(#fn_name); \
++    return fn ? fn() : 0; \
++}
++
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_sse3)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_ssse3)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_avx)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_avx_vnni)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_avx2)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_bmi2)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_f16c)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_fma)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_avx512)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_avx512_vbmi)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_avx512_vnni)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_avx512_bf16)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_amx_int8)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_neon)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_arm_fma)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_fp16_va)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_dotprod)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_matmul_int8)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_sve)
++DEFINE_GGML_CPU_HAS(ggml_cpu_get_sve_cnt)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_sme)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_sme2)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_riscv_v)
++DEFINE_GGML_CPU_HAS(ggml_cpu_get_rvv_vlen)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_vsx)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_vxe)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_wasm_simd)
++DEFINE_GGML_CPU_HAS(ggml_cpu_has_llamafile)
++#undef DEFINE_GGML_CPU_HAS
++
++} // extern "C"
++#endif
