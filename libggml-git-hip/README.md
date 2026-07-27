@@ -141,7 +141,11 @@ Adds upstream support for the [jina-reranker-v3](https://huggingface.co/jinaai/j
 - **Output**: 512-dimensional embeddings for cosine similarity scoring
 - **Converter**: `JinaForRankingModel` class registered for GGUF conversion of HuggingFace models
 - **Dense tensor support**: Adds `DENSE_2_OUT`/`DENSE_3_OUT` tensor mappings to QWEN3-family architectures
-- **Usage**: `llama-embedding --pooling last -m model.gguf -p "your text"`
+- **Usage**:
+  ```bash
+  llama-server -m jina-reranker-v3.gguf --embeddings --pooling last
+  ```
+  Then POST to `/v1/embeddings` to get 512-dim projected embeddings; compute cosine similarity client-side for reranking.
 
 ### Extended Unified System GGML & CrispASR Linkage (`patch-ggml.py`)
 To enable dynamic linking of CrispASR to the system-wide `libggml.so` without missing custom activations and operators, we apply a dynamic patching script during the `prepare()` phase:
@@ -150,9 +154,43 @@ To enable dynamic linking of CrispASR to the system-wide `libggml.so` without mi
 - **Sentencepiece Integration**: Fully integrates and dynamically links CrispASR against the system-wide `/usr/lib/libsentencepiece.so` library, enabling correct tokenization structures for the TTS engine sub-modules.
 
 ### Dynamic CPU Backend Compatibility Wrappers (`patch-ggml.py`)
-When compiling with dynamic backend loading (`GGML_BACKEND_DL=ON`), the CPU backend is built as dynamically loaded modules (`libggml-cpu-*.so`). As a result, standard CPU backend symbols (such as `ggml_backend_cpu_init`, `ggml_backend_is_cpu`, `ggml_backend_cpu_set_n_threads`, `ggml_graph_plan`, `ggml_graph_compute`, `ggml_threadpool_new`, and the `ggml_cpu_has_*` feature query checks) are no longer exported by the main `libggml.so`. 
 
-To prevent linker errors in downstream applications (like CrispASR and internal test utilities) that link dynamically to `libggml.so`, `patch-ggml.py` now appends dynamic wrappers in `ggml-backend-reg.cpp`. These wrappers dynamically resolve the active CPU backend and forward calls, maintaining full API compatibility for dynamic linking.
+When compiling with dynamic backend loading (`GGML_BACKEND_DL=ON`), the CPU backend is built as dynamically loaded variant modules (`libggml-cpu-*.so`). As a result, standard CPU backend symbols such as `ggml_backend_cpu_init`, `ggml_backend_cpu_reg`, `ggml_backend_is_cpu`, `ggml_backend_cpu_set_n_threads`, `ggml_graph_plan`, `ggml_graph_compute`, `ggml_threadpool_new`, and the `ggml_cpu_has_*` feature query checks are no longer statically available in the main `libggml.so`.
+
+To prevent linker errors in downstream applications (like CrispASR and internal test utilities) that link dynamically to `libggml.so`, `patch-ggml.py` appends dynamic wrappers in `ggml-backend-reg.cpp`. These wrappers make the symbols available at link time and forward calls to the real implementations in the variant `.so` files.
+
+#### Symbol Dispatch Strategy
+
+The wrappers use two different forwarding strategies depending on the call context:
+
+- **`dlsym(RTLD_NEXT)` pass-through**: Wrappers for `ggml_backend_cpu_init` and `ggml_backend_cpu_reg` resolve the real implementation via `dlsym(RTLD_NEXT, ...)`, which skips the wrapper definition in `libggml.so` and finds the next symbol in load order (typically from the best-matching CPU variant `.so`). A depth guard detects recursive calls during backend initialization and falls back to `dlsym` pass-through to avoid re-entering the loading path.
+
+- **`get_cpu_proc_address()` forwarding**: The remaining wrappers (`ggml_backend_is_cpu`, `ggml_backend_cpu_set_n_threads`, `ggml_graph_plan`, `ggml_graph_compute`, `ggml_threadpool_*`, all `ggml_cpu_has_*` functions) resolve the active CPU backend's registration and call the function via the backend's proc address table. This avoids symbol duplication entirely.
+
+#### Why This Matters Now
+
+The original wrappers (pre-July 2026) used `ggml_backend_load_all()` and `ggml_backend_dev_init()` directly. This caused two critical runtime failures:
+
+1. **Infinite recursion in `ggml_backend_cpu_init`**: The wrapper called `ggml_backend_dev_init(dev, nullptr)`, which internally called `ggml_backend_cpu_init()` again — but the dynamic linker resolved it back to the wrapper, creating a `wrapper → dev_init → cpu_init → wrapper` loop. Fixed by switching to `dlsym(RTLD_NEXT)` pass-through.
+
+2. **Infinite recursion in `ggml_backend_cpu_reg`**: During backend loading, the variant `.so`'s `ggml_backend_init` called `ggml_backend_cpu_reg()` to register itself. But the wrapper saw no CPU device registered yet (registration hadn't completed) and called `ggml_backend_load_all()` again — re-entering the same loading path. Fixed with a depth-guarded fallback: on first call, load backends and lookup the device; on recursive calls, `dlsym(RTLD_NEXT)` pass-through to the variant's own implementation.
+
+These fixes work together with the `rtld-global.patch` below to make CPU backend symbols available through `libggml.so` without runtime hangs.
+
+### RTLD Global Symbol Visibility (`rtld-global.patch`)
+
+The `dlsym(RTLD_NEXT)` dispatch used by the CPU backend wrappers depends on the variant `.so`'s symbols being visible in the global symbol namespace. However, `ggml-backend-dl.cpp` loads all backend `.so` files with `dlopen(..., RTLD_NOW | RTLD_LOCAL)`, which **hides** their symbols from `dlsym(RTLD_NEXT)`.
+
+```
+dlopen(RTLD_LOCAL)  → dlsym(RTLD_NEXT) = (nil)   ✗ symbol hidden
+dlopen(RTLD_GLOBAL) → dlsym(RTLD_NEXT) = correct  ✓ symbol found
+```
+
+This patch changes `RTLD_LOCAL` to `RTLD_GLOBAL` in `ggml/src/ggml-backend-dl.cpp`. Only the best-scoring CPU variant `.so` is kept loaded (all others are probed and closed), so there is no symbol conflict between variants. Each backend type (CPU, BLAS, HIP, Vulkan) uses uniquely named functions, avoiding cross-backend shadowing.
+
+**Without this patch**: After the wrapper fixes above, `ggml_backend_cpu_init()` returns `nullptr` because it cannot find the real implementation — even though the variant `.so` is loaded and the CPU backend is registered. `llama-server` fails to initialize any model that requires a CPU backend for layer offloading.
+
+**With this patch**: `dlsym(RTLD_NEXT)` resolves the real function pointer, the wrapper forwards the call correctly, and the CPU backend initializes normally.
 
 #### Compatibility & Safety
 Adding these custom operators and wrappers to the system-wide `libggml.so` does **not** introduce compile or runtime compatibility issues for standard GGML tools (e.g. `llama.cpp` or third-party wrappers):

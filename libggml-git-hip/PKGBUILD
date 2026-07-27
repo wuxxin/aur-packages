@@ -1,10 +1,10 @@
 # Maintainer: Wuxxin <wuxxin@gmail.com>
 
 pkgbase=libggml-git-hip
-pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip' 'crispasr-git-ggml-hip')
-pkgver=10142.r1.g88b47a7
+pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip') # 'crispasr-git-ggml-hip'
+pkgver=10154.r0.g0e4a036
 pkgrel=1
-pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp, crispasr-git-ggml-hip - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
+pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
 url="https://github.com/ggml-org/llama.cpp"
 license=('MIT' 'Apache-2.0' 'GPL-3.0-or-later')
@@ -29,7 +29,7 @@ source=(
     "sdcpp-webui::git+https://github.com/leejet/sdcpp-webui.git"
     "libwebm::git+https://github.com/webmproject/libwebm.git"
     "qwen3-tts.cpp::git+https://github.com/khimaros/qwen3-tts.cpp.git"
-    "crispasr::git+https://github.com/CrispStrobe/CrispASR.git"
+    #"crispasr::git+https://github.com/CrispStrobe/CrispASR.git"
     "README.md"
     "ggml.pc.in"
     "llama-patch-abi.py"
@@ -46,8 +46,9 @@ source=(
     "qwen3-tts-server-language.patch"
     "whisper-version-commit.patch"
     "qwen3-tts-version-commit.patch"
-    "fix-opusfile-include-dirs.patch"
+    #"fix-opusfile-include-dirs.patch"
     "jina-reranker-v3.patch"
+    #"rtld-cpu-global.patch"
 )
 
 sha256sums=('SKIP'
@@ -57,8 +58,7 @@ sha256sums=('SKIP'
             'SKIP'
             'SKIP'
             'SKIP'
-            'SKIP'
-            'ac49d4424bc6b5892fa6e8f92180594b603d319108ebe3a51591b15bd1a68040'
+            '90b76d7e4994ed93fd9642a99ac9f7bc28c3d8e0ff4edaa838ef7571bf2e3c32'
             '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
             'e7430489ec842c7c10d6976e04c63023c24ebf9fa080ea3fad55ab19c636d875'
             '3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391'
@@ -74,7 +74,6 @@ sha256sums=('SKIP'
             'd1f2f2a5454b335b7e23c82df22753362446d87a889eabb0fe4d6d38a93386cb'
             '3adad2f48b5c0f8f85e4a3dd425475d6597a2ceaa31e18f23bb6913012952f85'
             '9d05bdb874ee51604912d8cb5a404755f4606f12f50cd5ea435622ff573a409b'
-            'ab16165e72297bfcb9117a09a7014e792a6633bc56612086a1ff17307035cde1'
             '3d28cfe7482fd5f4c3b9d9b81663b8b4581f676a51e1d374c93f41874251c6bd')
 
 pkgver() {
@@ -88,6 +87,7 @@ prepare() {
     git submodule update --init --recursive
     patch -p1 <"${srcdir}/llama-cmake-include.patch"
     patch -p1 <"${srcdir}/jina-reranker-v3.patch"
+    #patch -p1 <"${srcdir}/rtld-cpu-global.patch"
 
     # Manually create ggml.pc.in if it's missing (needed for shared library build)
     if [ ! -f "ggml/ggml.pc.in" ]; then
@@ -162,16 +162,17 @@ prepare() {
     patch -p1 <"${srcdir}/qwen3-tts-version-commit.patch"
     cp "${srcdir}/llama.cpp/LICENSE" "${srcdir}/qwen3-tts.cpp/LICENSE"
 
-    # Prepare crispasr
-    cd "${srcdir}/crispasr"
-    git submodule update --init --recursive
-    patch -p1 <"${srcdir}/fix-opusfile-include-dirs.patch"
-    sed -i 's|^add_subdirectory(src)|include(GNUInstallDirs)\nadd_subdirectory(src)|' CMakeLists.txt
-    sed -i 's|add_library(ggml ALIAS ggml::ggml)|add_library(ggml ALIAS ggml::ggml)\n        add_library(ggml-cpu INTERFACE)|' CMakeLists.txt
-    sed -i 's|ggml_gated_delta_net(ctx0, q, k, v, g, b, s)|ggml_gated_delta_net(ctx0, q, k, v, g, b, s, 1)|g' examples/talk-llama/models/delta-net-base.cpp
+    # --- CrispASR disabled ---
+    ## Prepare crispasr
+    #cd "${srcdir}/crispasr"
+    #git submodule update --init --recursive
+    #patch -p1 <"${srcdir}/fix-opusfile-include-dirs.patch"
+    #sed -i 's|^add_subdirectory(src)|include(GNUInstallDirs)\nadd_subdirectory(src)|' CMakeLists.txt
+    #sed -i 's|add_library(ggml ALIAS ggml::ggml)|add_library(ggml ALIAS ggml::ggml)\n        add_library(ggml-cpu INTERFACE)|' CMakeLists.txt
+    #sed -i 's|ggml_gated_delta_net(ctx0, q, k, v, g, b, s)|ggml_gated_delta_net(ctx0, q, k, v, g, b, s, 1)|g' examples/talk-llama/models/delta-net-base.cpp
 
-    # Patch system ggml inside llama.cpp using the python script
-    python3 "${startdir}/patch-ggml.py" "${srcdir}"
+    # Patch system ggml (CrispASR custom ops + CPU wrappers) — disabled with CrispASR
+    #python3 "${startdir}/patch-ggml.py" "${srcdir}"
 }
 
 build() {
@@ -288,17 +289,18 @@ build() {
         -DQWEN3_TTS_USE_SYSTEM_GGML=ON
     cmake --build build_qwen3_hip
 
-    # --- Build crispasr using system ggml dynamically ---
-    echo "--- Building CrispASR ---"
-    cmake -B build_crispasr -S crispasr -G Ninja \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX="/usr" \
-        -DCRISPASR_USE_SYSTEM_GGML=ON \
-        -DCRISPASR_BUILD_SERVER=ON \
-        -DCRISPASR_BUILD_EXAMPLES=ON \
-        -DCRISPASR_BUILD_TESTS=OFF \
-        -DBUILD_SHARED_LIBS=OFF
-    cmake --build build_crispasr
+    # --- CrispASR build disabled ---
+    #echo "--- Building CrispASR ---"
+    #cmake -B build_crispasr -S crispasr -G Ninja \
+    #    -DCMAKE_BUILD_TYPE=Release \
+    #    -DCMAKE_INSTALL_PREFIX="/usr" \
+    #    -DCRISPASR_USE_SYSTEM_GGML=ON \
+    #    -DCRISPASR_BUILD_SERVER=ON \
+    #    -DCRISPASR_BUILD_EXAMPLES=ON \
+    #    -DCRISPASR_BUILD_TESTS=OFF \
+    #    -DBUILD_SHARED_LIBS=OFF
+    #cmake --build build_crispasr
+
 }
 
 package_libggml-git-hip() {
@@ -365,14 +367,14 @@ package_qwen3-tts.cpp-git-ggml-hip() {
         -t "${pkgdir}/usr/share/licenses/${pkgname}"
 }
 
-package_crispasr-git-ggml-hip() {
-    pkgdesc="C++ ggml runtime hub for ASR (fork of whisper.cpp) - git shared library build"
-    depends=('libggml-git-hip' 'libgomp' 'vulkan-icd-loader' 'opusfile' 'opencore-amr' 'lame' 'sentencepiece')
-    provides=('crispasr')
-    conflicts=('crispasr' 'crispasr-git' 'crispasr-release-git')
-
-    DESTDIR="$pkgdir" cmake --install build_crispasr
-
-    install -Dm644 "${srcdir}/crispasr/LICENSE" \
-        -t "${pkgdir}/usr/share/licenses/${pkgname}"
-}
+# package_crispasr-git-ggml-hip() {
+#     pkgdesc="C++ ggml runtime hub for ASR (fork of whisper.cpp) - git shared library build"
+#     depends=('libggml-git-hip' 'libgomp' 'vulkan-icd-loader' 'opusfile' 'opencore-amr' 'lame' 'sentencepiece')
+#     provides=('crispasr')
+#     conflicts=('crispasr' 'crispasr-git' 'crispasr-release-git')
+# 
+#     DESTDIR="$pkgdir" cmake --install build_crispasr
+# 
+#     install -Dm644 "${srcdir}/crispasr/LICENSE" \
+#         -t "${pkgdir}/usr/share/licenses/${pkgname}"
+# }
