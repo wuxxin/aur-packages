@@ -1,0 +1,24 @@
+--- groonga-16.0.4/CMakeLists.txt.orig	2026-07-29 21:56:00.000000000 +0200
++++ groonga-16.0.4/CMakeLists.txt	2026-07-29 21:57:00.000000000 +0200
+@@ -1446,7 +1446,7 @@
+   if("${GRN_WITH_BLOSC}" STREQUAL "bundled")
+     set(Blosc2_FOUND FALSE)
+   else()
+-    find_package(Blosc2)
++    pkg_check_modules(Blosc2 blosc2)
+     if(Blosc2_FOUND AND Blosc2_VERSION VERSION_LESS GRN_BLOSC_REQUIRED_VERSION)
+       set(Blosc2_FOUND FALSE)
+     endif()
+@@ -1455,7 +1455,11 @@
+   endif()
+   if(Blosc2_FOUND)
+     set(GRN_WITH_BLOSC TRUE)
+-    target_link_libraries(grn_dependencies INTERFACE Blosc2::blosc2_shared)
++    if(TARGET PkgConfig::Blosc2)
++      target_link_libraries(grn_dependencies INTERFACE PkgConfig::Blosc2)
++    else()
++      target_link_libraries(grn_dependencies INTERFACE ${Blosc2_LIBRARIES})
++    endif()
+     message(STATUS "Blosc: system")
+   elseif(NOT FETCHCONTENT_FULLY_DISCONNECTED)
+     # FETCHCONTENT_FULLY_DISCONNECTED isn't for disabling network
