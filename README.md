@@ -52,7 +52,7 @@ Can be **broken or bitrotten at anytime**.
 - [tei-rocm](tei-rocm)
     - Hugging Face Text Embeddings Inference (TEI) A blazing fast inference solution for text embeddings models. (with ROCm/HIP support)
 - [mlc-llm](mlc-llm)
-    - Universal serving engine for LLM compilation and execution targeting ROCm and Vulkan
+    - Universal LLM deployment engine via ML compilation (ROCm & Vulkan). Fork of [alansrobotlab2/mlc-llm](https://github.com/alansrobotlab2/mlc-llm) (qwen3_5 branch) adding Qwen3.5/Qwen3.6 (GatedDeltaNet + MoE) model support, with patches for ROCm 7.2 hipblas API compatibility.
 
 
 
