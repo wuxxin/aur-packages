@@ -63,6 +63,15 @@ aur-packages/
 - **TryExec**: Check if command exists before showing in menu
 - **Categories**: Follow FreeDesktop.org standards
 
+## Shell Command Discipline
+
+- **Never dump large command output into context.** For commands producing >100 lines (compilation, benchmarks, etc.), redirect stdout+stderr to a log file and filter with `tail`/`grep` before showing.
+- **Pattern**: `command > scratch/log 2>&1; grep -i "error\|warning\|EXIT" scratch/log | tail -20`
+- **Build output**: capture to `scratch/build.log`, then only show errors and final status.
+- **Benchmark output**: capture to file, then grep for metrics.
+- **Human-readable stderr**: pipe separately so it doesn't pollute the context but is consultable for debugging.
+- Violation: the orchestrator crashed after dumping 10k+ lines of compiler warnings into the conversation.
+
 ## Agent Delegation Rules
 
 - **Delegate implementation work by default.** For any non-trivial change (multi-file edits, PKGBUILD patch creation), spawn a `@fixer` specialist. Do not perform multi-step implementation serially yourself.
