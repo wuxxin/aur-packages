@@ -34,6 +34,9 @@ Archlinux [AUR packages](https://aur.archlinux.org/) i currently maintain:
 
 Can be **broken or bitrotten at anytime**.
 
+
+Currently using:
+
 - [groonga](groonga) - An open-source fulltext search engine and column store
     - Temporary private fork of AUR package with patch (`fix-blosc2-pkgconfig.patch`) fixing system `blosc2` CMake package detection.
 - [hermes-agent-git](hermes-agent-git) - Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)
@@ -43,24 +46,40 @@ Can be **broken or bitrotten at anytime**.
     - with patches for RDNA2,  Python Bindings to support the latest git version,
     - all packages link dynamically against a single system-wide `libggml-git-hip`.
         - This ensures consistent backend behavior / bug compatibility across all tools.
+
+testing:
+
 - [smg](smg)
     - High-performance model-routing gateway for large-scale LLM deployments
+
+- [crane-git](crane-git) - Pure Rust LLM, VLM, VLA, TTS, OCR Inference Engine powered by Candle
+    - Custom build from latest git with OpenAI-compatible API server (`crane`), `onnx` features, and demo CLI tools (`crane-chat-simple`, `crane-chat-cli`, `crane-ornith-tools`).
+
 - [python-grpc-interceptor](python-grpc-interceptor)
     - Simplified gRPC interceptors for Python (needed by TEI backend)
 - [python-grpcio-reflection](python-grpcio-reflection)
     - Standard Protobuf reflection service for gRPC Python (needed by TEI backend)
 - [tei-rocm](tei-rocm)
     - Hugging Face Text Embeddings Inference (TEI) A blazing fast inference solution for text embeddings models. (with ROCm/HIP support)
+
 - [mlc-llm](mlc-llm)
     - Universal LLM deployment engine via ML compilation (ROCm & Vulkan). Fork of [alansrobotlab2/mlc-llm](https://github.com/alansrobotlab2/mlc-llm) (qwen3_5 branch) adding Qwen3.5/Qwen3.6 (GatedDeltaNet + MoE) model support, with patches for ROCm 7.2 hipblas API compatibility.
 
-
+- [python-peft](python-peft)
+    - State-of-the-art Parameter-Efficient Fine-Tuning (v0.20.0, , updated, upstream aur is at 0.17)
+- [python-optimum-amd](python-optimum-amd)
+    - Hugging Face Optimum integration for AMD hardware build fixes
+- [python-optimum-rocm](python-optimum-rocm)
+    - Accelerated inference and training with Hugging Face Optimum (with ROCm support)
+- [python-infinity-emb](python-infinity-emb)
+    - High-throughput, low-latency REST API for serving text-embeddings and reranking models
 
 
 - [pocket-tts.cpp-git](pocket-tts.cpp-git) - Single-file C++ TTS runtime for Pocket TTS with ONNX Runtime
     - builds `pocket-tts` C++ executable and shared library `libpocket_tts.so` with support for voice cloning, streaming, HTTP server, and FFI C API.
 - [python-pocket-tts](python-pocket-tts) - A TTS that fits in your CPU (and pocket)
     - builds `pocket-tts` python package by Kyutai Labs.
+
 
 ### Weekly development activity tracking
 
