@@ -1,0 +1,23 @@
+pkgbase = crane-git
+	pkgdesc = Pure Rust LLM, VLM, VLA, TTS, OCR Inference Engine powered by Candle (Git version)
+	pkgver = 0.1.0.r467.gb1ebf87
+	pkgrel = 1
+	url = https://github.com/lucasjinreal/Crane
+	arch = x86_64
+	arch = aarch64
+	license = MIT
+	makedepends = cargo
+	makedepends = git
+	makedepends = clang
+	depends = gcc-libs
+	depends = glibc
+	depends = openssl
+	optdepends = intel-mkl: Intel Math Kernel Library CPU acceleration
+	provides = crane
+	provides = crane-serve
+	conflicts = crane
+	conflicts = crane-serve
+	source = crane::git+https://github.com/lucasjinreal/Crane.git
+	sha256sums = SKIP
+
+pkgname = crane-git

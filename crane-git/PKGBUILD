@@ -1,0 +1,62 @@
+# Maintainer: Wuxxin <wuxxin@gmail.com>
+pkgname=crane-git
+pkgver=0.1.0.r467.gb1ebf87
+pkgrel=1
+pkgdesc="Pure Rust LLM, VLM, VLA, TTS, OCR Inference Engine powered by Candle (Git version)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/lucasjinreal/Crane"
+license=('MIT')
+depends=('gcc-libs' 'glibc' 'openssl')
+optdepends=(
+    'intel-mkl: Intel Math Kernel Library CPU acceleration'
+)
+makedepends=('cargo' 'git' 'clang')
+provides=('crane' 'crane-serve')
+conflicts=('crane' 'crane-serve')
+source=("crane::git+https://github.com/lucasjinreal/Crane.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "$srcdir/crane"
+    if git describe --long --tags >/dev/null 2>&1; then
+        git describe --long --tags | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+    else
+        printf "0.1.0.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+    fi
+}
+
+prepare() {
+    cd "$srcdir/crane"
+    export CARGO_HOME="$srcdir/.cargo-home"
+
+    # Ensure crane-serve binary target is declared in Cargo.toml
+    if ! grep -q '\[\[bin\]\]' crane-serve/Cargo.toml; then
+        echo -e '\n[[bin]]\nname = "crane-serve"\npath = "src/main.rs"' >> crane-serve/Cargo.toml
+    fi
+
+    cargo fetch
+}
+
+build() {
+    cd "$srcdir/crane"
+    export CARGO_HOME="$srcdir/.cargo-home"
+    # Prevent Arch CFLAGS/LDFLAGS from breaking nested C/Assembly static lib builds (e.g. onig-sys, ring)
+    unset CFLAGS CXXFLAGS LDFLAGS
+
+    # Default build features: ONNX support included
+    local cargo_features="onnx"
+    if [[ -n "${_FEATURES:-}" ]]; then
+        cargo_features="$_FEATURES"
+    fi
+
+    cargo build --release --features "$cargo_features" -p crane-serve -p crane-examples --bin crane-serve --bin chat_simple --bin chat_cli --bin ornith_tools
+}
+
+package() {
+    cd "$srcdir/crane"
+    install -Dm755 "target/release/crane-serve" "$pkgdir/usr/bin/crane"
+    install -Dm755 "target/release/chat_simple" "$pkgdir/usr/bin/crane-chat-simple"
+    install -Dm755 "target/release/chat_cli" "$pkgdir/usr/bin/crane-chat-cli"
+    install -Dm755 "target/release/ornith_tools" "$pkgdir/usr/bin/crane-ornith-tools"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
