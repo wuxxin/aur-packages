@@ -1,0 +1,17 @@
+pkgbase = python-optimum-amd
+	pkgdesc = Hugging Face Optimum integration for AMD hardware
+	pkgver = 0.2.0
+	pkgrel = 1
+	url = https://github.com/huggingface/optimum-amd
+	arch = any
+	license = MIT
+	makedepends = python-build
+	makedepends = python-installer
+	makedepends = python-setuptools
+	makedepends = python-wheel
+	depends = python-pytorch-rocm
+	depends = python-transformers
+	source = optimum-amd-0.2.0.tar.gz::https://github.com/huggingface/optimum-amd/archive/f36a96b408aa8cdba26cc0dc9af0705053b0d1a4.tar.gz
+	sha256sums = 5596fb73608e385edb5f4f3f5e2f496e5354fa69d00476f0689a0e4229a17832
+
+pkgname = python-optimum-amd

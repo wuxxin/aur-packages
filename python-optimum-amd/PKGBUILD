@@ -1,0 +1,34 @@
+# Maintainer: Wuxxin <wuxxin@example.com>
+
+pkgname=python-optimum-amd
+_pkgname=optimum-amd
+pkgver=0.2.0
+_commit=f36a96b408aa8cdba26cc0dc9af0705053b0d1a4
+pkgrel=1
+pkgdesc='Hugging Face Optimum integration for AMD hardware'
+arch=('any')
+url='https://github.com/huggingface/optimum-amd'
+license=('MIT')
+depends=(
+    'python-pytorch-rocm'
+    'python-transformers'
+)
+makedepends=(
+    'python-build'
+    'python-installer'
+    'python-setuptools'
+    'python-wheel'
+)
+source=("${_pkgname}-${pkgver}.tar.gz::https://github.com/huggingface/optimum-amd/archive/${_commit}.tar.gz")
+sha256sums=('5596fb73608e385edb5f4f3f5e2f496e5354fa69d00476f0689a0e4229a17832')
+
+build() {
+    cd "${_pkgname}-${_commit}"
+    python -m build --wheel --no-isolation
+}
+
+package() {
+    cd "${_pkgname}-${_commit}"
+    python -m installer --destdir="${pkgdir}" dist/*.whl
+    install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
