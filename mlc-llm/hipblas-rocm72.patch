@@ -1,0 +1,18 @@
+diff --git a/src/runtime/contrib/hipblas/hipblas_utils.h b/src/runtime/contrib/hipblas/hipblas_utils.h
+index a44c984d9..fa3beb9e8 100644
+--- a/src/runtime/contrib/hipblas/hipblas_utils.h
++++ b/src/runtime/contrib/hipblas/hipblas_utils.h
+@@ -114,7 +114,12 @@ inline hipDataType GetHipDataType(DLDataType type) {
+   TVM_FFI_THROW(InternalError) << "Unsupported hip type";
+ }
+ 
+-inline hipblasDatatype_t GetHipBlasDataType(DLDataType type) {
++inline hipblasComputeType_t GetHipBlasComputeType(hipDataType type) {
++  if (type == HIP_R_64F) return HIPBLAS_COMPUTE_64F;
++  return HIPBLAS_COMPUTE_32F;
++}
++
++inline hipDataType GetHipBlasDataType(DLDataType type) {
+   if (type.code == kDLInt) {
+     switch (type.bits) {
+       case 8:

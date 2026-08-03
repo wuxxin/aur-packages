@@ -1,0 +1,17 @@
+diff --git a/python/tvm/relax/frontend/nn/llm/_kernel_common.py b/python/tvm/relax/frontend/nn/llm/_kernel_common.py
+index e15e52356..8b677d007 100644
+--- a/python/tvm/relax/frontend/nn/llm/_kernel_common.py
++++ b/python/tvm/relax/frontend/nn/llm/_kernel_common.py
+@@ -63,7 +63,11 @@ def get_max_num_threads_per_block(target: Target) -> int:
+     max_threads_per_block = target.attrs.get("max_threads_per_block", None)
+     if max_threads_per_block is None:
+         return max_num_threads
+-    return max(max_num_threads, max_threads_per_block)
++    result = max(max_num_threads, max_threads_per_block)
++    # Cap ROCm at 512 threads to avoid LLVM gfx11 LDS miscompile (bug #207883)
++    if target.kind.name == "rocm":
++        result = min(result, 256)
++    return result
+ 
+ 
+ def check_thread_limits(target: Target, bdx: int, bdy: int, bdz: int, gdz: int):

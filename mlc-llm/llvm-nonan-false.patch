@@ -1,0 +1,13 @@
+diff --git a/src/target/llvm/llvm_instance.cc b/src/target/llvm/llvm_instance.cc
+index 0e2c82b15..ff07c4501 100644
+--- a/src/target/llvm/llvm_instance.cc
++++ b/src/target/llvm/llvm_instance.cc
+@@ -311,7 +311,7 @@ LLVMTargetInfo::LLVMTargetInfo(LLVMInstance& instance,
+   target_options_.UnsafeFPMath = false;
+ #endif
+   target_options_.NoInfsFPMath = false;
+-  target_options_.NoNaNsFPMath = true;
++  target_options_.NoNaNsFPMath = false;
+   target_options_.FloatABIType = float_abi;
+   if (target.find("mabi") != target.end()) {
+     target_options_.MCOptions.ABIName = Downcast<ffi::String>(target.Get("mabi").value());

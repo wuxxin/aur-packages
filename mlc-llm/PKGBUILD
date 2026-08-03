@@ -2,43 +2,90 @@
 
 pkgbase=mlc-llm
 pkgname=(mlc-llm python-mlc-llm python-tvm-ffi-mlc)
-pkgver=0.20.0
-pkgrel=1
-pkgdesc="Universal LLM deployment engine via ML compilation (ROCm & Vulkan)"
+pkgver=0.20.0.qwen35.r1916.gfeb82c99
+pkgrel=13
+pkgdesc="Universal LLM deployment engine via ML compilation (ROCm & Vulkan, qwen3_5 fork)"
 arch=('x86_64')
-url="https://github.com/mlc-ai/mlc-llm"
+url="https://github.com/alansrobotlab2/mlc-llm"
 license=('Apache-2.0')
-makedepends=('cmake' 'ninja' 'git' 'python-build' 'python-installer' 'python-scikit-build-core' 'rocm-hip-sdk' 'vulkan-headers' 'llvm' 'cython' 'python-setuptools-scm')
-source=("mlc-llm::git+https://github.com/mlc-ai/mlc-llm.git#tag=v${pkgver}")
-sha256sums=('342de77156c9a8ce2afff16ed47c44c821f31fe68d1e11f5434c5a676998b6da')
+makedepends=('cmake' 'ninja' 'git' 'python-build' 'python-installer' 'python-scikit-build-core' 'rocm-hip-sdk' 'vulkan-headers' 'llvm' 'cython' 'python-setuptools-scm' 'rust')
+source=("mlc-llm::git+https://github.com/alansrobotlab2/mlc-llm.git#commit=feb82c99"
+        "hipblas-rocm72.patch"
+        "hipblas-cc-rocm72.patch"
+        "spirv-vulkan-runtime.patch"
+        "rocm-gfx1100-isa.patch"
+        "llvm-nonan-false.patch"
+        "rocm-thread-cap-512.patch")
+sha256sums=('af5749f087978829680ef1a43cbe549b77d3dc6c6e98701d0e9ef1823f91991a'
+            '1b11c703801909447a09b25b0cf76ef3d378e8a206076a55c94f66fde7f75a9c'
+            '7c1f14534fe72e66581f2ab4a57ad0b61d1b08b0d4fc759487ed7ce2ea05b9a8'
+            '93243eb38e5950ac79177ec3594fa4409885197ecd55a5f639c465fd5d1bef26'
+            '942024733d4822192b1840f9a3dcd6e005042b71d54dfc345c8fe39f80aba7c8'
+            '5532bbb5ef36e62cb3f3264bb8f9e873b48ba1b6734ae0abf6bf955ef660da00'
+            '5363d8cb0a152e6c39a7e11777afe83c0a82092d2f2c71a661a4716169caa7f4')
+
+pkgver() {
+    cd "${srcdir}/mlc-llm"
+    printf "0.20.0.qwen35.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=8 HEAD)"
+}
 
 prepare() {
     cd "${srcdir}/mlc-llm"
-    # Recursively update submodules
+    # Recursively update submodules (fork's .gitmodules points 3rdparty/tvm to alansrobotlab2/relax.git)
     git submodule update --init --recursive
 
-    # Enable building full libtvm.so compiler library
-    sed -i 's/set(BUILD_DUMMY_LIBTVM ON)/set(BUILD_DUMMY_LIBTVM OFF)/' CMakeLists.txt
+    # Fix hipblas API for ROCm 7.2 (hipblasDatatype_t → hipDataType, add GetHipBlasComputeType)
+    cd 3rdparty/tvm
+    patch -Np1 -i "${srcdir}/hipblas-rocm72.patch"
+    patch -Np1 -i "${srcdir}/hipblas-cc-rocm72.patch"
+    patch -Np1 -i "${srcdir}/spirv-vulkan-runtime.patch"
+    patch -Np1 -i "${srcdir}/rocm-gfx1100-isa.patch"
+    patch -Np1 -i "${srcdir}/llvm-nonan-false.patch"
+    patch -Np1 -i "${srcdir}/rocm-thread-cap-512.patch"
+    cd "${srcdir}/mlc-llm"
 }
 
 build() {
     cd "${srcdir}/mlc-llm"
-    
-    # Configure CMake arguments for scikit-build-core
-    export SKBUILD_CMAKE_ARGS="-DUSE_CUDA=OFF;-DUSE_ROCM=ON;-DUSE_VULKAN=ON;-DUSE_METAL=OFF;-DUSE_OPENCL=OFF;-DUSE_LLVM=ON;-DUSE_FLASHINFER=ON;-DCMAKE_SHARED_LINKER_FLAGS=-lonig"
-                               
-    # Build the python wheel (which compiles the C++ libraries)
-    python -m build --wheel --no-isolation
-    
-    # Explicitly compile the tvm_compiler C++ target (which CMake excludes from all by default)
-    cmake --build build --target tvm_compiler
 
-    # Staging area for splitting packages
+    # --- Step 1: Build TVM from fork's vendored relax fork ---
+    msg "Building TVM (alansrobotlab2/relax) from 3rdparty/tvm..."
+    mkdir -p 3rdparty/tvm/build
+
+    cat > 3rdparty/tvm/build/config.cmake << 'CMAKEEOF'
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
+set(USE_ROCM ON)
+set(USE_HIPBLAS ON)
+set(USE_CUTLASS OFF)
+set(USE_CUDA OFF)
+set(USE_VULKAN ON)
+set(USE_OPENCL OFF)
+set(USE_METAL OFF)
+set(USE_LLVM "/opt/rocm/llvm/bin/llvm-config --link-static")
+set(USE_FLASHINFER OFF)
+set(USE_GTEST OFF)
+set(USE_RPC OFF)
+CMAKEEOF
+
+    cmake -S 3rdparty/tvm -B 3rdparty/tvm/build -G Ninja
+    ninja -C 3rdparty/tvm/build
+
+    # --- Step 2: Build mlc-llm C++ (links against the TVM built above) ---
+    msg "Building mlc-llm C++..."
+    cmake -B build -G Ninja -DTVM_SOURCE_DIR=3rdparty/tvm -DCMAKE_SHARED_LINKER_FLAGS=-lonig
+    ninja -C build
+
+    # --- Step 3: Build Python wheel (no scikit-build-core; C++ already built) ---
+    msg "Building Python wheel..."
+    python -m build --wheel --no-isolation
+
+    # --- Step 4: Stage the wheel for package splitting ---
     rm -rf "${srcdir}/stage"
     mkdir -p "${srcdir}/stage"
-    python -m installer --destdir="${srcdir}/stage" dist/*.whl
+    python -m pip install --root="${srcdir}/stage" --no-deps --ignore-installed --break-system-packages dist/*.whl
 
-    # Build the tvm-ffi Python package from the local submodule
+    # --- Step 5: Build tvm-ffi Python package from vendored submodule ---
+    msg "Building tvm-ffi..."
     cd "${srcdir}/mlc-llm/3rdparty/tvm/3rdparty/tvm-ffi"
     SKBUILD_CMAKE_ARGS="-DTVM_FFI_BUILD_PYTHON_MODULE=ON;-DTVM_FFI_BUILD_TESTS=OFF" python -m build --wheel --no-isolation
 }
@@ -46,27 +93,31 @@ build() {
 package_mlc-llm() {
     pkgdesc="Universal LLM deployment engine (shared libraries and executables)"
     depends=('rocm-hip-sdk' 'vulkan-icd-loader' 'llvm-libs' 'libbacktrace' 'oniguruma')
-    provides=('libmlc_llm.so' 'libtvm_runtime.so' 'libtvm_ffi.so' 'libtvm_compiler.so')
+    provides=('libmlc_llm.so' 'libtvm_runtime.so' 'libtvm.so' 'libtvm_ffi.so')
     conflicts=('tvm')
-    
+
     cd "${srcdir}/stage"
-    
+
     # Install binaries
     if [ -d usr/bin ]; then
         install -d "${pkgdir}/usr/bin"
         cp -a --no-preserve=ownership usr/bin/* "${pkgdir}/usr/bin/"
     fi
-    
+
     # Install shared libraries
     install -d "${pkgdir}/usr/lib"
-    # Find libraries in site-packages
-    find usr/lib/python*/site-packages/mlc_llm/ -name "*.so" -exec cp -a --no-preserve=ownership {} "${pkgdir}/usr/lib/" \;
 
-    # Copy libtvm_ffi.so and libtvm_compiler.so from CMake build directory
-    cp -a --no-preserve=ownership "${srcdir}/mlc-llm/build/lib/libtvm_ffi.so" "${pkgdir}/usr/lib/"
-    if [ -f "${srcdir}/mlc-llm/build/lib/libtvm_compiler.so" ]; then
-        cp -a --no-preserve=ownership "${srcdir}/mlc-llm/build/lib/libtvm_compiler.so" "${pkgdir}/usr/lib/"
-    fi
+    # Find .so files from the wheel's site-packages (if any built via scikit-build-core)
+    find usr/lib/python*/site-packages/mlc_llm/ -name "*.so" \
+        -exec install -Dm755 {} "${pkgdir}/usr/lib/" \; 2>/dev/null || true
+
+    # Copy .so files from mlc-llm C++ build directory
+    find "${srcdir}/mlc-llm/build" -maxdepth 2 -name "*.so" \
+        -exec install -Dm755 {} "${pkgdir}/usr/lib/" \; 2>/dev/null || true
+
+    # Copy .so files from TVM build directory
+    find "${srcdir}/mlc-llm/3rdparty/tvm/build" -maxdepth 1 -name "*.so" \
+        -exec install -Dm755 {} "${pkgdir}/usr/lib/" \; 2>/dev/null || true
 }
 
 package_python-mlc-llm() {
@@ -74,7 +125,7 @@ package_python-mlc-llm() {
     depends=('mlc-llm' 'python' 'python-numpy' 'python-pytorch' 'python-transformers' 'python-fastapi' 'python-openai' 'python-safetensors' 'python-sentencepiece' 'python-tqdm' 'python-tiktoken' 'python-shortuuid' 'python-ml-dtypes' 'uvicorn' 'python-flashinfer-rocm' 'python-msgpack' 'python-psutil' 'python-peft' 'python-prompt_toolkit' 'python-aiohttp' 'python-datasets' 'python-pytest' 'python-tvm-ffi-mlc')
     provides=('python-tvm')
     conflicts=('python-tvm')
-    
+
     cd "${srcdir}/stage"
 
     # Install mlc_llm CLI entry point
@@ -90,25 +141,29 @@ EOF
     # Copy site-packages
     install -d "${pkgdir}/usr/lib"
     cp -a --no-preserve=ownership usr/lib/python* "${pkgdir}/usr/lib/"
-    
+
     # Remove compiled shared libraries from python package and symlink them to the system libraries
-    local py_ver=$(python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    local py_ver
+    py_ver=$(python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
     local site_pkgs="${pkgdir}/usr/lib/python${py_ver}/site-packages/mlc_llm"
-    
+
     rm -f "${site_pkgs}"/*.so
-    
+
     # Symlink to system libraries (from mlc-llm package, resolved at install time)
     ln -sr "${pkgdir}/usr/lib/libmlc_llm.so" "${site_pkgs}/libmlc_llm.so"
     ln -sr "${pkgdir}/usr/lib/libtvm_runtime.so" "${site_pkgs}/libtvm_runtime.so"
     ln -sr "${pkgdir}/usr/lib/libmlc_llm_module.so" "${site_pkgs}/libmlc_llm_module.so"
 
     # Copy TVM python bindings to site-packages
-    cp -a --no-preserve=ownership "${srcdir}/mlc-llm/3rdparty/tvm/python/tvm" "${pkgdir}/usr/lib/python${py_ver}/site-packages/"
+    cp -a --no-preserve=ownership "${srcdir}/mlc-llm/3rdparty/tvm/python/tvm" \
+        "${pkgdir}/usr/lib/python${py_ver}/site-packages/"
 
-    # Symlink libtvm_runtime.so to tvm/lib/ so TVM finds it
+    # Symlink libtvm_runtime.so and libtvm_compiler.so to tvm/lib/ so TVM finds them
     install -d "${pkgdir}/usr/lib/python${py_ver}/site-packages/tvm/lib"
-    ln -sr "${pkgdir}/usr/lib/libtvm_runtime.so" "${pkgdir}/usr/lib/python${py_ver}/site-packages/tvm/lib/libtvm_runtime.so"
-    ln -sr "${pkgdir}/usr/lib/libtvm_compiler.so" "${pkgdir}/usr/lib/python${py_ver}/site-packages/tvm/lib/libtvm_compiler.so"
+    ln -sr "${pkgdir}/usr/lib/libtvm_runtime.so" \
+        "${pkgdir}/usr/lib/python${py_ver}/site-packages/tvm/lib/libtvm_runtime.so"
+    ln -sr "${pkgdir}/usr/lib/libtvm_compiler.so" \
+        "${pkgdir}/usr/lib/python${py_ver}/site-packages/tvm/lib/libtvm_compiler.so"
 }
 
 package_python-tvm-ffi-mlc() {
@@ -120,7 +175,8 @@ package_python-tvm-ffi-mlc() {
     cd "${srcdir}/mlc-llm/3rdparty/tvm/3rdparty/tvm-ffi"
     python -m pip install --root="${pkgdir}" --no-deps --ignore-installed --break-system-packages dist/*.whl
 
-    local py_ver=$(python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    local py_ver
+    py_ver=$(python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
     local ffi_lib_dir="${pkgdir}/usr/lib/python${py_ver}/site-packages/tvm_ffi"
 
     # Remove the duplicate build of libtvm_ffi.so and symlink to system libtvm_ffi.so

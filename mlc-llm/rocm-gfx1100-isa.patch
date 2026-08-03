@@ -1,0 +1,12 @@
+diff --git a/python/tvm/contrib/rocm.py b/python/tvm/contrib/rocm.py
+index 628c95ac4..1fc90ce8c 100644
+--- a/python/tvm/contrib/rocm.py
++++ b/python/tvm/contrib/rocm.py
+@@ -159,6 +159,7 @@ def callback_rocm_bitcode_path(rocdl_dir=None):
+         "oclc_isa_version_900",  # isa version files (if the linker throws out
+         "oclc_isa_version_906",  # the unneeded ones or we filter for the arch we need)
+         "oclc_isa_version_1030",
++        "oclc_isa_version_1100",
+         "oclc_unsafe_math_off",
+         "oclc_unsafe_math_on",
+         "oclc_wavefrontsize64_on",
