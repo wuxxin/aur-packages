@@ -1,0 +1,50 @@
+# Maintainer: Wuxxin <wuxxin@example.com>
+# Contributor: Daniel Bershatsky <bepshatsky@yandex.ru>
+
+pkgname=python-peft
+_pkgname=peft
+pkgver=0.20.0
+pkgrel=1
+pkgdesc='State-of-the-art Parameter-Efficient Fine-Tuning'
+arch=('any')
+url='https://github.com/huggingface/peft'
+license=('Apache-2.0')
+depends=(
+    'python'
+    'python-accelerate'
+    'python-huggingface-hub'
+    'python-numpy'
+    'python-packaging'
+    'python-psutil'
+    'python-pytorch'
+    'python-safetensors'
+    'python-tqdm'
+    'python-transformers'
+    'python-yaml'
+)
+makedepends=(
+    'python-build'
+    'python-installer'
+    'python-setuptools'
+    'python-wheel'
+)
+source=("https://files.pythonhosted.org/packages/source/${_pkgname::1}/${_pkgname}/${_pkgname}-${pkgver}.tar.gz")
+sha256sums=('4769c8093a4ca145fd6fb3fd4dd50449675f5fe46434ad1e98b285a132d4b1d0')
+
+build() {
+    cd "${_pkgname}-${pkgver}"
+    python -m build --wheel --no-isolation
+}
+
+check() {
+    cd "${_pkgname}-${pkgver}"
+    PYTHONPATH=src python -c 'import peft; print("PEFT version:", peft.__version__)'
+}
+
+package() {
+    cd "${_pkgname}-${pkgver}"
+    python -m installer --destdir="${pkgdir}" dist/*.whl
+    if [ -f LICENSE ]; then
+        install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+    fi
+}
