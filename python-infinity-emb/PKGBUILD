@@ -1,0 +1,95 @@
+# Maintainer: Wuxxin <wuxxin@example.com>
+
+pkgname=python-infinity-emb
+_pkgname=infinity_emb
+pkgver=0.0.75
+pkgrel=2
+pkgdesc='High-throughput, low-latency REST API for serving text-embeddings and reranking models'
+arch=('any')
+url='https://github.com/michaelfeil/infinity'
+license=('MIT')
+depends=(
+    'python'
+    'python-diskcache'
+    'python-fastapi'
+    'python-huggingface-hub'
+    'python-orjson'
+    'python-prometheus_client'
+    'python-pydantic'
+    'python-pytorch-rocm'
+    'python-optimum-rocm'
+    'python-rich'
+    'python-sentence-transformers'
+    'python-transformers'
+    'uvicorn'
+)
+
+makedepends=(
+    'python-build'
+    'python-installer'
+    'python-poetry-core'
+    'python-wheel'
+)
+source=("https://files.pythonhosted.org/packages/source/${_pkgname::1}/${_pkgname}/${_pkgname}-${pkgver}.tar.gz")
+sha256sums=('cd8a6aa17b57672ba48a5699cf65c8ad561f65f248e38afd383dc35f8cf470de')
+
+prepare() {
+    cd "${_pkgname}-${pkgver}"
+    # Disable BetterTransformer path entirely to avoid optimum.bettertransformer deprecation crash on transformers >= 4.49
+    python -c '
+acc_path = "infinity_emb/transformer/acceleration.py"
+with open(acc_path, "w") as f:
+    f.write("""# SPDX-License-Identifier: MIT
+from typing import TYPE_CHECKING
+from infinity_emb._optional_imports import CHECK_TORCH, CHECK_TRANSFORMERS
+from infinity_emb.primitives import Device
+
+if CHECK_TORCH.is_available:
+    import torch
+    if hasattr(torch.backends, "cuda") and hasattr(torch.backends, "cudnn"):
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+
+if CHECK_TRANSFORMERS.is_available:
+    from transformers import AutoConfig
+
+if TYPE_CHECKING:
+    from logging import Logger
+    from transformers import PreTrainedModel
+    from infinity_emb.args import EngineArgs
+
+def check_if_bettertransformer_possible(engine_args: "EngineArgs") -> bool:
+    return False
+
+def to_bettertransformer(model: "PreTrainedModel", engine_args: "EngineArgs", logger: "Logger"):
+    return model
+""")
+
+env_path = "infinity_emb/env.py"
+with open(env_path, "r") as f:
+    content = f.read()
+content = content.replace("\"bettertransformer\", default=[\"true\"]", "\"bettertransformer\", default=[\"false\"]")
+with open(env_path, "w") as f:
+    f.write(content)
+
+opt_path = "infinity_emb/transformer/utils_optimum.py"
+with open(opt_path, "r") as f:
+    content = f.read()
+content = content.replace("from huggingface_hub import HfApi, HfFolder", "from huggingface_hub import HfApi")
+with open(opt_path, "w") as f:
+    f.write(content)
+'
+}
+
+build() {
+    cd "${_pkgname}-${pkgver}"
+    python -m build --wheel --no-isolation
+}
+
+package() {
+    cd "${_pkgname}-${pkgver}"
+    python -m installer --destdir="${pkgdir}" dist/*.whl
+    if [ -f LICENSE ]; then
+        install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+    fi
+}
