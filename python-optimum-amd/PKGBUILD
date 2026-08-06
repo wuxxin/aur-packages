@@ -2,13 +2,15 @@
 
 pkgname=python-optimum-amd
 _pkgname=optimum-amd
-pkgver=0.2.0
+pkgver=0.1.0.r63.gf36a96b
 _commit=f36a96b408aa8cdba26cc0dc9af0705053b0d1a4
 pkgrel=1
 pkgdesc='Hugging Face Optimum integration for AMD hardware'
 arch=('any')
 url='https://github.com/huggingface/optimum-amd'
 license=('MIT')
+provides=("python-optimum-amd=${pkgver}")
+conflicts=('python-optimum-amd')
 depends=(
     'python-pytorch-rocm'
     'python-transformers'
