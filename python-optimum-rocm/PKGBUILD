@@ -2,7 +2,7 @@
 
 pkgname=python-optimum-rocm
 _pkgname=optimum
-pkgver=1.27.0
+pkgver=2.3.0
 pkgrel=1
 pkgdesc='Accelerated inference and training with Hugging Face Optimum (with ROCm support)'
 arch=('any')
@@ -15,6 +15,7 @@ depends=(
     'python-optimum-amd'
     'python-packaging'
     'python-pytorch-rocm'
+    'python-onnx'
     'python-transformers'
 )
 makedepends=(
@@ -23,10 +24,16 @@ makedepends=(
     'python-setuptools'
     'python-wheel'
 )
-provides=("python-optimum=${pkgver}")
-conflicts=('python-optimum')
+optdepends=(
+    'python-datasets'
+    'python-evaluate'
+    'python-onnx'
+    'python-onnxruntime'
+)
+provides=("python-optimum=${pkgver}" "python-optimum-onnx")
+conflicts=('python-optimum' 'python-optimum-onnx')
 source=("https://files.pythonhosted.org/packages/source/${_pkgname::1}/${_pkgname}/${_pkgname}-${pkgver}.tar.gz")
-sha256sums=('ad80d80de336ca5e1e6b4f5ade824da731a945846208871acd2e2ada91002a7b')
+sha256sums=('aa96ad535a5cec68d12c6372574125452284632fe13699633a61e8bbfb09c4df')
 
 build() {
     cd "${_pkgname}-${pkgver}"
