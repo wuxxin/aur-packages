@@ -1,0 +1,32 @@
+Link the natives against Arch's system libopus and libpcre2.
+
+audiopus_sys: Arch ships no libopus.a, so switch the crate to its `dynamic`
+feature and hand its build script LIBOPUS_LIB_DIR=/usr. find_installed_opus()
+then short-circuits build_opus(), so the vendored Opus tree is never
+cmake-built; upstream's own OPUS_NO_PKG=1 keeps pkg-config out of the loop.
+The remaining cmake/msvc env keys stay in place, inert.
+
+pcre2-sys: only offers pkg-config discovery, so flip upstream's
+PCRE2_SYS_STATIC from 1 to 0 (0 is an explicit "not static", not merely unset)
+and let it probe libpcre2-8 from /usr.
+
+Hunks are deliberately zero-context: MODULE.bazel's comments and neighbouring
+env keys churn on nearly every upstream release, while each anchor line below
+is unique in its file. patch locates a hunk by its replaced line alone, so
+unrelated edits around them cannot break this patch.
+
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -245 +245 @@
+-audiopus_sys = { version = "0.2.2", features = ["static"] }
++audiopus_sys = { version = "0.2.2", features = ["dynamic"] }
+--- a/MODULE.bazel
++++ b/MODULE.bazel
+@@ -164 +164,3 @@
+-        "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
++        "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
++        # Link Arch's shared /usr/lib/libopus.so instead of vendored Opus.
++        "LIBOPUS_LIB_DIR": "/usr",
+@@ -196 +196 @@
+-    build_script_env = {"PCRE2_SYS_STATIC": "1"},
++    build_script_env = {"PCRE2_SYS_STATIC": "0"},

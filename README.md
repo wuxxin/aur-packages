@@ -39,6 +39,8 @@ Currently using:
 
 - [groonga](groonga) - An open-source fulltext search engine and column store
     - Temporary private fork of AUR package with patch (`fix-blosc2-pkgconfig.patch`) fixing system `blosc2` CMake package detection.
+- [oh-my-pi-git-tag](oh-my-pi-git-tag) - AI coding agent for the terminal
+    - Built from git latest tag with dynamically evaluated versioning and system libraries (opus, pcre2).
 - [hermes-agent-git](hermes-agent-git) - Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)
     - System package adaptations: self-update disabled, runtime npm installs pre-built, PR patching mechanism
 - [libggml-git-hip](libggml-git-hip) - HIP libggml git version shared library
