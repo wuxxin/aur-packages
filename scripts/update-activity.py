@@ -19,6 +19,15 @@ from typing import Any, Dict, List, Optional
 # Define the repositories to track
 TRACKED_REPOS: List[Dict[str, Any]] = [
     {
+        "name": "oh-my-pi",
+        "github": "can1357/oh-my-pi",
+        "pkg": "oh-my-pi-git-tag",
+        "branch": "main",
+        "src_path": "oh-my-pi-git-tag/src/oh-my-pi",
+        "category": "ai",
+        "default_ref": "39477ba",
+    },
+    {
         "name": "llama.cpp",
         "github": "ggml-org/llama.cpp",
         "pkg": "libggml-git-hip",
@@ -82,22 +91,13 @@ TRACKED_REPOS: List[Dict[str, Any]] = [
         "default_ref": "435b8b3",
     },
     {
-        "name": "vllm",
-        "github": "vllm-project/vllm",
-        "pkg": "python-vllm-rocm-git",
+        "name": "infinity_emb",
+        "github": "michaelfeil/infinity",
+        "pkg": "python-infinity-emb",
         "branch": "main",
         "src_path": "",
         "category": "ai",
-        "default_ref": "6bdabba",
-    },
-    {
-        "name": "vllm-omni",
-        "github": "vllm-project/vllm-omni",
-        "pkg": "python-vllm-omni-rocm-git",
-        "branch": "main",
-        "src_path": "",
-        "category": "ai",
-        "default_ref": "5dfdf58",
+        "default_ref": "0.0.75",
     },
     {
         "name": "pockettts.cpp",
@@ -374,7 +374,17 @@ def compile_activity(write_to_file: bool = False) -> None:
         repo_dir = f"scratch/{name}"
         print(f"\nProcessing {name} ({github})...")
 
-        # Clone if missing
+        # Validate remote URL and clone/re-clone if needed
+        target_url = f"https://github.com/{github}.git"
+        if os.path.exists(repo_dir):
+            current_remote = run_cmd(
+                ["git", "-C", repo_dir, "remote", "get-url", "origin"]
+            )
+            if current_remote and current_remote != target_url and current_remote != target_url[:-4]:
+                import shutil
+                print(f"Remote mismatch for {name} ({current_remote} != {target_url}). Re-cloning...")
+                shutil.rmtree(repo_dir)
+
         if not os.path.exists(repo_dir):
             print(f"Cloning {name}...")
             run_cmd(
@@ -383,7 +393,7 @@ def compile_activity(write_to_file: bool = False) -> None:
                     "clone",
                     "--depth",
                     "2000",
-                    f"https://github.com/{github}.git",
+                    target_url,
                     repo_dir,
                 ]
             )
@@ -394,22 +404,7 @@ def compile_activity(write_to_file: bool = False) -> None:
         run_cmd(["git", "-C", repo_dir, "reset", "--hard", f"origin/{branch}"])
 
         # Commits & Merges in last 7 days
-        commits = int(
-            run_cmd(
-                [
-                    "git",
-                    "-C",
-                    repo_dir,
-                    "log",
-                    "--since=7 days ago",
-                    "--no-merges",
-                    "--oneline",
-                ]
-            ).count("\n")
-            + 1
-        )
-        # Fix count if output is empty
-        if not run_cmd(
+        log_7d = run_cmd(
             [
                 "git",
                 "-C",
@@ -419,24 +414,10 @@ def compile_activity(write_to_file: bool = False) -> None:
                 "--no-merges",
                 "--oneline",
             ]
-        ):
-            commits = 0
-
-        merges = int(
-            run_cmd(
-                [
-                    "git",
-                    "-C",
-                    repo_dir,
-                    "log",
-                    "--since=7 days ago",
-                    "--merges",
-                    "--oneline",
-                ]
-            ).count("\n")
-            + 1
         )
-        if not run_cmd(
+        commits = len(log_7d.splitlines()) if log_7d else 0
+
+        log_merges = run_cmd(
             [
                 "git",
                 "-C",
@@ -446,29 +427,15 @@ def compile_activity(write_to_file: bool = False) -> None:
                 "--merges",
                 "--oneline",
             ]
-        ):
-            merges = 0
+        )
+        merges = len(log_merges.splitlines()) if log_merges else 0
 
         last_commit = run_cmd(
             ["git", "-C", repo_dir, "log", "-1", "--format=%ad", "--date=short"]
         )
 
         # 4 weeks average
-        commits_28 = int(
-            run_cmd(
-                [
-                    "git",
-                    "-C",
-                    repo_dir,
-                    "log",
-                    "--since=28 days ago",
-                    "--no-merges",
-                    "--oneline",
-                ]
-            ).count("\n")
-            + 1
-        )
-        if not run_cmd(
+        log_28d = run_cmd(
             [
                 "git",
                 "-C",
@@ -478,8 +445,8 @@ def compile_activity(write_to_file: bool = False) -> None:
                 "--no-merges",
                 "--oneline",
             ]
-        ):
-            commits_28 = 0
+        )
+        commits_28 = len(log_28d.splitlines()) if log_28d else 0
         avg_commits = f"{commits_28 / 4:.1f}"
 
         # Tags
@@ -601,7 +568,7 @@ def compile_activity(write_to_file: bool = False) -> None:
 
     note_note = (
         "\n> [!NOTE]\n"
-        "> `vllm`, `bitsandbytes`, `pocket-tts`, and most split sub-repositories of the `libggml-git-hip` "
+        "> `bitsandbytes`, `pocket-tts`, and most split sub-repositories of the `libggml-git-hip` "
         "package squash-merge PRs directly into their primary branch instead of creating merge commits, "
         'which is why the "Merges" column displays `0`.'
     )
