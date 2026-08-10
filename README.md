@@ -83,6 +83,12 @@ testing:
     - builds `pocket-tts` python package by Kyutai Labs.
 
 
+### Workspace & Scratch Directory Usage
+
+All temporary files, build logs, intermediate test outputs, and source checkouts (`scratch/*-sources`) must be stored in `scratch/`:
+- **Standalone Repository**: Use `./scratch/` at the root of `aur-packages/`.
+- **Submodule Checkout**: Always defer to the top-level parent repository's root `scratch/` directory.
+
 ### Weekly development activity tracking
 
 Development activity tracking for a few selected packages are available in [research/weekly-devel-activity.md](research/weekly-devel-activity.md).
@@ -92,4 +98,5 @@ Development activity tracking for a few selected packages are available in [rese
 
 - update salt (3008.1)
 - rebuild signal-cli-res-api-git
+
 

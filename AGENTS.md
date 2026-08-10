@@ -18,6 +18,7 @@ Private **AUR (Arch User Repository)** for custom PKGBUILDs, utility scripts, an
 
 ### Rules & Workflow
 
+- **Workspace Isolation:** Use `scratch/` for temporary files, research, and git checkouts (`scratch/*-sources`). Always use the top-level repository root `scratch/`: if checked out independently, use its own root `scratch/`; if checked out as a git submodule, use the parent repository's root `scratch/`.
 - **PKGBUILD Verification:** Run `makepkg --nobuild` first. Verify dependencies and ask user to install missing build deps.
 - **Incremental Builds:** Avoid clean rebuilds (`makepkg -Cf`) on large packages.
   - Use `makepkg -e` (`--noextract`) to preserve the `src/` tree and avoid re-downloading/re-extracting.
@@ -38,7 +39,7 @@ Private **AUR (Arch User Repository)** for custom PKGBUILDs, utility scripts, an
   - Lint/Format `.sh`: `shellcheck scripts/*.sh` | `shfmt -i 4 -w scripts/*.sh`
   - Update sums/sources: `updpkgsums && makepkg -Co`
   - Regenerate `.SRCINFO`: `makepkg --printsrcinfo > .SRCINFO`
-  - Force rebuild: `makepkg -Cf`
+  - Force rebuild: `makepkg -Co`
   - Audit package: `namcap <package>.pkg.tar.zst`
 
 #### Python Scripts
@@ -62,29 +63,4 @@ makepkg ... > scratch/build.log 2>&1 || grep -i "error" scratch/build.log | tail
 ```
 
 Keep stderr separate when needed for debugging, but never print full unfiltered build streams.
-
-## Agent Delegation Rules
-
-### Specialist Roles
-
-Map `@rolename` references to your harness's available sub-agents according to these specialization profiles:
-
-- `@orchestrator`: Workflow planning, delegation, context tracking, final review.
-- `@explorer`: Read-only codebase search, symbol mapping, file and pattern discovery.
-- `@oracle`: Deep architecture design, root-cause debugging, strategic decisions.
-- `@librarian`: External web docs, API references, library research.
-- `@designer`: UI/UX, CSS styling, layout structure, frontend components.
-- `@fixer`: Code edits, refactoring, bug fixes, multi-file feature implementations.
-- `@council`: Multi-perspective peer review, risk assessment and consensus validation before execution.
-- `@observer`: Visual UI inspection, render validation, screenshot analysis.
-- `@janitor`: Tech debt cleanup, dead code removal, doc alignment.
-
-As a user facing agent assume the `@orchestrator` role.
-
-### Rules
-
-- Orchestrator Limits: Direct edits allowed only for single-file trivial tweaks, doc updates, and synthesis.
-- Delegate Execution: Multi-file edits or complex tasks go to `@fixer`. If reaching for `edit`/`write`/`bash` to write code, **stop and delegate**.
-- Research: Use `@explorer` for codebase searches (no manual grep/glob) and `@librarian` for web/docs.
-- Escalations: Route to `@oracle` for complex bugs or after 2 failed fix attempts. Route to `@council` before risky breaking changes.
 
