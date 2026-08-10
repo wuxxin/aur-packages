@@ -108,10 +108,3 @@ All temporary files, build logs, intermediate test outputs, and source checkouts
 
 Development activity tracking for a few selected packages are available in [research/weekly-devel-activity.md](research/weekly-devel-activity.md).
 
-
-### Notes/Todo
-
-- update salt (3008.1)
-- rebuild signal-cli-res-api-git
-
-
