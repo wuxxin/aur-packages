@@ -1,9 +1,7 @@
 # AGENTS.md
 
-## Overview
-Private **AUR (Arch User Repository)** for custom PKGBUILDs, utility scripts, and research.
+## Repository Structure
 
-### Structure (`aur-packages/`)
 - `README.md` — Human documentation, package list, AUR-synced vs. private forks.
 - `libggml-git-hip/` — ROCm/HIP accelerated GGML, llama.cpp, whisper.cpp.
 - `python-torch*-rocm/` — PyTorch ROCm builds.

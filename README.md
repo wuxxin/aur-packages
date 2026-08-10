@@ -1,6 +1,18 @@
-## AUR-Packages
+# AUR-Packages
 
-Archlinux [AUR packages](https://aur.archlinux.org/) i currently maintain:
+Private Arch Linux [AUR packages](https://aur.archlinux.org/) repository for custom PKGBUILDs, utility scripts, and research.
+
+## Repository Structure
+
+- `README.md` — Package list, AUR-synced vs. private forks documentation
+- `libggml-git-hip/` — ROCm/HIP accelerated GGML, `llama.cpp`, and `whisper.cpp` packages
+- `python-torch*-rocm/` — PyTorch ROCm packages
+- `<package-dir>/` — Package directories containing PKGBUILDs
+- `scripts/` — Repository utility scripts
+- `research/` — Development stats, build notes, and research reports
+- `scratch/` — Workspace for temporary build logs and checkout sources (`scratch/*-sources`)
+
+## Packages Maintained
 
 - [coreos-installer](coreos-installer)
     - Installer for CoreOS disk images
