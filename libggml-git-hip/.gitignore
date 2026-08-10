@@ -4,13 +4,14 @@ whisper.cpp/
 stable-diffusion.cpp/
 libwebm/
 qwen3-tts.cpp/
+parakeet.cpp/
 sdcpp-webui/
-crispasr/
 libggml-git*.pkg.tar*
 llama.cpp*.pkg.tar*
 python-llama-cpp*.pkg.tar*
 whisper.cpp*.pkg.tar*
 stable-diffusion.cpp*.pkg.tar*
 qwen3-tts.cpp*.pkg.tar*
-crispasr*.pkg.tar*
+parakeet.cpp*.pkg.tar*
 *.gguf
+

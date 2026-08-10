@@ -1,10 +1,10 @@
 # Maintainer: Wuxxin <wuxxin@gmail.com>
 
 pkgbase=libggml-git-hip
-pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip') # 'crispasr-git-ggml-hip'
-pkgver=10154.r0.g0e4a036
+pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip' 'parakeet.cpp-git-ggml-hip')
+pkgver=10344.r14.g030ebb5
 pkgrel=1
-pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
+pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp, parakeet.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
 url="https://github.com/ggml-org/llama.cpp"
 license=('MIT' 'Apache-2.0' 'GPL-3.0-or-later')
@@ -29,13 +29,14 @@ source=(
     "sdcpp-webui::git+https://github.com/leejet/sdcpp-webui.git"
     "libwebm::git+https://github.com/webmproject/libwebm.git"
     "qwen3-tts.cpp::git+https://github.com/khimaros/qwen3-tts.cpp.git"
-    #"crispasr::git+https://github.com/CrispStrobe/CrispASR.git"
+    "parakeet.cpp::git+https://github.com/mudler/parakeet.cpp.git"
     "README.md"
     "ggml.pc.in"
     "llama-patch-abi.py"
     "llama-shims.py"
     "llama-cpp-system.patch"
     "qwen3-tts-system-ggml.patch"
+    "parakeet-system-ggml.patch"
     "qwen3-tts-threading.patch"
     "qwen3-tts-backend-allocation.patch"
     "qwen3-tts-hybrid-backend.patch"
@@ -46,9 +47,7 @@ source=(
     "qwen3-tts-server-language.patch"
     "whisper-version-commit.patch"
     "qwen3-tts-version-commit.patch"
-    #"fix-opusfile-include-dirs.patch"
     "jina-reranker-v3.patch"
-    #"rtld-cpu-global.patch"
 )
 
 sha256sums=('SKIP'
@@ -58,12 +57,14 @@ sha256sums=('SKIP'
             'SKIP'
             'SKIP'
             'SKIP'
-            '90b76d7e4994ed93fd9642a99ac9f7bc28c3d8e0ff4edaa838ef7571bf2e3c32'
+            'SKIP'
+            '8c3f415f79bf33adad0e3b9e810461b5646b2eda453088e915cf9644a1eda283'
             '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
             'e7430489ec842c7c10d6976e04c63023c24ebf9fa080ea3fad55ab19c636d875'
             '3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391'
             '8c8d5aae9919b94febf30302daa483c448c5106c0de9f3e6f7052766b26fb068'
             '1204bae0ca0f976ac476b29dc75642b0896cbec74d05e9b79c2592f34e348da4'
+            'd04717d610e45d20bfac18a6b54fccec9f69b8363cf1c95853084b3cf983aee2'
             '17fdfd17833fdd7d2a5f584c1d781c1e5340d47f05555ec1cf89487a341c8bea'
             '3f6b0f1e6111da9866f8cced49bca0e34972171017455700624792a6b749ced0'
             '1e50216d2a837c1aa8537a3acecbe05f8cc147eb54e6a73600de9419678202c4'
@@ -74,7 +75,7 @@ sha256sums=('SKIP'
             'd1f2f2a5454b335b7e23c82df22753362446d87a889eabb0fe4d6d38a93386cb'
             '3adad2f48b5c0f8f85e4a3dd425475d6597a2ceaa31e18f23bb6913012952f85'
             '9d05bdb874ee51604912d8cb5a404755f4606f12f50cd5ea435622ff573a409b'
-            '3d28cfe7482fd5f4c3b9d9b81663b8b4581f676a51e1d374c93f41874251c6bd')
+            '2c3abb3bc5245970aac528e4567f6ca3551b939ed141e6795514940f1e2de664')
 
 pkgver() {
     cd llama.cpp
@@ -162,17 +163,9 @@ prepare() {
     patch -p1 <"${srcdir}/qwen3-tts-version-commit.patch"
     cp "${srcdir}/llama.cpp/LICENSE" "${srcdir}/qwen3-tts.cpp/LICENSE"
 
-    # --- CrispASR disabled ---
-    ## Prepare crispasr
-    #cd "${srcdir}/crispasr"
-    #git submodule update --init --recursive
-    #patch -p1 <"${srcdir}/fix-opusfile-include-dirs.patch"
-    #sed -i 's|^add_subdirectory(src)|include(GNUInstallDirs)\nadd_subdirectory(src)|' CMakeLists.txt
-    #sed -i 's|add_library(ggml ALIAS ggml::ggml)|add_library(ggml ALIAS ggml::ggml)\n        add_library(ggml-cpu INTERFACE)|' CMakeLists.txt
-    #sed -i 's|ggml_gated_delta_net(ctx0, q, k, v, g, b, s)|ggml_gated_delta_net(ctx0, q, k, v, g, b, s, 1)|g' examples/talk-llama/models/delta-net-base.cpp
-
-    # Patch system ggml (CrispASR custom ops + CPU wrappers) — disabled with CrispASR
-    #python3 "${startdir}/patch-ggml.py" "${srcdir}"
+    # prepare parakeet.cpp
+    cd "${srcdir}/parakeet.cpp"
+    patch -p1 <"${srcdir}/parakeet-system-ggml.patch"
 }
 
 build() {
@@ -289,18 +282,16 @@ build() {
         -DQWEN3_TTS_USE_SYSTEM_GGML=ON
     cmake --build build_qwen3_hip
 
-    # --- CrispASR build disabled ---
-    #echo "--- Building CrispASR ---"
-    #cmake -B build_crispasr -S crispasr -G Ninja \
-    #    -DCMAKE_BUILD_TYPE=Release \
-    #    -DCMAKE_INSTALL_PREFIX="/usr" \
-    #    -DCRISPASR_USE_SYSTEM_GGML=ON \
-    #    -DCRISPASR_BUILD_SERVER=ON \
-    #    -DCRISPASR_BUILD_EXAMPLES=ON \
-    #    -DCRISPASR_BUILD_TESTS=OFF \
-    #    -DBUILD_SHARED_LIBS=OFF
-    #cmake --build build_crispasr
-
+    # --- Build parakeet.cpp using system ggml ---
+    echo "--- Building parakeet.cpp (HIP) ---"
+    cmake -B build_parakeet_hip -S parakeet.cpp -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="/usr" \
+        -DPARAKEET_SHARED=ON \
+        -DPARAKEET_USE_SYSTEM_GGML=ON \
+        -DPARAKEET_BUILD_CLI=ON \
+        -DPARAKEET_BUILD_SERVER=ON
+    cmake --build build_parakeet_hip
 }
 
 package_libggml-git-hip() {
@@ -367,14 +358,14 @@ package_qwen3-tts.cpp-git-ggml-hip() {
         -t "${pkgdir}/usr/share/licenses/${pkgname}"
 }
 
-# package_crispasr-git-ggml-hip() {
-#     pkgdesc="C++ ggml runtime hub for ASR (fork of whisper.cpp) - git shared library build"
-#     depends=('libggml-git-hip' 'libgomp' 'vulkan-icd-loader' 'opusfile' 'opencore-amr' 'lame' 'sentencepiece')
-#     provides=('crispasr')
-#     conflicts=('crispasr' 'crispasr-git' 'crispasr-release-git')
-# 
-#     DESTDIR="$pkgdir" cmake --install build_crispasr
-# 
-#     install -Dm644 "${srcdir}/crispasr/LICENSE" \
-#         -t "${pkgdir}/usr/share/licenses/${pkgname}"
-# }
+package_parakeet.cpp-git-ggml-hip() {
+    pkgdesc="C++ inference for FastConformer and TDT ASR models using GGML (git shared library build)"
+    depends=('libggml-git-hip')
+    provides=('parakeet.cpp')
+    conflicts=('parakeet.cpp')
+
+    DESTDIR="$pkgdir" cmake --install build_parakeet_hip
+
+    install -Dm644 "${srcdir}/parakeet.cpp/LICENSE" \
+        -t "${pkgdir}/usr/share/licenses/${pkgname}"
+}

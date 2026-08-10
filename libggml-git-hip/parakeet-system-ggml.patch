@@ -1,0 +1,186 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 778309d..41f569a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -41,27 +41,31 @@ if(NOT DEFINED GGML_LLAMAFILE)
+   set(GGML_LLAMAFILE ON CACHE BOOL "ggml: use LLAMAFILE (tinyBLAS SGEMM)" FORCE)
+ endif()
+ 
+-# Apply any in-tree ggml patches (broadcast-fold, etc.) before configuring the
+-# submodule so the patched source is compiled in. Idempotent: already-applied
+-# patches are silently skipped.
+-find_program(BASH_EXECUTABLE bash)
+-if(BASH_EXECUTABLE AND EXISTS "${CMAKE_SOURCE_DIR}/scripts/apply_ggml_patches.sh")
+-  execute_process(
+-    COMMAND "${BASH_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/apply_ggml_patches.sh"
+-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+-    RESULT_VARIABLE _patch_result
+-    OUTPUT_VARIABLE _patch_output
+-    ERROR_VARIABLE  _patch_errors
+-  )
+-  if(_patch_output)
+-    message(STATUS "${_patch_output}")
+-  endif()
+-  if(_patch_result)
+-    message(WARNING "apply_ggml_patches.sh returned ${_patch_result}: ${_patch_errors}")
+-  endif()
+-endif()
++option(PARAKEET_USE_SYSTEM_GGML "Use system-installed GGML library" OFF)
++
++if(PARAKEET_USE_SYSTEM_GGML)
++    find_package(ggml REQUIRED)
++    add_library(ggml ALIAS ggml::ggml)
++else()
++    find_program(BASH_EXECUTABLE bash)
++    if(BASH_EXECUTABLE AND EXISTS "${CMAKE_SOURCE_DIR}/scripts/apply_ggml_patches.sh")
++      execute_process(
++        COMMAND "${BASH_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/apply_ggml_patches.sh"
++        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
++        RESULT_VARIABLE _patch_result
++        OUTPUT_VARIABLE _patch_output
++        ERROR_VARIABLE  _patch_errors
++      )
++      if(_patch_output)
++        message(STATUS "${_patch_output}")
++      endif()
++      if(_patch_result)
++        message(WARNING "apply_ggml_patches.sh returned ${_patch_result}: ${_patch_errors}")
++      endif()
++    endif()
+ 
+-add_subdirectory(third_party/ggml)
++    add_subdirectory(third_party/ggml)
++endif()
+ 
+ set(PARAKEET_SRC
+     src/parakeet.cpp
+@@ -119,3 +123,12 @@ if(PARAKEET_BUILD_TESTS)
+   enable_testing()
+   add_subdirectory(tests)
+ endif()
++
++include(GNUInstallDirs)
++install(TARGETS parakeet
++    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
++    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
++    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
++)
++install(FILES include/parakeet.h include/parakeet_capi.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
++
+diff --git a/examples/cli/CMakeLists.txt b/examples/cli/CMakeLists.txt
+index 3bb901f..ccd67fa 100644
+--- a/examples/cli/CMakeLists.txt
++++ b/examples/cli/CMakeLists.txt
+@@ -1,3 +1,5 @@
+ add_executable(parakeet-cli main.cpp)
+ target_link_libraries(parakeet-cli PRIVATE parakeet)
+ target_include_directories(parakeet-cli PRIVATE ${CMAKE_SOURCE_DIR}/src)
++install(TARGETS parakeet-cli DESTINATION ${CMAKE_INSTALL_BINDIR})
++
+diff --git a/examples/server/CMakeLists.txt b/examples/server/CMakeLists.txt
+index 40234e4..89c215c 100644
+--- a/examples/server/CMakeLists.txt
++++ b/examples/server/CMakeLists.txt
+@@ -8,3 +8,5 @@ target_include_directories(parakeet-server PRIVATE
+     ${CMAKE_SOURCE_DIR}/third_party)
+ find_package(Threads REQUIRED)
+ target_link_libraries(parakeet-server PRIVATE Threads::Threads)
++install(TARGETS parakeet-server DESTINATION ${CMAKE_INSTALL_BINDIR})
++
+diff --git a/src/backend.cpp b/src/backend.cpp
+index 40055f9..42d95d3 100644
+--- a/src/backend.cpp
++++ b/src/backend.cpp
+@@ -68,6 +68,32 @@ struct Backend::Impl {
+ // a single pointer is sufficient.
+ static thread_local Backend* t_active = nullptr;
+ 
++static ggml_backend_t pk_backend_cpu_init() {
++    ggml_backend_dev_t dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
++    return dev ? ggml_backend_dev_init(dev, nullptr) : nullptr;
++}
++
++static bool pk_backend_is_cpu(ggml_backend_t backend) {
++    if (!backend) return false;
++    ggml_backend_dev_t dev = ggml_backend_get_device(backend);
++    return dev && ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_CPU;
++}
++
++static void pk_backend_set_n_threads(ggml_backend_t backend, int n_threads) {
++    if (!backend) return;
++    ggml_backend_dev_t dev = ggml_backend_get_device(backend);
++    if (!dev) return;
++    ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
++    if (!reg) return;
++    auto fn = (ggml_backend_set_n_threads_t) ggml_backend_reg_get_proc_address(reg, "ggml_backend_set_n_threads");
++    if (!fn) {
++        fn = (ggml_backend_set_n_threads_t) ggml_backend_reg_get_proc_address(reg, "ggml_backend_cpu_set_n_threads");
++    }
++    if (fn) {
++        fn(backend, n_threads);
++    }
++}
++
+ Backend::Backend(int n_threads) : impl_(new Impl()) {
+     // Optional override via PARAKEET_DEVICE:
+     //   - "cpu"            forces the CPU backend (CPU baseline on a GPU box).
+@@ -124,7 +150,7 @@ Backend::Backend(int n_threads) : impl_(new Impl()) {
+                    want.c_str());
+     }
+     if (!impl_->backend) {              // CPU fallback (or CPU-only build)
+-        impl_->backend = ggml_backend_cpu_init();
++        impl_->backend = pk_backend_cpu_init();
+         device_name_ = "cpu";
+     }
+     if (!impl_->backend) {
+@@ -136,7 +162,7 @@ Backend::Backend(int n_threads) : impl_(new Impl()) {
+     // instead of aborting. The CPU/single-backend path keeps using the persistent
+     // gallocr below and is untouched.
+     if (impl_->use_sched) {
+-        impl_->cpu_backend = ggml_backend_cpu_init();
++        impl_->cpu_backend = pk_backend_cpu_init();
+         if (!impl_->cpu_backend) {
+             PK_LOG("pk::Backend: CPU fallback init failed; disabling sched");
+             impl_->use_sched = false;
+@@ -159,11 +185,11 @@ Backend::~Backend() {
+ 
+ void Backend::set_n_threads(int n_threads) {
+     n_threads_ = n_threads > 0 ? n_threads : 1;
+-    if (impl_ && impl_->backend && ggml_backend_is_cpu(impl_->backend)) {
+-        ggml_backend_cpu_set_n_threads(impl_->backend, n_threads_);
++    if (impl_ && impl_->backend && pk_backend_is_cpu(impl_->backend)) {
++        pk_backend_set_n_threads(impl_->backend, n_threads_);
+     }
+     if (impl_ && impl_->cpu_backend) {
+-        ggml_backend_cpu_set_n_threads(impl_->cpu_backend, n_threads_);
++        pk_backend_set_n_threads(impl_->cpu_backend, n_threads_);
+     }
+ }
+ 
+diff --git a/src/model_loader.cpp b/src/model_loader.cpp
+index 9d3bfe4..9fcce1e 100644
+--- a/src/model_loader.cpp
++++ b/src/model_loader.cpp
+@@ -72,18 +72,19 @@ bool ModelLoader::realize_weights(ggml_backend_t backend){
+     if(weights_buf_) return true;                       // idempotent
+     if(!backend || !ctx_){ PK_LOG("realize_weights: null backend/ctx"); return false; }
+ 
+-    if (ggml_backend_is_cpu(backend)) {
++    ggml_backend_dev_t dev = ggml_backend_get_device(backend);
++    if (dev && ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_CPU) {
+         // Fast path: borrow the host ctx memory directly (no copy).
+         // The GGUF is loaded with no_alloc=false, so every tensor's data lives
+         // in one contiguous ctx mem_buffer. Wrap that exact memory as a CPU
+-        // backend buffer (zero-copy: ggml_backend_cpu_buffer_from_ptr borrows
++        // backend buffer (zero-copy: ggml_backend_dev_buffer_from_host_ptr borrows
+         // the ptr) and point every tensor's ->buffer at it, so graphs can
+         // reference the loader tensors DIRECTLY as leaves (the gallocr treats
+         // data!=NULL tensors as already-allocated and never copies them;
+         // reshapes/views resolve at build time). Eliminates per-call recopy.
+         void*  base = ggml_get_mem_buffer(ctx_);
+         size_t size = ggml_get_mem_size(ctx_);
+-        weights_buf_ = ggml_backend_cpu_buffer_from_ptr(base, size);
++        weights_buf_ = ggml_backend_dev_buffer_from_host_ptr(dev, base, size, 0);
+         if(!weights_buf_){ PK_LOG("realize_weights: buffer_from_ptr failed"); return false; }
+         for(auto& kv : tensors_) kv.second->buffer = weights_buf_;
+         return true;

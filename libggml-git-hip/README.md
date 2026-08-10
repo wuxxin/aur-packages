@@ -1,6 +1,6 @@
 # libggml-git-hip
 
-An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts.cpp`) for Arch Linux. This package uses **dynamic backends** (`GGML_BACKEND_DL=ON`) to compile and package **CPU** (with auto-selected instruction set variants), **OpenBLAS**, **HIP/ROCm**, and **Vulkan** backends under a unified shared library.
+An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts.cpp`, `parakeet.cpp`) for Arch Linux. This package uses **dynamic backends** (`GGML_BACKEND_DL=ON`) to compile and package **CPU** (with auto-selected instruction set variants), **OpenBLAS**, **HIP/ROCm**, and **Vulkan** backends under a unified shared library.
 
 ## Split Packages
 
@@ -10,7 +10,7 @@ An optimized Git HEAD compilation of the GGML tensor library and associated tool
 - **`python-llama-cpp-git-ggml-hip`**: Python bindings (`llama_cpp`) installed into site-packages, dynamically linking to the shared library.
 - **`stable-diffusion.cpp-git-ggml-hip`**: Stable Diffusion Text-to-Image generation tools (`sd-cli`, `sd-server`) dynamically linking to the shared library.
 - **`qwen3-tts.cpp-git-ggml-hip`**: Qwen3-TTS text-to-speech tools (`qwen3-tts-cli`, `qwen3-tts-server`) dynamically linking to the shared library.
-- **`crispasr-git-ggml-hip`**: CrispASR speech-to-text tools (`crispasr`, `crispasr-server`, `crispasr-quantize`) dynamically linking to the shared library. Serves as a high-performance alternative to Whisper, enabling the use of Cohere Transcribe and other modern Conformer-based ASR/TTS architectures.
+- **`parakeet.cpp-git-ggml-hip`**: FastConformer and TDT ASR tools (`parakeet-cli`, `parakeet-server`) dynamically linking to the shared library.
 
 ## Key Features
 
@@ -20,7 +20,6 @@ An optimized Git HEAD compilation of the GGML tensor library and associated tool
 - **ROCm & Vulkan Support:** Accelerate workloads on AMD GPUs using the highly optimized native HIP backend, or fallback to the cross-vendor Vulkan backend.
 - **CPU Backend Optimization:** Instead of a single static CPU build, compiling with `GGML_CPU_ALL_VARIANTS` builds optimized variants for multiple instruction sets (AVX, AVX2, AVX512, etc.). At runtime, the best matching variant for the host CPU is dynamically loaded (e.g. AVX2/FMA on Zen3+).
 - **Qwen3 Optimizations:** See (Qwen3-TTS)[qwen3-tts-modifications.md]
-- **shared libggml support in CrispASR:** Add the needed additional Conformer functions in libggml, so shared build is possible.
 - **RDNA2 Optimization:** Includes `rdna2-optimized-tile.patch` to unlock more performant TILE Flash Attention on RDNA2 GPUs.
 - **Python Bindings:** patched to support the latest git version of libggml and llama.cpp.
 - **OpenBLAS CPU Fallback:** CPU-only layers are accelerated either via the standard CPU backend, or optional with the OpenBLAS CPU backend, providing alternative matrix operations to the standard CPU backend.
@@ -34,10 +33,12 @@ Of the current HIP/ROCm-accelerated Archlinux AUR packages for the GGML ecosyste
 - `python-llama-cpp-hip`
 - `stable-diffusion.cpp-hipblas-git`
 
-This package provides up-to-date replacements for the outdated HIP/ROCm-accelerated builds of the GGML ecosystem on Arch Linux for `llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp` and adds:
+This package provides up-to-date replacements for the outdated HIP/ROCm-accelerated builds of the GGML ecosystem on Arch Linux for `llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`.
+
+It adds the following new packages:
 
 - `qwen3-tts.cpp` with HIP/ROCm acceleration.
-- `crispasr` using the shared libggml library  `crispasr-git-ggml-hip`) with HIP, Vulkan, CPU, and BLAS acceleration.
+- `parakeet.cpp` with HIP/ROCm acceleration.
 
 In contrast to the listed AUR packages above, each of which contains their own static compilation of `libggml`, this package compiles `libggml` as a single system-wide shared library (`libggml-git-hip`) and dynamically links all downstream packages against it, we achieve:
 
@@ -147,56 +148,6 @@ Adds upstream support for the [jina-reranker-v3](https://huggingface.co/jinaai/j
   ```
   Then POST to `/v1/embeddings` to get 512-dim projected embeddings; compute cosine similarity client-side for reranking.
 
-### Extended Unified System GGML & CrispASR Linkage (`patch-ggml.py`)
-To enable dynamic linking of CrispASR to the system-wide `libggml.so` without missing custom activations and operators, we apply a dynamic patching script during the `prepare()` phase:
-- **Custom Operations Synced**: The script `patch-ggml.py` locates and injects `GGML_OP_NORM_AFFINE` (fused LayerNorm), `GGML_GLU_OP_SIGLU` (SiGLU activation), and `GGML_OP_AA_SNAKE_BETA` (anti-aliased SnakeBeta for BigVGAN v2) directly into the standard `llama.cpp/ggml` source tree. This updates public headers, string name/symbol mappings, static assertions, CPU OpenMP-parallelized compute kernels, and HIP/ROCm GPU launchers.
-- **CrispASR Dynamic Linkage**: CrispASR is built with `-DCRISPASR_USE_SYSTEM_GGML=ON` and links dynamically to `/usr/lib/libggml.so`. This avoids duplicate compilation of heavy ROCm/HIP and Vulkan shaders.
-- **Sentencepiece Integration**: Fully integrates and dynamically links CrispASR against the system-wide `/usr/lib/libsentencepiece.so` library, enabling correct tokenization structures for the TTS engine sub-modules.
-
-### Dynamic CPU Backend Compatibility Wrappers (`patch-ggml.py`)
-
-When compiling with dynamic backend loading (`GGML_BACKEND_DL=ON`), the CPU backend is built as dynamically loaded variant modules (`libggml-cpu-*.so`). As a result, standard CPU backend symbols such as `ggml_backend_cpu_init`, `ggml_backend_cpu_reg`, `ggml_backend_is_cpu`, `ggml_backend_cpu_set_n_threads`, `ggml_graph_plan`, `ggml_graph_compute`, `ggml_threadpool_new`, and the `ggml_cpu_has_*` feature query checks are no longer statically available in the main `libggml.so`.
-
-To prevent linker errors in downstream applications (like CrispASR and internal test utilities) that link dynamically to `libggml.so`, `patch-ggml.py` appends dynamic wrappers in `ggml-backend-reg.cpp`. These wrappers make the symbols available at link time and forward calls to the real implementations in the variant `.so` files.
-
-#### Symbol Dispatch Strategy
-
-The wrappers use two different forwarding strategies depending on the call context:
-
-- **`dlsym(RTLD_NEXT)` pass-through**: Wrappers for `ggml_backend_cpu_init` and `ggml_backend_cpu_reg` resolve the real implementation via `dlsym(RTLD_NEXT, ...)`, which skips the wrapper definition in `libggml.so` and finds the next symbol in load order (typically from the best-matching CPU variant `.so`). A depth guard detects recursive calls during backend initialization and falls back to `dlsym` pass-through to avoid re-entering the loading path.
-
-- **`get_cpu_proc_address()` forwarding**: The remaining wrappers (`ggml_backend_is_cpu`, `ggml_backend_cpu_set_n_threads`, `ggml_graph_plan`, `ggml_graph_compute`, `ggml_threadpool_*`, all `ggml_cpu_has_*` functions) resolve the active CPU backend's registration and call the function via the backend's proc address table. This avoids symbol duplication entirely.
-
-#### Why This Matters Now
-
-The original wrappers (pre-July 2026) used `ggml_backend_load_all()` and `ggml_backend_dev_init()` directly. This caused two critical runtime failures:
-
-1. **Infinite recursion in `ggml_backend_cpu_init`**: The wrapper called `ggml_backend_dev_init(dev, nullptr)`, which internally called `ggml_backend_cpu_init()` again — but the dynamic linker resolved it back to the wrapper, creating a `wrapper → dev_init → cpu_init → wrapper` loop. Fixed by switching to `dlsym(RTLD_NEXT)` pass-through.
-
-2. **Infinite recursion in `ggml_backend_cpu_reg`**: During backend loading, the variant `.so`'s `ggml_backend_init` called `ggml_backend_cpu_reg()` to register itself. But the wrapper saw no CPU device registered yet (registration hadn't completed) and called `ggml_backend_load_all()` again — re-entering the same loading path. Fixed with a depth-guarded fallback: on first call, load backends and lookup the device; on recursive calls, `dlsym(RTLD_NEXT)` pass-through to the variant's own implementation.
-
-These fixes work together with the `rtld-global.patch` below to make CPU backend symbols available through `libggml.so` without runtime hangs.
-
-### RTLD Global Symbol Visibility (`rtld-global.patch`)
-
-The `dlsym(RTLD_NEXT)` dispatch used by the CPU backend wrappers depends on the variant `.so`'s symbols being visible in the global symbol namespace. However, `ggml-backend-dl.cpp` loads all backend `.so` files with `dlopen(..., RTLD_NOW | RTLD_LOCAL)`, which **hides** their symbols from `dlsym(RTLD_NEXT)`.
-
-```
-dlopen(RTLD_LOCAL)  → dlsym(RTLD_NEXT) = (nil)   ✗ symbol hidden
-dlopen(RTLD_GLOBAL) → dlsym(RTLD_NEXT) = correct  ✓ symbol found
-```
-
-This patch changes `RTLD_LOCAL` to `RTLD_GLOBAL` in `ggml/src/ggml-backend-dl.cpp`. Only the best-scoring CPU variant `.so` is kept loaded (all others are probed and closed), so there is no symbol conflict between variants. Each backend type (CPU, BLAS, HIP, Vulkan) uses uniquely named functions, avoiding cross-backend shadowing.
-
-**Without this patch**: After the wrapper fixes above, `ggml_backend_cpu_init()` returns `nullptr` because it cannot find the real implementation — even though the variant `.so` is loaded and the CPU backend is registered. `llama-server` fails to initialize any model that requires a CPU backend for layer offloading.
-
-**With this patch**: `dlsym(RTLD_NEXT)` resolves the real function pointer, the wrapper forwards the call correctly, and the CPU backend initializes normally.
-
-#### Compatibility & Safety
-Adding these custom operators and wrappers to the system-wide `libggml.so` does **not** introduce compile or runtime compatibility issues for standard GGML tools (e.g. `llama.cpp` or third-party wrappers):
-- **ABI Stability**: The new enums are appended cleanly at the end of lists, preserving the exact integer values of all standard GGML operations and keeping structure layouts intact.
-- **Isolating graph execution**: Standard downstream models do not compile or utilize these custom operators, meaning their graph computation and scheduling paths remain completely unaffected.
-- **Heterogeneous Fallback Safety**: GPU backends naturally fall back to CPU OpenMP thread execution for custom operators they do not natively support, ensuring full compatibility across Vulkan-only and ROCm/HIP hardware environments.
 
 
 
