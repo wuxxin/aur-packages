@@ -1,0 +1,98 @@
+# Maintainer: Wuxxin <wuxxin@gmail.com>
+
+pkgname=vllm.cpp-git-hip
+pkgver=0.0.2.alpha1.ci.test.r156.g7c7f024
+pkgrel=1
+pkgdesc="A community oriented 1:1, vLLM-alike engine in C++ with ROCm/HIP and Vulkan acceleration (git version)"
+arch=('x86_64')
+url="https://github.com/mudler/vllm.cpp"
+license=('Apache-2.0' 'MIT')
+options=('!lto' '!debug' '!buildflags')
+depends=(
+    'rocm-hip-runtime'
+    'vulkan-icd-loader'
+    'gcc-libs'
+)
+makedepends=(
+    'cmake'
+    'git'
+    'ninja'
+    'rocm-hip-sdk'
+    'rocm-toolchain'
+    'vulkan-headers'
+    'vulkan-icd-loader'
+    'shaderc'
+    'spirv-headers'
+)
+provides=('vllm.cpp' 'vllm-server' 'vllm-cli')
+conflicts=('vllm.cpp')
+
+source=("vllm.cpp::git+https://github.com/mudler/vllm.cpp.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "${srcdir}/vllm.cpp"
+    git describe --long --tags --abbrev=7 2>/dev/null | sed -E 's/^[^0-9]*//;s/([^-]*-g)/r\1/;s/-/./g' ||
+        printf "0.1.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
+}
+
+prepare() {
+    cd "${srcdir}/vllm.cpp"
+    # Restore CompilerWarnings.cmake if previously modified
+    git checkout cmake/CompilerWarnings.cmake
+    # Safely disable -Werror and CUDA all-warnings to avoid GCC 16 libstdc++ false positives and NVCC argument errors
+    sed -i 's/set(_vllm_cpp_werror -Werror)/set(_vllm_cpp_werror "")/' cmake/CompilerWarnings.cmake
+    sed -i 's/-Werror=all-warnings//' cmake/CompilerWarnings.cmake
+    sed -i 's/-Werror//' cmake/CompilerWarnings.cmake
+}
+
+build() {
+    local _GPU_TARGETS
+    local _BLACKLIST="gfx1103"
+    if command -v rocm-supported-gfx >/dev/null 2>&1; then
+        _GPU_TARGETS=$(rocm-supported-gfx | tr ';' '\n' |
+            grep -vFf <(echo "${_BLACKLIST//;/\\n}") | tr '\n' ';' | sed 's/;$//')
+    fi
+    if [[ -n "${AMDGPU_TARGETS:-}" ]]; then _GPU_TARGETS="$AMDGPU_TARGETS"; fi
+    if [[ -z "${_GPU_TARGETS:-}" ]]; then _GPU_TARGETS="gfx1030"; fi
+
+    export ROCM_PATH="${ROCM_PATH:-/opt/rocm}"
+    export HIP_PATH="${HIP_PATH:-$ROCM_PATH}"
+    export CC=gcc
+    export CXX=g++
+
+    # Clear flags that interfere with HIP device compilation
+    unset CFLAGS CXXFLAGS LDFLAGS CPPFLAGS
+
+    echo "Building vllm.cpp HEAD for ROCm architectures: ${_GPU_TARGETS}"
+
+    cmake -B build-hip -S "${srcdir}/vllm.cpp" -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="/usr" \
+        -DVLLM_CPP_CUDA=OFF \
+        -DVLLM_CPP_HIP=ON \
+        -DVLLM_CPP_HIP_ARCHITECTURES="${_GPU_TARGETS}" \
+        -DVLLM_CPP_VULKAN=ON \
+        -DVLLM_CPP_SERVER=ON \
+        -DVLLM_CPP_BUILD_EXAMPLES=ON \
+        -DVLLM_CPP_BUILD_TESTS=OFF
+
+    cmake --build build-hip -j$(nproc)
+}
+
+package() {
+    DESTDIR="${pkgdir}" cmake --install build-hip
+
+    # Ensure executables from examples/ are installed into /usr/bin/
+    install -d "${pkgdir}/usr/bin"
+    for bin in vllm-server vllm-cli vllm-bench; do
+        if [ -f "build-hip/examples/${bin}" ]; then
+            install -m755 "build-hip/examples/${bin}" "${pkgdir}/usr/bin/${bin}"
+        elif [ -f "build-hip/${bin}" ]; then
+            install -m755 "build-hip/${bin}" "${pkgdir}/usr/bin/${bin}"
+        fi
+    done
+
+    # Install License
+    install -Dm644 "${srcdir}/vllm.cpp/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

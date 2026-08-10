@@ -60,6 +60,9 @@ Currently using:
     - with patches for RDNA2,  Python Bindings to support the latest git version,
     - all packages link dynamically against a single system-wide `libggml-git-hip`.
         - This ensures consistent backend behavior / bug compatibility across all tools.
+- [vllm.cpp-git-hip](vllm.cpp-git-hip) - C++ engine for vLLM-alike serving (continuous batching, paged KV)
+    - Python-free 1:1 C++ vLLM engine with ROCm/HIP and Vulkan hardware acceleration (`vllm-server`, `vllm-cli`, `vllm-bench`, `libvllm.so`).
+
 
 testing:
 
