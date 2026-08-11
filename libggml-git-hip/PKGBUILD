@@ -64,7 +64,7 @@ sha256sums=('SKIP'
             '3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391'
             '8c8d5aae9919b94febf30302daa483c448c5106c0de9f3e6f7052766b26fb068'
             '1204bae0ca0f976ac476b29dc75642b0896cbec74d05e9b79c2592f34e348da4'
-            'd04717d610e45d20bfac18a6b54fccec9f69b8363cf1c95853084b3cf983aee2'
+            '934d9e1c26f5f2104d85a071e7af07d7336c292930734b907012ed68ffcc8074'
             '17fdfd17833fdd7d2a5f584c1d781c1e5340d47f05555ec1cf89487a341c8bea'
             '3f6b0f1e6111da9866f8cced49bca0e34972171017455700624792a6b749ced0'
             '1e50216d2a837c1aa8537a3acecbe05f8cc147eb54e6a73600de9419678202c4'
@@ -287,7 +287,7 @@ build() {
     cmake -B build_parakeet_hip -S parakeet.cpp -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="/usr" \
-        -DPARAKEET_SHARED=ON \
+        -DPARAKEET_SHARED=OFF \
         -DPARAKEET_USE_SYSTEM_GGML=ON \
         -DPARAKEET_BUILD_CLI=ON \
         -DPARAKEET_BUILD_SERVER=ON
