@@ -2,7 +2,8 @@ diff --git a/MODULE.bazel b/MODULE.bazel
 index c15eb57..7eae285 100644
 --- a/MODULE.bazel
 +++ b/MODULE.bazel
-@@ -201,6 +201,40 @@ crate.annotation(
+@@ -197,6 +197,40 @@ crate.annotation(
+     crate = "tree-sitter-just",
      build_script_env = {"CFLAGS": "-UNDEBUG"},
  )
  
@@ -40,5 +41,4 @@ index c15eb57..7eae285 100644
 +    ]
 +]
 +
- # `generate-bindings` is enabled for darwin so miniaudio's Rust bindings match
- # its CoreAudio C layout. Build scripts execute for the host, however, so a
+ use_repo(crate, "crates")

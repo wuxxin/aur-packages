@@ -1,17 +1,25 @@
 # Maintainer: Bin Jin <bjin@protonmail.com>
 
-pkgname=oh-my-pi-git-tag
+pkgbase=oh-my-pi-git-tag
+pkgname=('oh-my-pi-git-tag' 'python-omp-rpc-git-tag' 'python-robomp-git-tag')
 _pkgname=oh-my-pi
-pkgver=17.2.10.r120.g39477ba
+pkgver=17.2.12.r0.g45e12e5
 pkgrel=1
 pkgdesc="AI coding agent for the terminal — hash-anchored edits, optimized tool harness, LSP, Python, browser, subagents, and more (git latest tag)"
 arch=('x86_64')
 url="https://github.com/can1357/oh-my-pi"
 license=('MIT')
-provides=("${_pkgname}")
-conflicts=("${_pkgname}")
-depends=('glibc' 'opus' 'pcre2')
-makedepends=('bazel' 'bun' 'git')
+makedepends=(
+    'bazel'
+    'bun'
+    'git'
+    'python'
+    'python-build'
+    'python-installer'
+    'python-setuptools'
+    'python-wheel'
+    'zip'
+)
 options=('!strip')
 source=(
     "${_pkgname}::git+https://github.com/can1357/oh-my-pi.git"
@@ -20,9 +28,9 @@ source=(
     "skip-native-embed-for-aur.patch"
 )
 sha256sums=('SKIP'
-            'e171083b001b517a4bb15d9e87483b59cc650db6d1d7348a59d752b1519aa761'
-            '05c0e2562f4844c1fe64305f907633e19dd356407c53e0c43c40ce60b4a36835'
-            'a81209715174b5413d5743ec4b461ffd71b1a1fc37bd4a7dcde23c27e35bc62f')
+    '5894ef4a9c7dfe4832466afd734f2342bb112f884dbe00f7a0a0152db472e75e'
+    '05c0e2562f4844c1fe64305f907633e19dd356407c53e0c43c40ce60b4a36835'
+    'a81209715174b5413d5743ec4b461ffd71b1a1fc37bd4a7dcde23c27e35bc62f')
 
 pkgver() {
     cd "${srcdir}/${_pkgname}"
@@ -46,6 +54,9 @@ build() {
 
     bun install --frozen-lockfile
 
+    # Build browser relay extension
+    (cd packages/browser-relay && bun run build)
+
     # rules_rust fetches the pinned nightly rustc and cargo; no host rust toolchain.
     bun ./scripts/bazel-natives.ts linux-x64-baseline linux-x64-modern --dest packages/natives/native
 
@@ -53,6 +64,14 @@ build() {
 
     # Release the server holding an output base under $srcdir.
     bazel shutdown
+
+    # Build Python RPC SDK wheel
+    cd "${srcdir}/${_pkgname}/python/omp-rpc"
+    python -m build --wheel --no-isolation
+
+    # Build RoboMP Python package wheel
+    cd "${srcdir}/${_pkgname}/python/robomp"
+    python -m build --wheel --no-isolation
 }
 
 _install_completions() {
@@ -75,7 +94,17 @@ _install_completions() {
     install -Dm644 "${_completion_dir}/omp.fish" "${pkgdir}/usr/share/fish/vendor_completions.d/omp.fish"
 }
 
-package() {
+package_oh-my-pi-git-tag() {
+    pkgdesc="AI coding agent for the terminal — hash-anchored edits, optimized tool harness, LSP, Python, browser, subagents, and more (git latest tag)"
+    depends=('glibc' 'opus' 'pcre2')
+    optdepends=(
+        'python-omp-rpc: Typed Python client for the omp coding-agent RPC protocol'
+        'python-robomp: Self-hosted GitHub triage/fix bot driving omp --mode rpc'
+        'chromium: Browser extension integration support'
+    )
+    provides=("${_pkgname}" "omp")
+    conflicts=("${_pkgname}" "omp")
+
     cd "${srcdir}/${_pkgname}"
 
     install -Dm755 "packages/coding-agent/binaries/omp-linux-x64" \
@@ -88,4 +117,44 @@ package() {
     ln -s "../lib/${_pkgname}/omp" "${pkgdir}/usr/bin/omp"
     _install_completions "${pkgdir}/usr/bin/omp"
     install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+
+    # Install Browser Relay extension
+    install -dm755 "${pkgdir}/usr/share/${_pkgname}"
+    cp -r packages/browser-relay/dist/extension "${pkgdir}/usr/share/${_pkgname}/browser-relay"
+    install -Dm644 packages/browser-relay/dist/omp-browser-relay-extension.zip \
+        "${pkgdir}/usr/share/${_pkgname}/omp-browser-relay-extension.zip"
+}
+
+package_python-omp-rpc-git-tag() {
+    pkgdesc="Typed Python client for the omp coding-agent RPC protocol (GIT latest tag)"
+    arch=('any')
+    depends=('python')
+    provides=('python-omp-rpc')
+    conflicts=('python-omp-rpc')
+
+    cd "${srcdir}/${_pkgname}/python/omp-rpc"
+    python -m installer --destdir="${pkgdir}" dist/*.whl
+    install -Dm644 "${srcdir}/${_pkgname}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
+
+package_python-robomp-git-tag() {
+    pkgdesc="Self-hosted GitHub triage/fix bot driving omp --mode rpc (GIT latest tag)"
+    arch=('any')
+    depends=(
+        'python'
+        'python-omp-rpc-git-tag'
+        'python-fastapi'
+        'uvicorn'
+        'python-httpx'
+        'python-pydantic'
+        'python-pydantic-settings'
+        'python-dotenv'
+        'python-click'
+    )
+    provides=('python-robomp')
+    conflicts=('python-robomp')
+
+    cd "${srcdir}/${_pkgname}/python/robomp"
+    python -m installer --destdir="${pkgdir}" dist/*.whl
+    install -Dm644 "${srcdir}/${_pkgname}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 }
