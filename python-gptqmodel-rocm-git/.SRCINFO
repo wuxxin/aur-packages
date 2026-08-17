@@ -1,0 +1,61 @@
+pkgbase = python-gptqmodel-rocm-git
+	pkgdesc = Production ready LLM model compression/quantization toolkit (with AMD ROCm/RDNA3 support and bundled ModelCloud helpers)
+	pkgver = 7.3.2.r31.g7df3d1e83
+	pkgrel = 1
+	url = https://github.com/ModelCloud/GPTQModel
+	arch = any
+	license = Apache-2.0
+	makedepends = cmake
+	makedepends = git
+	makedepends = python-build
+	makedepends = python-installer
+	makedepends = python-setuptools
+	makedepends = python-wheel
+	depends = ninja
+	depends = pcre2
+	depends = python
+	depends = python-accelerate
+	depends = python-datasets
+	depends = python-dill
+	depends = python-numpy
+	depends = python-packaging
+	depends = python-pillow
+	depends = python-protobuf
+	depends = python-pyarrow
+	depends = python-pytorch-rocm
+	depends = python-safetensors
+	depends = python-threadpoolctl
+	depends = python-torchao-rocm
+	depends = python-transformers
+	depends = python-triton
+	optdepends = python-bitsandbytes-rocm-git: support for bitsandbytes quantization backends
+	optdepends = python-optimum-rocm: Hugging Face Optimum integration for model loading/quantization
+	optdepends = python-peft: PEFT/LoRA integration for fine-tuning quantized models
+	optdepends = python-vllm-rocm-git: high-throughput serving of GPTQ models
+	provides = python-gptqmodel=7.3.2.r31.g7df3d1e83
+	provides = python-gptqmodel-rocm=7.3.2.r31.g7df3d1e83
+	provides = python-gptqmodel-rocm-git=7.3.2.r31.g7df3d1e83
+	provides = python-pypcre
+	provides = python-device-smi
+	provides = python-tokenicer
+	provides = python-logbar
+	provides = python-defuser
+	conflicts = python-gptqmodel
+	conflicts = python-gptqmodel-rocm
+	conflicts = python-gptqmodel-git
+	source = python-gptqmodel-rocm-git::git+https://github.com/ModelCloud/GPTQModel.git#branch=main
+	source = mc-pypcre::git+https://github.com/ModelCloud/pypcre.git
+	source = mc-device-smi::git+https://github.com/ModelCloud/device-smi.git
+	source = mc-tokenicer::git+https://github.com/ModelCloud/tokenicer.git
+	source = mc-logbar::git+https://github.com/ModelCloud/logbar.git
+	source = mc-defuser::git+https://github.com/ModelCloud/defuser.git
+	source = test_gptqmodel_rocm.py
+	sha256sums = SKIP
+	sha256sums = SKIP
+	sha256sums = SKIP
+	sha256sums = SKIP
+	sha256sums = SKIP
+	sha256sums = SKIP
+	sha256sums = SKIP
+
+pkgname = python-gptqmodel-rocm-git

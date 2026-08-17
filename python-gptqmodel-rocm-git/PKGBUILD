@@ -1,0 +1,149 @@
+# Maintainer: Wuxxin <wuxxin@example.com>
+# shellcheck shell=bash disable=SC2034,SC2154
+
+_pkgname=gptqmodel
+_pkgdesc="LLM model quantization (compression) toolkit support for HF, vLLM, and SGLang. (ROCm - GIT Version)"
+pkgname=python-${_pkgname}-rocm-git
+pkgver=7.3.2.r31.g7df3d1e83
+pkgrel=1
+pkgdesc="${_pkgdesc}"
+arch=('any')
+url='https://github.com/ModelCloud/GPTQModel'
+license=('Apache-2.0')
+depends=(
+    'ninja'
+    'pcre2'
+    'python'
+    'python-accelerate'
+    'python-datasets'
+    'python-dill'
+    'python-numpy'
+    'python-packaging'
+    'python-pillow'
+    'python-protobuf'
+    'python-pyarrow'
+    'python-pytorch-rocm'
+    'python-safetensors'
+    'python-threadpoolctl'
+    'python-torchao-rocm'
+    'python-transformers'
+    'python-triton'
+)
+makedepends=(
+    'cmake'
+    'git'
+    'python-build'
+    'python-installer'
+    'python-setuptools'
+    'python-wheel'
+)
+optdepends=(
+    'python-bitsandbytes-rocm-git: support for bitsandbytes quantization backends'
+    'python-optimum-rocm: Hugging Face Optimum integration for model loading/quantization'
+    'python-peft: PEFT/LoRA integration for fine-tuning quantized models'
+    'python-vllm-rocm-git: high-throughput serving of GPTQ models'
+)
+provides=(
+    "python-${_pkgname}=${pkgver}"
+    "python-${_pkgname}-rocm=${pkgver}"
+    "python-${_pkgname}-rocm-git=${pkgver}"
+    "python-pypcre"
+    "python-device-smi"
+    "python-tokenicer"
+    "python-logbar"
+    "python-defuser"
+)
+conflicts=("python-${_pkgname}" "python-${_pkgname}-rocm" "python-${_pkgname}-git")
+source=(
+    "${pkgname}::git+https://github.com/ModelCloud/GPTQModel.git#branch=main"
+    "mc-pypcre::git+https://github.com/ModelCloud/pypcre.git"
+    "mc-device-smi::git+https://github.com/ModelCloud/device-smi.git"
+    "mc-tokenicer::git+https://github.com/ModelCloud/tokenicer.git"
+    "mc-logbar::git+https://github.com/ModelCloud/logbar.git"
+    "mc-defuser::git+https://github.com/ModelCloud/defuser.git"
+    "test_gptqmodel_rocm.py"
+)
+sha256sums=(
+    'SKIP'
+    'SKIP'
+    'SKIP'
+    'SKIP'
+    'SKIP'
+    'SKIP'
+    'SKIP'
+)
+
+_mc_submodules=(
+    "mc-pypcre"
+    "mc-device-smi"
+    "mc-tokenicer"
+    "mc-logbar"
+    "mc-defuser"
+)
+
+pkgver() {
+    cd "${srcdir}/${pkgname}"
+    git describe --long --tags --match 'v*' 2>/dev/null | sed 's/^v//; s/\([^-]*-g\)/r\1/; s/-/./g' || printf "%s" "7.3.2"
+}
+
+prepare() {
+    # Relax strict build-system version pins for Arch Linux / Python 3.14
+    for mod in "${pkgname}" "${_mc_submodules[@]}"; do
+        if [[ -f "${srcdir}/${mod}/pyproject.toml" ]]; then
+            python3 -c "
+import re
+with open('${srcdir}/${mod}/pyproject.toml', 'r') as fp:
+    c = fp.read()
+c = re.sub(r'requires\s*=\s*\[[^\]]*\]', 'requires = [\"setuptools\", \"wheel\"]', c, flags=re.DOTALL)
+with open('${srcdir}/${mod}/pyproject.toml', 'w') as fp:
+    fp.write(c)
+"
+        fi
+    done
+
+    # Fix transformers 5.12+ masking_utils compatibility in solar_open2
+    sed -i 's/from transformers.masking_utils import create_causal_mask, create_recurrent_attention_mask/try:\n    from transformers.masking_utils import create_causal_mask, create_recurrent_attention_mask\nexcept ImportError:\n    from transformers.masking_utils import create_causal_mask\n    create_recurrent_attention_mask = None/' "${srcdir}/${pkgname}/gptqmodel/models/definitions/solar_open2.py"
+
+    # Fix BaseGPTQModel -> BaseQModel alias in olmoe definition
+    sed -i 's/from \.\.base import BaseGPTQModel/from ..base import BaseQModel as BaseGPTQModel/' "${srcdir}/${pkgname}/gptqmodel/models/definitions/olmoe.py"
+}
+
+build() {
+    # Build bundled ModelCloud helper submodules
+    for mod in "${_mc_submodules[@]}"; do
+        cd "${srcdir}/${mod}"
+        python -m build --wheel --no-isolation
+    done
+
+    # Build GPTQModel
+    cd "${srcdir}/${pkgname}"
+    python -m build --wheel --no-isolation
+}
+
+check() {
+    # Run test suite in standalone mode against newly built source trees
+    PYTHONPATH="${srcdir}/${pkgname}:${srcdir}/mc-pypcre:${srcdir}/mc-device-smi:${srcdir}/mc-tokenicer:${srcdir}/mc-logbar:${srcdir}/mc-defuser:${PYTHONPATH}" \
+        python "${srcdir}/test_gptqmodel_rocm.py" --no-model
+}
+
+package() {
+    # Install helper submodules
+    for mod in "${_mc_submodules[@]}"; do
+        cd "${srcdir}/${mod}"
+        python -m installer --destdir="${pkgdir}" dist/*.whl
+    done
+
+    # Install GPTQModel
+    cd "${srcdir}/${pkgname}"
+    python -m installer --destdir="${pkgdir}" dist/*.whl
+    install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+
+    # Install test suite and CLI wrapper
+    install -Dm755 "${srcdir}/test_gptqmodel_rocm.py" "${pkgdir}/usr/share/${pkgname}/test_gptqmodel_rocm.py"
+    install -d "${pkgdir}/usr/bin"
+    cat >"${pkgdir}/usr/bin/gptqmodel-test-rocm" <<EOF
+#!/usr/bin/env bash
+exec /usr/bin/python /usr/share/${pkgname}/test_gptqmodel_rocm.py "\$@"
+EOF
+    chmod +x "${pkgdir}/usr/bin/gptqmodel-test-rocm"
+}

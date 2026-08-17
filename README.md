@@ -68,11 +68,25 @@ Can be **broken or bitrotten at anytime**.
 
 #### testing (also not in AUR):
 
+- Python Support Packages for HF.*, torch, sglang, vllm feature support
+    - [python-peft](python-peft)
+        - State-of-the-art Parameter-Efficient Fine-Tuning (v0.20.0, , updated, upstream aur is at 0.17)
+    - [python-optimum-amd](python-optimum-amd)
+        - Hugging Face Optimum integration for AMD hardware build fixes
+    - [python-optimum-rocm](python-optimum-rocm)
+        - Accelerated inference and training with Hugging Face Optimum (with ROCm support)
+    - [python-gptqmodel-rocm-git](python-gptqmodel-rocm-git)
+        - Production ready LLM model compression and quantization toolkit (ROCm support, backend for Optimum)
+
+- [python-infinity-emb](python-infinity-emb)
+    - High-throughput, low-latency REST API for serving text-embeddings and reranking models
+    - Needs torch, peft and optimum
+
 - [vllm.cpp-git-hip](vllm.cpp-git-hip) - C++ engine for vLLM-alike serving (continuous batching, paged KV)
     - Python-free 1:1 C++ vLLM engine with ROCm/HIP and Vulkan hardware acceleration (`vllm-server`, `vllm-cli`, `vllm-bench`, `libvllm.so`).
 
-- [smg](smg)
-    - High-performance model-routing gateway for large-scale LLM deployments
+- [mlc-llm](mlc-llm)
+    - Universal LLM deployment engine via ML compilation (ROCm & Vulkan). Fork of [alansrobotlab2/mlc-llm](https://github.com/alansrobotlab2/mlc-llm) (qwen3_5 branch) adding Qwen3.5/Qwen3.6 (GatedDeltaNet + MoE) model support, with patches for ROCm 7.2 hipblas API compatibility.
 
 - [crane-git](crane-git) - Pure Rust LLM, VLM, VLA, TTS, OCR Inference Engine powered by Candle
     - Custom build from latest git with OpenAI-compatible API server (`crane`), `onnx` features, and demo CLI tools (`crane-chat-simple`, `crane-chat-cli`, `crane-ornith-tools`).
@@ -84,17 +98,9 @@ Can be **broken or bitrotten at anytime**.
     - [python-grpcio-reflection](python-grpcio-reflection)
         - Standard Protobuf reflection service for gRPC Python (needed by TEI backend)
 
-- [mlc-llm](mlc-llm)
-    - Universal LLM deployment engine via ML compilation (ROCm & Vulkan). Fork of [alansrobotlab2/mlc-llm](https://github.com/alansrobotlab2/mlc-llm) (qwen3_5 branch) adding Qwen3.5/Qwen3.6 (GatedDeltaNet + MoE) model support, with patches for ROCm 7.2 hipblas API compatibility.
+- [smg](smg)
+    - High-performance model-routing gateway for large-scale LLM deployments
 
-- [python-infinity-emb](python-infinity-emb)
-    - High-throughput, low-latency REST API for serving text-embeddings and reranking models
-    - [python-peft](python-peft)
-        - State-of-the-art Parameter-Efficient Fine-Tuning (v0.20.0, , updated, upstream aur is at 0.17)
-    - [python-optimum-amd](python-optimum-amd)
-        - Hugging Face Optimum integration for AMD hardware build fixes
-    - [python-optimum-rocm](python-optimum-rocm)
-        - Accelerated inference and training with Hugging Face Optimum (with ROCm support)
 
 - [pocket-tts.cpp-git](pocket-tts.cpp-git) - Single-file C++ TTS runtime for Pocket TTS with ONNX Runtime
     - builds `pocket-tts` C++ executable and shared library `libpocket_tts.so` with support for voice cloning, streaming, HTTP server, and FFI C API.
