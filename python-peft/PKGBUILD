@@ -4,7 +4,7 @@
 pkgname=python-peft
 _pkgname=peft
 pkgver=0.20.0
-pkgrel=1
+pkgrel=2
 pkgdesc='State-of-the-art Parameter-Efficient Fine-Tuning'
 arch=('any')
 url='https://github.com/huggingface/peft'
@@ -27,6 +27,11 @@ makedepends=(
     'python-installer'
     'python-setuptools'
     'python-wheel'
+)
+optdepends=(
+    'python-bitsandbytes: k-bit quantization support (QLoRA)'
+    'python-gptqmodel: fine-tuning on top of GPTQ quantized models'
+    'python-torchao: torchao low-bit quantization support'
 )
 source=("https://files.pythonhosted.org/packages/source/${_pkgname::1}/${_pkgname}/${_pkgname}-${pkgver}.tar.gz")
 sha256sums=('4769c8093a4ca145fd6fb3fd4dd50449675f5fe46434ad1e98b285a132d4b1d0')

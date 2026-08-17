@@ -1,7 +1,7 @@
 pkgbase = python-peft
 	pkgdesc = State-of-the-art Parameter-Efficient Fine-Tuning
 	pkgver = 0.20.0
-	pkgrel = 1
+	pkgrel = 2
 	url = https://github.com/huggingface/peft
 	arch = any
 	license = Apache-2.0
@@ -20,6 +20,9 @@ pkgbase = python-peft
 	depends = python-tqdm
 	depends = python-transformers
 	depends = python-yaml
+	optdepends = python-bitsandbytes: k-bit quantization support (QLoRA)
+	optdepends = python-gptqmodel: fine-tuning on top of GPTQ quantized models
+	optdepends = python-torchao: torchao low-bit quantization support
 	source = https://files.pythonhosted.org/packages/source/p/peft/peft-0.20.0.tar.gz
 	sha256sums = 4769c8093a4ca145fd6fb3fd4dd50449675f5fe46434ad1e98b285a132d4b1d0
 
