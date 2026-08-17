@@ -3,7 +3,7 @@
 pkgname=python-infinity-emb
 _pkgname=infinity_emb
 pkgver=0.0.75
-pkgrel=2
+pkgrel=3
 pkgdesc='High-throughput, low-latency REST API for serving text-embeddings and reranking models'
 arch=('any')
 url='https://github.com/michaelfeil/infinity'
@@ -23,12 +23,19 @@ depends=(
     'python-transformers'
     'uvicorn'
 )
-
 makedepends=(
     'python-build'
     'python-installer'
     'python-poetry-core'
     'python-wheel'
+)
+optdepends=(
+    'python-torchao: low-bit quantization for torch.compile acceleration'
+    'python-bitsandbytes: 8-bit and 4-bit quantized embedding models'
+    'python-gptqmodel: GPTQ quantized embedding model inference backend'
+    'python-peft: PEFT and LoRA adapter support for domain embeddings'
+    'python-torchaudio: audio embedding support (CLAP/Wav2Vec)'
+    'python-pillow: vision-language embedding support (ColPali/CLIP)'
 )
 source=("https://files.pythonhosted.org/packages/source/${_pkgname::1}/${_pkgname}/${_pkgname}-${pkgver}.tar.gz")
 sha256sums=('cd8a6aa17b57672ba48a5699cf65c8ad561f65f248e38afd383dc35f8cf470de')

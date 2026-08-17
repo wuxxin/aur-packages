@@ -1,7 +1,7 @@
 pkgbase = python-infinity-emb
 	pkgdesc = High-throughput, low-latency REST API for serving text-embeddings and reranking models
 	pkgver = 0.0.75
-	pkgrel = 2
+	pkgrel = 3
 	url = https://github.com/michaelfeil/infinity
 	arch = any
 	license = MIT
@@ -22,6 +22,12 @@ pkgbase = python-infinity-emb
 	depends = python-sentence-transformers
 	depends = python-transformers
 	depends = uvicorn
+	optdepends = python-torchao: low-bit quantization for torch.compile acceleration
+	optdepends = python-bitsandbytes: 8-bit and 4-bit quantized embedding models
+	optdepends = python-gptqmodel: GPTQ quantized embedding model inference backend
+	optdepends = python-peft: PEFT and LoRA adapter support for domain embeddings
+	optdepends = python-torchaudio: audio embedding support (CLAP/Wav2Vec)
+	optdepends = python-pillow: vision-language embedding support (ColPali/CLIP)
 	source = https://files.pythonhosted.org/packages/source/i/infinity_emb/infinity_emb-0.0.75.tar.gz
 	sha256sums = cd8a6aa17b57672ba48a5699cf65c8ad561f65f248e38afd383dc35f8cf470de
 
