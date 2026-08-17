@@ -39,9 +39,7 @@ makedepends=(
 )
 optdepends=(
     'python-bitsandbytes-rocm-git: support for bitsandbytes quantization backends'
-    'python-optimum-rocm: Hugging Face Optimum integration for model loading/quantization'
-    'python-peft: PEFT/LoRA integration for fine-tuning quantized models'
-    'python-vllm-rocm-git: high-throughput serving of GPTQ models'
+    'python-peft: PEFT/LoRA adapter integration for quantized models'
 )
 provides=(
     "python-${_pkgname}=${pkgver}"

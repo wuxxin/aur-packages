@@ -1,5 +1,5 @@
 pkgbase = python-gptqmodel-rocm-git
-	pkgdesc = Production ready LLM model compression/quantization toolkit (with AMD ROCm/RDNA3 support and bundled ModelCloud helpers)
+	pkgdesc = LLM model quantization (compression) toolkit support for HF, vLLM, and SGLang. (ROCm - GIT Version)
 	pkgver = 7.3.2.r31.g7df3d1e83
 	pkgrel = 1
 	url = https://github.com/ModelCloud/GPTQModel
@@ -29,9 +29,7 @@ pkgbase = python-gptqmodel-rocm-git
 	depends = python-transformers
 	depends = python-triton
 	optdepends = python-bitsandbytes-rocm-git: support for bitsandbytes quantization backends
-	optdepends = python-optimum-rocm: Hugging Face Optimum integration for model loading/quantization
-	optdepends = python-peft: PEFT/LoRA integration for fine-tuning quantized models
-	optdepends = python-vllm-rocm-git: high-throughput serving of GPTQ models
+	optdepends = python-peft: PEFT/LoRA adapter integration for quantized models
 	provides = python-gptqmodel=7.3.2.r31.g7df3d1e83
 	provides = python-gptqmodel-rocm=7.3.2.r31.g7df3d1e83
 	provides = python-gptqmodel-rocm-git=7.3.2.r31.g7df3d1e83
