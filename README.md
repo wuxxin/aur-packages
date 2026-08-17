@@ -23,6 +23,8 @@ Packages i currently maintain on AUR:
     - Python Client SDK for the LibreFang Agent OS (Git VCS version).
 - [moltis-git](moltis-git)
     - A personal AI gateway written in Rust. One binary, sandboxed, secure. (Git VCS version)
+- [picoclaw-git](picoclaw-git)
+    - Ultra-Efficient AI Assistant in Go (Nightly Git build)
 - [pulumi-git](pulumi-git) - Modern Infrastructure as Code
     - build from the latest git tag with enabled python and nodejs dynamic provider
 - [python-bitsandbytes-rocm-git](python-bitsandbytes-rocm-git)
@@ -65,12 +67,12 @@ Can be **broken or bitrotten at anytime**.
 - [groonga](groonga) - An open-source fulltext search engine and column store
     - Temporary private fork of AUR package with patch (`fix-blosc2-pkgconfig.patch`) fixing system `blosc2` CMake package detection.
 
+- [python-peft](python-peft)
+    - State-of-the-art Parameter-Efficient Fine-Tuning (v0.20.0, , updated, upstream aur is at 0.17)
 
 #### testing (also not in AUR):
 
 - Python Support Packages for HF.*, torch, sglang, vllm feature support
-    - [python-peft](python-peft)
-        - State-of-the-art Parameter-Efficient Fine-Tuning (v0.20.0, , updated, upstream aur is at 0.17)
     - [python-optimum-amd](python-optimum-amd)
         - Hugging Face Optimum integration for AMD hardware build fixes
     - [python-optimum-rocm](python-optimum-rocm)
