@@ -11,6 +11,10 @@ Arch Linux [AUR packages](https://aur.archlinux.org/) repository for custom PKGB
 - `research/` — Development stats, build notes, and research reports
 - `scratch/` — Workspace for temporary build logs and checkout sources (`scratch/*-sources`)
 
+Development activity tracking:
+
+A Development activity tracking for a few selected packages is available in [research/weekly-devel-activity.md](research/weekly-devel-activity.md).
+
 ## AUR Maintained Packages 
 
 Packages i currently maintain on AUR:
@@ -50,7 +54,15 @@ Packages i currently maintain on AUR:
 Can be **broken or bitrotten at anytime**.
 
 
-### currently using (but not available or different in AUR)
+### temporary forks of pkgs
+
+- [groonga](groonga) - An open-source fulltext search engine and column store
+    - Temporary private fork of AUR package with patch (`fix-blosc2-pkgconfig.patch`) fixing system `blosc2` CMake package detection.
+
+- [python-peft](python-peft)
+    - State-of-the-art Parameter-Efficient Fine-Tuning (v0.20.0, , updated, upstream aur is at 0.17)
+
+### currently used private forks (different in AUR)
 
 - [oh-my-pi-git-tag](oh-my-pi-git-tag) - AI coding agent for the terminal
     - Built from git latest tag with dynamically evaluated versioning and system libraries (opus, pcre2).
@@ -62,15 +74,8 @@ Can be **broken or bitrotten at anytime**.
     - all packages link dynamically against a single system-wide `libggml-git-hip`.
         - This ensures consistent backend behavior / bug compatibility across all tools.
 
-### temporary forks
 
-- [groonga](groonga) - An open-source fulltext search engine and column store
-    - Temporary private fork of AUR package with patch (`fix-blosc2-pkgconfig.patch`) fixing system `blosc2` CMake package detection.
-
-- [python-peft](python-peft)
-    - State-of-the-art Parameter-Efficient Fine-Tuning (v0.20.0, , updated, upstream aur is at 0.17)
-
-#### testing (also not in AUR):
+### experimental packages (not in AUR)
 
 - Python Support Packages for HF.*, torch, sglang, vllm feature support
     - [python-optimum-amd](python-optimum-amd)
@@ -109,14 +114,4 @@ Can be **broken or bitrotten at anytime**.
     - [python-pocket-tts](python-pocket-tts) - A TTS that fits in your CPU (and pocket)
         - builds `pocket-tts` python package by Kyutai Labs.
 
-
-### Workspace & Scratch Directory Usage
-
-All temporary files, build logs, intermediate test outputs, and source checkouts (`scratch/*-sources`) must be stored in `scratch/`:
-- **Standalone Repository**: Use `./scratch/` at the root of `aur-packages/`.
-- **Submodule Checkout**: Always defer to the top-level parent repository's root `scratch/` directory.
-
-### Weekly development activity tracking
-
-Development activity tracking for a few selected packages are available in [research/weekly-devel-activity.md](research/weekly-devel-activity.md).
 
