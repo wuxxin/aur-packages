@@ -1,7 +1,7 @@
 pkgbase = python-optimum-rocm
 	pkgdesc = Accelerated inference and training with Hugging Face Optimum (with ROCm support)
 	pkgver = 2.3.0
-	pkgrel = 1
+	pkgrel = 2
 	url = https://github.com/huggingface/optimum
 	arch = any
 	license = Apache-2.0
@@ -21,6 +21,9 @@ pkgbase = python-optimum-rocm
 	optdepends = python-evaluate
 	optdepends = python-onnx
 	optdepends = python-onnxruntime
+	optdepends = python-gptqmodel-rocm-git: GPTQ quantization and model loading backend for optimum.gptq
+	optdepends = python-bitsandbytes-rocm-git: 8-bit and 4-bit quantization backend for optimum.bitsandbytes
+	optdepends = python-torchao-rocm: PyTorch Architecture Optimization backend for optimum.torchao
 	provides = python-optimum=2.3.0
 	provides = python-optimum-onnx
 	conflicts = python-optimum
