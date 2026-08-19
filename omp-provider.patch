@@ -1,0 +1,136 @@
+diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/src/api/session_verbs.rs
+index 68553f3b..3ba0e69d 100644
+--- a/crates/amux-server/src/api/session_verbs.rs
++++ b/crates/amux-server/src/api/session_verbs.rs
+@@ -2423,6 +2423,7 @@ pub fn launch_base_binary(provider: &str) -> &'static str {
+     match provider {
+         // ollama runs codex under the hood (`--oss --local-provider ollama`).
+         "codex" | "ollama" => "codex",
++        "omp" | "oh-my-pi" => "omp",
+         "gemini" => "gemini",
+         // claude, iterm2, and anything unknown launch via build_claude_cmd,
+         // whose default binary is `claude` (overridable by AMUX_CLAUDE_CMD).
+@@ -2437,6 +2438,7 @@ fn provider_label(provider: &str) -> &str {
+         "gemini" => "Gemini",
+         "iterm2" => "iTerm2",
+         "ollama" => "Ollama",
++        "omp" | "oh-my-pi" => "Oh-My-Pi",
+         other => {
+             if other.is_empty() {
+                 "Claude Code"
+@@ -5316,6 +5318,16 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
+             }
+             format!("{base_bin}{opts}")
+         }
++        "omp" | "oh-my-pi" => {
++            let mut opts = String::new();
++            if !flags.is_empty() {
++                opts += &format!(" {}", shell_quote_flags(&flags));
++            }
++            if !extra_flags.is_empty() {
++                opts += &format!(" {}", shell_quote_flags(extra_flags));
++            }
++            format!("{base_bin}{opts}")
++        }
+         _ => build_claude_cmd(&cfg, &flags, &default_flags, &session_flag, extra_flags),
+     };
+
+@@ -5323,7 +5335,7 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
+     // cd, source the global agent credentials.
+     let mut has_oauth = false;
+     let mut shell_rc = String::new();
+-    if provider != "codex" && provider != "gemini" && provider != "ollama" {
++    if provider != "codex" && provider != "gemini" && provider != "ollama" && provider != "omp" && provider != "oh-my-pi" {
+         shell_rc.push_str("unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT; ");
+         if let Ok(t) = std::fs::read_to_string(PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".claude.json")) {
+             if let Ok(v) = serde_json::from_str::<Value>(&t) {
+@@ -5391,7 +5403,7 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
+             sh_quote(&f.to_string_lossy())
+         ));
+     }
+-    if provider != "codex" && provider != "gemini" && provider != "ollama" && has_oauth {
++    if provider != "codex" && provider != "gemini" && provider != "ollama" && provider != "omp" && provider != "oh-my-pi" && has_oauth {
+         shell_rc.push_str("unset ANTHROPIC_API_KEY; ");
+     }
+     let mut env_args: Vec<String> = Vec::new();
+diff --git a/crates/amux-server/src/provider/mod.rs b/crates/amux-server/src/provider/mod.rs
+index 247be9fd..63e0b7e3 100644
+--- a/crates/amux-server/src/provider/mod.rs
++++ b/crates/amux-server/src/provider/mod.rs
+@@ -133,6 +133,7 @@ pub fn default_registry() -> ProviderRegistry {
+     reg.register(Arc::new(static_providers::GeminiAdapter));
+     reg.register(Arc::new(static_providers::CodexAdapter));
+     reg.register(Arc::new(static_providers::OllamaAdapter::default()));
++    reg.register(Arc::new(static_providers::OmpAdapter));
+     reg
+ }
+
+@@ -215,10 +216,10 @@ mod tests {
+     use super::*;
+
+     #[test]
+-    fn default_registry_registers_all_four() {
++    fn default_registry_registers_all_five() {
+         let reg = default_registry();
+-        assert_eq!(reg.len(), 4);
+-        for id in ["claude-code", "gemini", "codex", "ollama"] {
++        assert_eq!(reg.len(), 5);
++        for id in ["claude-code", "gemini", "codex", "ollama", "omp"] {
+             assert!(
+                 reg.get(&ProviderId::new(id)).is_some(),
+                 "default registry missing {id}"
+@@ -303,3 +304,8 @@ mod tests {
+         conformance_static(&claude::ClaudeAdapter::new());
+     }
+ }
++
++    #[tokio::test]
++    async fn conformance_omp() {
++        conformance(&static_providers::OmpAdapter).await;
++    }
+diff --git a/crates/amux-server/src/provider/static_providers.rs b/crates/amux-server/src/provider/static_providers.rs
+index d152baa5..946663ed 100644
+--- a/crates/amux-server/src/provider/static_providers.rs
++++ b/crates/amux-server/src/provider/static_providers.rs
+@@ -318,3 +318,41 @@ mod tests {
+         assert!(parse_ollama_list("NAME  ID  SIZE  MODIFIED\n").is_empty());
+     }
+ }
++
++// ---------------------------------------------------------------------------
++// Oh-My-Pi (omp)
++// ---------------------------------------------------------------------------
++
++/// Oh-My-Pi CLI (`omp`).
++pub struct OmpAdapter;
++
++#[async_trait]
++impl ProviderAdapter for OmpAdapter {
++    fn id(&self) -> ProviderId {
++        ProviderId::new("omp")
++    }
++
++    fn capabilities(&self) -> ProviderCapabilities {
++        ProviderCapabilities {
++            hot_model_switch: false,
++            reports_usage: false,
++            structured_events: false,
++            hooks: false,
++        }
++    }
++
++    async fn usage(&self) -> ProviderUsage {
++        ProviderUsage::unknown(self.id())
++    }
++
++    async fn models(&self) -> Vec<String> {
++        Vec::new()
++    }
++
++    fn build_command(&self, prompt_mode: PromptMode) -> Vec<String> {
++        match prompt_mode {
++            PromptMode::Interactive => vec!["omp".into()],
++            PromptMode::HeadlessStructured => vec!["omp".into(), "exec".into()],
++        }
++    }
++}
