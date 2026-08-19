@@ -3,3 +3,6 @@ src
 .ruff-cache
 .fresh
 scratch/
+*.tar.gz
+*.tar.xz
+*.tar.zst
