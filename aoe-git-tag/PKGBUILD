@@ -1,0 +1,88 @@
+# Maintainer: Wuxxin <wuxxin@gmail.com>
+
+pkgname=aoe-git-tag
+_pkgname=agent-of-empires
+pkgver=1.14.1.r0.g9b0d691
+pkgrel=1
+pkgdesc="Terminal session manager for AI coding agents (git latest tag)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/agent-of-empires/agent-of-empires"
+license=('MIT')
+provides=("${_pkgname}" "aoe")
+conflicts=("${_pkgname}" "aoe" "aoe-git")
+depends=(
+    'gcc-libs'
+    'glibc'
+    'openssl'
+    'tmux'
+    'xz'
+    'zlib'
+)
+makedepends=(
+    'cargo'
+    'cmake'
+    'git'
+    'nodejs'
+    'npm'
+    'perl'
+    'pkgconf'
+)
+options=('!lto' '!debug')
+source=("${_pkgname}::git+https://github.com/agent-of-empires/agent-of-empires.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "${srcdir}/${_pkgname}"
+    git describe --long --tags --abbrev=7 --match 'v*' | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+}
+
+prepare() {
+    cd "${srcdir}/${_pkgname}"
+
+    local _latest_tag
+    _latest_tag="$(git describe --tags "$(git rev-list --tags --max-count=1)")"
+    echo "==> Checking out latest git tag: ${_latest_tag}..."
+    git checkout "${_latest_tag}"
+
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_HOME="${srcdir}/.cargo-home"
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+    cd "${srcdir}/${_pkgname}"
+
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_HOME="${srcdir}/.cargo-home"
+
+    # Build React web frontend for embedded dashboard
+    (
+        cd web
+        npm ci
+        npm run build
+    )
+
+    cargo build --release --frozen --all-features --package agent-of-empires
+}
+
+package() {
+    cd "${srcdir}/${_pkgname}"
+
+    install -Dm0755 "target/release/aoe" "${pkgdir}/usr/bin/aoe"
+
+    # Shell completions
+    local _comp_dir="${srcdir}/completions"
+    mkdir -p "${_comp_dir}"
+
+    "${pkgdir}/usr/bin/aoe" completion bash > "${_comp_dir}/aoe.bash"
+    "${pkgdir}/usr/bin/aoe" completion zsh > "${_comp_dir}/_aoe"
+    "${pkgdir}/usr/bin/aoe" completion fish > "${_comp_dir}/aoe.fish"
+
+    install -Dm0644 "${_comp_dir}/aoe.bash" "${pkgdir}/usr/share/bash-completion/completions/aoe"
+    install -Dm0644 "${_comp_dir}/_aoe" "${pkgdir}/usr/share/zsh/site-functions/_aoe"
+    install -Dm0644 "${_comp_dir}/aoe.fish" "${pkgdir}/usr/share/fish/vendor_completions.d/aoe.fish"
+
+    # License and documentation
+    install -Dm0644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+    install -Dm0644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+}
