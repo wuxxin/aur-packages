@@ -1,0 +1,11 @@
+--- a/crates/amux-dashboard/static/app.js
++++ b/crates/amux-dashboard/static/app.js
+@@ -792,7 +792,7 @@ async function _initIdentity() {
+         setTimeout(() => document.getElementById('apikey-setup-input')?.focus(), 100);
+       } else {
+         const banner = document.getElementById('no-apikey-banner');
+-        if (banner) banner.style.display = '';
++        if (banner) banner.style.display = 'none';
+       }
+     } else if (d.key_valid === false && d.key_error) {
+       // Key exists but is invalid — show warning banner

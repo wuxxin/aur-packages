@@ -1,8 +1,235 @@
+diff --git a/crates/amux-dashboard/static/app.css b/crates/amux-dashboard/static/app.css
+index 7788eb10..17a37a97 100644
+--- a/crates/amux-dashboard/static/app.css
++++ b/crates/amux-dashboard/static/app.css
+@@ -224,6 +224,7 @@
+   .archived-card-chip.model { color: var(--cyan, #39d2c0); }
+   .archived-card-chip.provider-codex { color: #10b981; }
+   .archived-card-chip.provider-gemini { color: #d29922; }
++  .archived-card-chip.provider-omp { color: #38bdf8; }
+   .archived-card-spacer { flex: 1; min-width: 8px; }
+   .archived-card-meta {
+     color: var(--dim); font-size: 0.7rem; display: flex; gap: 5px 10px; flex-wrap: wrap;
+@@ -483,6 +484,7 @@
+   .badge.ollama { background: rgba(251,191,36,0.2); color: #f59e0b; }
+   .badge.iterm2 { background: rgba(0,200,160,0.18); color: #00c8a0; }
+   .badge.herdr { background: rgba(140,120,255,0.18); color: #a89cff; }
++  .badge.omp { background: rgba(56,189,248,0.2); color: #38bdf8; }
+ 
+   /* Expanded panel */
+   .panel { display: none; margin-top: 12px; }
+diff --git a/crates/amux-dashboard/static/app.js b/crates/amux-dashboard/static/app.js
+index 936b3fde..5e6bb165 100644
+--- a/crates/amux-dashboard/static/app.js
++++ b/crates/amux-dashboard/static/app.js
+@@ -2664,18 +2664,20 @@ function providerLabel(provider) {
+   if (provider === 'gemini') return 'Gemini';
+   if (provider === 'ollama') return 'Ollama';
+   if (provider === 'iterm2') return 'iTerm2';
++  if (provider === 'omp' || provider === 'oh-my-pi') return 'Oh-My-Pi';
+   return 'Claude';
+ }
+ 
+ function sessionProvider(s) {
+   const p = ((s && s.provider) || 'claude').toLowerCase();
+-  return (p === 'codex' || p === 'gemini' || p === 'ollama' || p === 'iterm2') ? p : 'claude';
++  return (p === 'codex' || p === 'gemini' || p === 'ollama' || p === 'iterm2' || p === 'omp' || p === 'oh-my-pi') ? (p === 'oh-my-pi' ? 'omp' : p) : 'claude';
+ }
+ 
+ function providerDefaultModel(provider) {
+   if (provider === 'codex') return 'gpt-5.5';
+   if (provider === 'gemini') return 'auto';
+   if (provider === 'ollama') return 'qwen3.8:27b';
++  if (provider === 'omp' || provider === 'oh-my-pi') return 'auto';
+   return window._AMUX_DEFAULT_MODEL || 'sonnet';
+ }
+ 
+@@ -2687,6 +2689,7 @@ function sessionConfiguredModel(s) {
+ function providerYoloFlag(provider) {
+   if (provider === 'codex' || provider === 'ollama') return '--dangerously-bypass-approvals-and-sandbox';
+   if (provider === 'gemini') return '--yolo';
++  if (provider === 'omp' || provider === 'oh-my-pi') return '--approval-mode=yolo';
+   return '--dangerously-skip-permissions';
+ }
+ 
+@@ -4671,7 +4674,8 @@ function editField(session, field, current, provider) {
+       {v:'claude',l:'Claude Code'},
+       {v:'codex',l:'Codex'},
+       {v:'gemini',l:'Gemini'},
+-      {v:'ollama',l:'Ollama (local)'}
++      {v:'ollama',l:'Ollama (local)'},
++      {v:'omp',l:'Oh-My-Pi'}
+     ];
+     sel.innerHTML = '';
+     providers.forEach(p => { const o = document.createElement('option'); o.value = p.v; o.textContent = p.l; sel.appendChild(o); });
+@@ -4698,37 +4702,39 @@ function editField(session, field, current, provider) {
+       {v:'gemini-2.5-flash',l:'gemini-2.5-flash'},{v:'gemini-2.5-flash-lite',l:'gemini-2.5-flash-lite'},
+       {v:'gemini-3-pro-preview',l:'gemini-3-pro-preview'},{v:'gemini-3-flash-preview',l:'gemini-3-flash-preview'}
+     ];
++    const ompModels = [
++      {v:'',l:'Default'},{v:'qwen3',l:'qwen3'},{v:'auto',l:'auto'},{v:'llama.cpp/qwen3',l:'llama.cpp/qwen3'},
++      {v:'deepseek-r1',l:'deepseek-r1'}
++    ];
++
++    inpWrap.style.display = '';
++    inp.value = current || '';
++    inp.placeholder = 'Custom model name (e.g. qwen3, opus, gpt-5.5)';
++
++    sel.innerHTML = '';
++    const defOpt = document.createElement('option');
++    defOpt.value = '';
++    defOpt.textContent = '-- Preset models (or type custom above) --';
++    sel.appendChild(defOpt);
++
+     if (provider === 'ollama') {
+-      sel.innerHTML = '<option value="">Loading local models…</option>';
+-      inpWrap.style.display = 'none';
+       sel.style.display = 'block';
+       fetch(API + '/api/ollama/models', { headers: _authHeaders() })
+         .then(r => r.json())
+         .then(d => {
+-          sel.innerHTML = '';
+           const mlist = d.models || [];
+-          if (!mlist.length) {
+-            const o = document.createElement('option'); o.value = ''; o.textContent = 'No local models found'; sel.appendChild(o);
+-          }
+           mlist.forEach(name => {
+             const o = document.createElement('option'); o.value = name; o.textContent = name; sel.appendChild(o);
+           });
+-          sel.value = current || (mlist[0] || '');
+         })
+-        .catch(() => { sel.innerHTML = '<option value="">Could not reach Ollama</option>'; });
++        .catch(() => {});
+     } else {
+-    const models = provider === 'codex' ? codexModels : (provider === 'gemini' ? geminiModels : claudeModels);
+-    sel.innerHTML = '';
+-    models.forEach(m => { const o = document.createElement('option'); o.value = m.v; o.textContent = m.l; sel.appendChild(o); });
+-    inpWrap.style.display = 'none';
+-    sel.style.display = 'block';
+-    sel.value = current || '';
+-    if (current && !Array.from(sel.options).some(o => o.value === current)) {
+-      const opt = document.createElement('option');
+-      opt.value = current; opt.textContent = current;
+-      sel.appendChild(opt);
+-      sel.value = current;
+-    }
++      const models = (provider === 'codex') ? codexModels : (provider === 'gemini' ? geminiModels : ((provider === 'omp' || provider === 'oh-my-pi') ? ompModels : claudeModels));
++      models.forEach(m => {
++        const o = document.createElement('option'); o.value = m.v; o.textContent = m.l; sel.appendChild(o);
++      });
++      sel.style.display = 'block';
++      sel.value = '';
+     }
+     // Reasoning effort — Claude only. Pre-fill from the session's current --effort flag.
+     const effortWrap = document.getElementById('edit-effort-wrap');
+@@ -4795,7 +4801,7 @@ function editField(session, field, current, provider) {
+   }
+   document.getElementById('edit-overlay').classList.add('active');
+   editState = { session, field };
+-  if (field !== 'model' && field !== 'provider' && field !== 'effort') setTimeout(() => { inp.focus({ preventScroll: true }); inp.select(); }, 100);
++  if (field !== 'provider' && field !== 'effort') setTimeout(() => { inp.focus({ preventScroll: true }); inp.select(); }, 100);
+ }
+ function closeEdit() {
+   document.getElementById('edit-overlay').classList.remove('active');
+@@ -4807,15 +4813,21 @@ function closeEdit() {
+   tagAcItems = []; tagAcSelected = -1;
+   editState = null;
+ }
+-// edit-select auto-submits for quick single-select fields (provider), but the
+-// model field pairs with the reasoning-effort dial, so it waits for Save.
++// edit-select auto-submits for quick single-select fields (provider, effort),
++// but for the model field it populates the custom input box so the user can adjust.
+ function _editSelectChanged() {
+-  if (editState && editState.field === 'model') return;
++  if (editState && editState.field === 'model') {
++    const selVal = document.getElementById('edit-select').value;
++    if (selVal !== undefined) {
++      document.getElementById('edit-input').value = selVal;
++    }
++    return;
++  }
+   submitEdit();
+ }
+ async function submitEdit() {
+   if (!editState) return;
+-  const val = (editState.field === 'model' || editState.field === 'provider' || editState.field === 'effort')
++  const val = (editState.field === 'provider' || editState.field === 'effort')
+     ? document.getElementById('edit-select').value.trim()
+     : document.getElementById('edit-input').value.trim();
+   if (!val && editState.field !== 'desc' && editState.field !== 'tags' && editState.field !== 'model' && editState.field !== 'task' && editState.field !== 'effort') return;
+@@ -17036,6 +17048,8 @@ function _selectProvider(p) {
+   document.getElementById('create-provider-gemini').classList.toggle('selected', p === 'gemini');
+   const _ollamaBtn = document.getElementById('create-provider-ollama');
+   if (_ollamaBtn) _ollamaBtn.classList.toggle('selected', p === 'ollama');
++  const _ompBtn = document.getElementById('create-provider-omp');
++  if (_ompBtn) _ompBtn.classList.toggle('selected', p === 'omp');
+   // Hide branch/template/session-name options for non-Claude providers since they use different mechanics
+   const isClaude = p === 'claude';
+   document.getElementById('create-branch-enabled').closest('.field-group').style.display = isClaude ? '' : 'none';
+@@ -17083,6 +17097,8 @@ function openCreate() {
+   document.getElementById('create-provider-gemini').classList.remove('selected');
+   const _ollamaBtn0 = document.getElementById('create-provider-ollama');
+   if (_ollamaBtn0) _ollamaBtn0.classList.remove('selected');
++  const _ompBtn0 = document.getElementById('create-provider-omp');
++  if (_ompBtn0) _ompBtn0.classList.remove('selected');
+   const _omField0 = document.getElementById('create-ollama-model-field');
+   if (_omField0) _omField0.style.display = 'none';
+   document.getElementById('create-branch-enabled').closest('.field-group').style.display = '';
+diff --git a/crates/amux-dashboard/static/index.html b/crates/amux-dashboard/static/index.html
+index 5fae2819..ef5a6f3e 100644
+--- a/crates/amux-dashboard/static/index.html
++++ b/crates/amux-dashboard/static/index.html
+@@ -334,6 +334,12 @@ setTimeout(function(){var f=document.getElementById('js-fallback');if(f&&f.style
+             <option value="gpt-4.1">gpt-4.1</option>
+             <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+             </optgroup>
++            <optgroup label="Oh-My-Pi / Local">
++            <option value="qwen3">qwen3</option>
++            <option value="auto">auto</option>
++            <option value="llama.cpp/qwen3">llama.cpp/qwen3</option>
++            <option value="deepseek-r1">deepseek-r1</option>
++            </optgroup>
+           </select>
+         </div>
+         <div class="settings-sep"></div>
+@@ -1891,6 +1897,7 @@ setTimeout(function(){var f=document.getElementById('js-fallback');if(f&&f.style
+         <button type="button" id="create-provider-codex" class="btn provider-btn" onclick="_selectProvider('codex')">Codex</button>
+         <button type="button" id="create-provider-gemini" class="btn provider-btn" onclick="_selectProvider('gemini')">Gemini</button>
+         <button type="button" id="create-provider-ollama" class="btn provider-btn" onclick="_selectProvider('ollama')">Ollama</button>
++        <button type="button" id="create-provider-omp" class="btn provider-btn" onclick="_selectProvider('omp')">Oh-My-Pi</button>
+       </div>
+     </div>
+     <div class="field-group" id="create-ollama-model-field" style="display:none;">
 diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/src/api/session_verbs.rs
-index 68553f3b..3ba0e69d 100644
+index 68553f3b..dde4c60c 100644
 --- a/crates/amux-server/src/api/session_verbs.rs
 +++ b/crates/amux-server/src/api/session_verbs.rs
-@@ -2423,6 +2423,7 @@ pub fn launch_base_binary(provider: &str) -> &'static str {
+@@ -2054,7 +2054,7 @@ fn render_session_transcript(name: &str, max_chars: usize) -> String {
+ // contract).
+ // ---------------------------------------------------------------------------
+ 
+-pub const SESSION_PROVIDERS: [&str; 5] = ["claude", "codex", "gemini", "iterm2", "ollama"];
++pub const SESSION_PROVIDERS: [&str; 6] = ["claude", "codex", "gemini", "iterm2", "ollama", "omp"];
+ const PROVIDER_YOLO_FLAGS: [&str; 3] = [
+     "--dangerously-skip-permissions",
+     "--dangerously-bypass-approvals-and-sandbox",
+@@ -2277,6 +2277,7 @@ fn provider_yolo_flag(provider: &str) -> &'static str {
+     match provider {
+         "codex" => "--dangerously-bypass-approvals-and-sandbox",
+         "gemini" => "--yolo",
++        "omp" | "oh-my-pi" => "--approval-mode=yolo",
+         _ => "--dangerously-skip-permissions",
+     }
+ }
+@@ -2402,6 +2403,7 @@ fn default_model_for_provider(provider: &str) -> String {
+         // Ollama runs via `codex --oss --local-provider ollama --model <model>`.
+         // A launchable default is required (this box has qwen3.8:27b pulled).
+         "ollama" => "qwen3.8:27b".into(),
++        "omp" | "oh-my-pi" => "auto".into(),
+         _ => get_default_model(),
+     }
+ }
+@@ -2423,6 +2425,7 @@ pub fn launch_base_binary(provider: &str) -> &'static str {
      match provider {
          // ollama runs codex under the hood (`--oss --local-provider ollama`).
          "codex" | "ollama" => "codex",
@@ -10,7 +237,7 @@ index 68553f3b..3ba0e69d 100644
          "gemini" => "gemini",
          // claude, iterm2, and anything unknown launch via build_claude_cmd,
          // whose default binary is `claude` (overridable by AMUX_CLAUDE_CMD).
-@@ -2437,6 +2438,7 @@ fn provider_label(provider: &str) -> &str {
+@@ -2437,6 +2440,7 @@ fn provider_label(provider: &str) -> &str {
          "gemini" => "Gemini",
          "iterm2" => "iTerm2",
          "ollama" => "Ollama",
@@ -18,7 +245,7 @@ index 68553f3b..3ba0e69d 100644
          other => {
              if other.is_empty() {
                  "Claude Code"
-@@ -5316,6 +5318,16 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
+@@ -5316,6 +5320,16 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
              }
              format!("{base_bin}{opts}")
          }
@@ -35,7 +262,7 @@ index 68553f3b..3ba0e69d 100644
          _ => build_claude_cmd(&cfg, &flags, &default_flags, &session_flag, extra_flags),
      };
  
-@@ -5323,7 +5335,7 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
+@@ -5323,7 +5337,7 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
      // cd, source the global agent credentials.
      let mut has_oauth = false;
      let mut shell_rc = String::new();
@@ -44,7 +271,7 @@ index 68553f3b..3ba0e69d 100644
          shell_rc.push_str("unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT; ");
          if let Ok(t) = std::fs::read_to_string(PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".claude.json")) {
              if let Ok(v) = serde_json::from_str::<Value>(&t) {
-@@ -5391,7 +5403,7 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
+@@ -5391,7 +5405,7 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
              sh_quote(&f.to_string_lossy())
          ));
      }
@@ -54,10 +281,18 @@ index 68553f3b..3ba0e69d 100644
      }
      let mut env_args: Vec<String> = Vec::new();
 diff --git a/crates/amux-server/src/provider/mod.rs b/crates/amux-server/src/provider/mod.rs
-index 247be9fd..4bc60333 100644
+index 247be9fd..a463dc4a 100644
 --- a/crates/amux-server/src/provider/mod.rs
 +++ b/crates/amux-server/src/provider/mod.rs
-@@ -133,6 +133,7 @@ pub fn default_registry() -> ProviderRegistry {
+@@ -103,6 +103,7 @@ impl ProviderRegistry {
+         }
+         match id {
+             "claude" => self.adapters.get(&ProviderId::new("claude-code")).cloned(),
++            "oh-my-pi" => self.adapters.get(&ProviderId::new("omp")).cloned(),
+             _ => None,
+         }
+     }
+@@ -133,6 +134,7 @@ pub fn default_registry() -> ProviderRegistry {
      reg.register(Arc::new(static_providers::GeminiAdapter));
      reg.register(Arc::new(static_providers::CodexAdapter));
      reg.register(Arc::new(static_providers::OllamaAdapter::default()));
@@ -65,7 +300,7 @@ index 247be9fd..4bc60333 100644
      reg
  }
  
-@@ -215,10 +216,10 @@ mod tests {
+@@ -215,10 +217,10 @@ mod tests {
      use super::*;
  
      #[test]
@@ -79,7 +314,7 @@ index 247be9fd..4bc60333 100644
              assert!(
                  reg.get(&ProviderId::new(id)).is_some(),
                  "default registry missing {id}"
-@@ -252,7 +253,7 @@ mod tests {
+@@ -252,7 +254,7 @@ mod tests {
  
          let mut reg = default_registry();
          reg.register(Arc::new(FutureAdapter));
@@ -88,7 +323,7 @@ index 247be9fd..4bc60333 100644
          let got = reg.get(&ProviderId::new("a-provider-from-2031")).unwrap();
          assert_eq!(got.id().as_str(), "a-provider-from-2031");
      }
-@@ -303,3 +304,8 @@ mod tests {
+@@ -303,3 +305,8 @@ mod tests {
          conformance_static(&claude::ClaudeAdapter::new());
      }
  }

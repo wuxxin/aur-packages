@@ -64,6 +64,8 @@ Can be **broken or bitrotten at anytime**.
 
 ### currently used private forks (different in AUR)
 
+- [aoe-git-tag](aoe-git-tag) - Terminal session manager for AI coding agents
+    - Built from git latest tag with all features enabled (embedded web dashboard, ACP structured view, cap-std sandboxing, full shell completions).
 - [oh-my-pi-git-tag](oh-my-pi-git-tag) - AI coding agent for the terminal
     - Built from git latest tag with dynamically evaluated versioning and system libraries (opus, pcre2).
 - [hermes-agent-git](hermes-agent-git) - Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)
