@@ -1,0 +1,53 @@
+diff --git a/src/core/ggml_extend.hpp b/src/core/ggml_extend.hpp
+index 9ed2875a..bd8638c6 100644
+--- a/src/core/ggml_extend.hpp
++++ b/src/core/ggml_extend.hpp
+@@ -1051,22 +1051,24 @@ __STATIC_INLINE__ ggml_tensor* ggml_ext_linear_i8_tensorwise(ggml_context* ctx,
+         x = ggml_ext_scale(ctx, x, scale);
+     }
+
+-    ggml_tensor* fused_bias = scale == 1.f ? b : nullptr;
+     if (x->ne[2] * x->ne[3] > 1024) {
+         int64_t ne2 = x->ne[2];
+         int64_t ne3 = x->ne[3];
+         x           = ggml_reshape_2d(ctx, x, x->ne[0], x->ne[1] * x->ne[2] * x->ne[3]);
+-        x           = ggml_mul_mat_i8_tensorwise(ctx, w, x, weight_scale, fused_bias, convrot_group_size);
++        x           = ggml_mul_mat(ctx, w, x);
+         x           = ggml_reshape_4d(ctx, x, x->ne[0], x->ne[1] / ne2 / ne3, ne2, ne3);
+     } else {
+-        x = ggml_mul_mat_i8_tensorwise(ctx, w, x, weight_scale, fused_bias, convrot_group_size);
++        x = ggml_mul_mat(ctx, w, x);
++    }
++    if (weight_scale != nullptr) {
++        x = ggml_mul(ctx, x, weight_scale);
+     }
+
+     if (scale != 1.f) {
+         x = ggml_ext_scale(ctx, x, 1.f / scale);
+-        if (b != nullptr) {
+-            x = ggml_add_inplace(ctx, x, b);
+-        }
++    }
++    if (b != nullptr) {
++        x = ggml_add_inplace(ctx, x, b);
+     }
+     return x;
+ }
+@@ -3485,16 +3487,7 @@ public:
+             if (ctx->weight_adapter && b != nullptr) {
+                 b = ctx->weight_adapter->patch_weight(ctx->ggml_ctx, ctx->backend, b, prefix + "bias");
+             }
+-            if (int8_convrot && scale == 1.f) {
+-                const auto cache_key = std::make_pair(x, int8_convrot_group_size);
+-                auto cached          = ctx->int8_convrot_cache.find(cache_key);
+-                if (cached == ctx->int8_convrot_cache.end()) {
+-                    x = ggml_quantize_i8_convrot(ctx->ggml_ctx, x, int8_convrot_group_size);
+-                    ctx->int8_convrot_cache.emplace(cache_key, x);
+-                } else {
+-                    x = cached->second;
+-                }
+-            }
++            // int8_convrot quantization not supported in system ggml
+             out = ggml_ext_linear_i8_tensorwise(ctx->ggml_ctx,
+                                                 x,
+                                                 w,

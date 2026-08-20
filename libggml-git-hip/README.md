@@ -145,6 +145,7 @@ Adds upstream support for the [jina-reranker-v3](https://huggingface.co/jinaai/j
   - Dropped `llama-patch-abi.py` & `llama-shims.py`: upstream `llama-cpp-python` Git HEAD now natively supports modern `llama.h` ABI and functions.
   - Refreshed `jina-reranker-v3.patch` cleanly against latest `llama.cpp` `src/llama-graph`, `src/llama-model`, and Qwen3 architectures.
   - Refreshed `whisper-version-commit.patch` cleanly against latest `whisper.cpp`.
+  - Added `sd-system-ggml.patch`: fixed `stable-diffusion.cpp` linear I8 matrix multiplication and quantization compatibility when building against shared system GGML.
 - **Build System**: Updated all source checksums via `updpkgsums` and validated compilation of all 7 split packages.
 
 ### `10344.r14.g030ebb5-1`
