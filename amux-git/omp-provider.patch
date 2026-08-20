@@ -1,25 +1,72 @@
-diff --git a/crates/amux-dashboard/static/app.css b/crates/amux-dashboard/static/app.css
-index 7788eb10..17a37a97 100644
---- a/crates/amux-dashboard/static/app.css
-+++ b/crates/amux-dashboard/static/app.css
-@@ -224,6 +224,7 @@
-   .archived-card-chip.model { color: var(--cyan, #39d2c0); }
-   .archived-card-chip.provider-codex { color: #10b981; }
-   .archived-card-chip.provider-gemini { color: #d29922; }
-+  .archived-card-chip.provider-omp { color: #38bdf8; }
-   .archived-card-spacer { flex: 1; min-width: 8px; }
-   .archived-card-meta {
-     color: var(--dim); font-size: 0.7rem; display: flex; gap: 5px 10px; flex-wrap: wrap;
-@@ -483,6 +484,7 @@
-   .badge.ollama { background: rgba(251,191,36,0.2); color: #f59e0b; }
-   .badge.iterm2 { background: rgba(0,200,160,0.18); color: #00c8a0; }
-   .badge.herdr { background: rgba(140,120,255,0.18); color: #a89cff; }
-+  .badge.omp { background: rgba(56,189,248,0.2); color: #38bdf8; }
+diff --git a/amux b/amux
+index 642e8472..82046400 100755
+--- a/amux
++++ b/amux
+@@ -32,7 +32,7 @@ if [[ ! -d "$HOME/.amux" ]]; then
+   done
+ fi
  
-   /* Expanded panel */
-   .panel { display: none; margin-top: 12px; }
+-CC_HOME="${CC_HOME:-$HOME/.amux}"
++CC_HOME="${AMUX_HOME:-${CC_HOME:-$HOME/.amux}}"
+ CC_SESSIONS="$CC_HOME/sessions"
+ CC_DEFAULTS="$CC_HOME/defaults.env"
+ 
+@@ -537,7 +537,7 @@ cmd_start() {
+     return
+   fi
+ 
+-  # Build command. Check CC_PROVIDER to pick codex vs claude.
++  # Build command. Check CC_PROVIDER to pick omp vs codex vs claude.
+   local provider="${CC_PROVIDER:-claude}"
+   local cmd
+   if [[ "$provider" == "codex" ]]; then
+@@ -558,11 +558,13 @@ cmd_start() {
+     # Ollama daemon. The model comes from CC_MODEL (default qwen3.8:27b) — CC_FLAGS
+     # can add extra codex flags (approval policy, add-dir, etc.) just like codex.
+     cmd="codex --oss --local-provider ollama --model ${CC_MODEL:-qwen3.8:27b}"
++  elif [[ "$provider" == "omp" || "$provider" == "oh-my-pi" ]]; then
++    cmd="omp"
+   else
+     cmd="${AMUX_CLAUDE_CMD:-claude}"
+   fi
+-  # Apply global defaults from defaults.env (skip for codex/ollama — Claude flags don't apply)
+-  if [[ "$provider" != "codex" && "$provider" != "ollama" && -n "${CC_DEFAULT_FLAGS:-}" ]]; then
++  # Apply global defaults from defaults.env (skip for codex/ollama/omp — Claude flags don't apply)
++  if [[ "$provider" != "codex" && "$provider" != "ollama" && "$provider" != "omp" && "$provider" != "oh-my-pi" && -n "${CC_DEFAULT_FLAGS:-}" ]]; then
+     local q
+     q=$(quote_flags "$CC_DEFAULT_FLAGS") || die "failed to quote CC_DEFAULT_FLAGS"
+     [[ -n "$q" ]] && cmd="$cmd $q"
+@@ -584,7 +586,7 @@ cmd_start() {
+     [[ -n "$q" ]] && cmd="$cmd $q"
+   fi
+ 
+-  # Codex-specific defaults (apply to ollama too — it now runs codex under the hood)
++  # Provider-specific defaults
+   if [[ "$provider" == "codex" || "$provider" == "ollama" ]]; then
+     # For codex (cloud): default to gpt-5.5 when no model is set.
+     # For ollama: model is already set from CC_MODEL above — no default needed.
+@@ -603,6 +605,10 @@ cmd_start() {
+         [[ -d "$git_root/.git" ]] && cmd="$cmd --add-dir $(printf '%q' "$git_root/.git")"
+       fi
+     fi
++  elif [[ "$provider" == "omp" || "$provider" == "oh-my-pi" ]]; then
++    if [[ "$cmd" != *"--model"* ]]; then
++      cmd="$cmd --model ${CC_MODEL:-llama.cpp/qwen3}"
++    fi
+   else
+     [[ "$cmd" == *"--model"* ]] || cmd="$cmd --model sonnet"
+   fi
+@@ -613,7 +619,7 @@ cmd_start() {
+   # to prevent auth conflict — BYO-key users don't have oauthAccount so they're
+   # unaffected.
+   local shell_setup=""
+-  if [[ "$provider" != "codex" && "$provider" != "ollama" ]]; then
++  if [[ "$provider" != "codex" && "$provider" != "ollama" && "$provider" != "omp" && "$provider" != "oh-my-pi" ]]; then
+     shell_setup="unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT; "
+     if [[ -f "$HOME/.claude.json" ]] && grep -q '"oauthAccount"' "$HOME/.claude.json" 2>/dev/null; then
+       shell_setup="${shell_setup}unset ANTHROPIC_API_KEY; "
 diff --git a/crates/amux-dashboard/static/app.js b/crates/amux-dashboard/static/app.js
-index 936b3fde..5e6bb165 100644
+index 936b3fde..e71d0409 100644
 --- a/crates/amux-dashboard/static/app.js
 +++ b/crates/amux-dashboard/static/app.js
 @@ -2664,18 +2664,20 @@ function providerLabel(provider) {
@@ -40,50 +87,35 @@ index 936b3fde..5e6bb165 100644
    if (provider === 'codex') return 'gpt-5.5';
    if (provider === 'gemini') return 'auto';
    if (provider === 'ollama') return 'qwen3.8:27b';
-+  if (provider === 'omp' || provider === 'oh-my-pi') return 'auto';
++  if (provider === 'omp' || provider === 'oh-my-pi') return 'llama.cpp/qwen3';
    return window._AMUX_DEFAULT_MODEL || 'sonnet';
  }
  
-@@ -2687,6 +2689,7 @@ function sessionConfiguredModel(s) {
- function providerYoloFlag(provider) {
-   if (provider === 'codex' || provider === 'ollama') return '--dangerously-bypass-approvals-and-sandbox';
-   if (provider === 'gemini') return '--yolo';
-+  if (provider === 'omp' || provider === 'oh-my-pi') return '--approval-mode=yolo';
-   return '--dangerously-skip-permissions';
- }
- 
-@@ -4671,7 +4674,8 @@ function editField(session, field, current, provider) {
-       {v:'claude',l:'Claude Code'},
-       {v:'codex',l:'Codex'},
-       {v:'gemini',l:'Gemini'},
--      {v:'ollama',l:'Ollama (local)'}
-+      {v:'ollama',l:'Ollama (local)'},
-+      {v:'omp',l:'Oh-My-Pi'}
-     ];
-     sel.innerHTML = '';
-     providers.forEach(p => { const o = document.createElement('option'); o.value = p.v; o.textContent = p.l; sel.appendChild(o); });
-@@ -4698,37 +4702,39 @@ function editField(session, field, current, provider) {
+@@ -4698,37 +4700,45 @@ function editField(session, field, current, provider) {
        {v:'gemini-2.5-flash',l:'gemini-2.5-flash'},{v:'gemini-2.5-flash-lite',l:'gemini-2.5-flash-lite'},
        {v:'gemini-3-pro-preview',l:'gemini-3-pro-preview'},{v:'gemini-3-flash-preview',l:'gemini-3-flash-preview'}
      ];
-+    const ompModels = [
-+      {v:'',l:'Default'},{v:'qwen3',l:'qwen3'},{v:'auto',l:'auto'},{v:'llama.cpp/qwen3',l:'llama.cpp/qwen3'},
-+      {v:'deepseek-r1',l:'deepseek-r1'}
-+    ];
+-    if (provider === 'ollama') {
+-      sel.innerHTML = '<option value="">Loading local models…</option>';
+-      inpWrap.style.display = 'none';
 +
 +    inpWrap.style.display = '';
-+    inp.value = current || '';
-+    inp.placeholder = 'Custom model name (e.g. qwen3, opus, gpt-5.5)';
-+
 +    sel.innerHTML = '';
 +    const defOpt = document.createElement('option');
 +    defOpt.value = '';
 +    defOpt.textContent = '-- Preset models (or type custom above) --';
 +    sel.appendChild(defOpt);
 +
-     if (provider === 'ollama') {
--      sel.innerHTML = '<option value="">Loading local models…</option>';
--      inpWrap.style.display = 'none';
++    if (provider === 'omp' || provider === 'oh-my-pi') {
++      inp.value = current || 'llama.cpp/qwen3';
++      inp.placeholder = 'Custom model name (e.g. llama.cpp/qwen3)';
++      const o1 = document.createElement('option'); o1.value = 'llama.cpp/qwen3'; o1.textContent = 'llama.cpp/qwen3 (default)'; sel.appendChild(o1);
++      const o2 = document.createElement('option'); o2.value = 'auto'; o2.textContent = 'auto'; sel.appendChild(o2);
++      sel.style.display = 'block';
++      sel.value = '';
++    } else if (provider === 'ollama') {
++      inp.value = current || '';
++      inp.placeholder = 'Custom model name (e.g. qwen3.8:27b)';
        sel.style.display = 'block';
        fetch(API + '/api/ollama/models', { headers: _authHeaders() })
          .then(r => r.json())
@@ -113,16 +145,20 @@ index 936b3fde..5e6bb165 100644
 -      sel.appendChild(opt);
 -      sel.value = current;
 -    }
-+      const models = (provider === 'codex') ? codexModels : (provider === 'gemini' ? geminiModels : ((provider === 'omp' || provider === 'oh-my-pi') ? ompModels : claudeModels));
++      const models = provider === 'codex' ? codexModels : (provider === 'gemini' ? geminiModels : claudeModels);
++      inp.value = current || '';
++      inp.placeholder = 'Custom model name (e.g. ' + (provider === 'codex' ? 'gpt-5.5' : (provider === 'gemini' ? 'gemini-2.5-pro' : 'sonnet')) + ')';
 +      models.forEach(m => {
-+        const o = document.createElement('option'); o.value = m.v; o.textContent = m.l; sel.appendChild(o);
++        if (m.v) {
++          const o = document.createElement('option'); o.value = m.v; o.textContent = m.l; sel.appendChild(o);
++        }
 +      });
 +      sel.style.display = 'block';
 +      sel.value = '';
      }
      // Reasoning effort — Claude only. Pre-fill from the session's current --effort flag.
      const effortWrap = document.getElementById('edit-effort-wrap');
-@@ -4795,7 +4801,7 @@ function editField(session, field, current, provider) {
+@@ -4795,7 +4805,7 @@ function editField(session, field, current, provider) {
    }
    document.getElementById('edit-overlay').classList.add('active');
    editState = { session, field };
@@ -131,7 +167,7 @@ index 936b3fde..5e6bb165 100644
  }
  function closeEdit() {
    document.getElementById('edit-overlay').classList.remove('active');
-@@ -4807,15 +4813,21 @@ function closeEdit() {
+@@ -4807,15 +4817,21 @@ function closeEdit() {
    tagAcItems = []; tagAcSelected = -1;
    editState = null;
  }
@@ -143,7 +179,7 @@ index 936b3fde..5e6bb165 100644
 -  if (editState && editState.field === 'model') return;
 +  if (editState && editState.field === 'model') {
 +    const selVal = document.getElementById('edit-select').value;
-+    if (selVal !== undefined) {
++    if (selVal !== undefined && selVal !== '') {
 +      document.getElementById('edit-input').value = selVal;
 +    }
 +    return;
@@ -157,95 +193,42 @@ index 936b3fde..5e6bb165 100644
      ? document.getElementById('edit-select').value.trim()
      : document.getElementById('edit-input').value.trim();
    if (!val && editState.field !== 'desc' && editState.field !== 'tags' && editState.field !== 'model' && editState.field !== 'task' && editState.field !== 'effort') return;
-@@ -17036,6 +17048,8 @@ function _selectProvider(p) {
-   document.getElementById('create-provider-gemini').classList.toggle('selected', p === 'gemini');
-   const _ollamaBtn = document.getElementById('create-provider-ollama');
-   if (_ollamaBtn) _ollamaBtn.classList.toggle('selected', p === 'ollama');
-+  const _ompBtn = document.getElementById('create-provider-omp');
-+  if (_ompBtn) _ompBtn.classList.toggle('selected', p === 'omp');
-   // Hide branch/template/session-name options for non-Claude providers since they use different mechanics
-   const isClaude = p === 'claude';
-   document.getElementById('create-branch-enabled').closest('.field-group').style.display = isClaude ? '' : 'none';
-@@ -17083,6 +17097,8 @@ function openCreate() {
-   document.getElementById('create-provider-gemini').classList.remove('selected');
-   const _ollamaBtn0 = document.getElementById('create-provider-ollama');
-   if (_ollamaBtn0) _ollamaBtn0.classList.remove('selected');
-+  const _ompBtn0 = document.getElementById('create-provider-omp');
-+  if (_ompBtn0) _ompBtn0.classList.remove('selected');
-   const _omField0 = document.getElementById('create-ollama-model-field');
-   if (_omField0) _omField0.style.display = 'none';
-   document.getElementById('create-branch-enabled').closest('.field-group').style.display = '';
-diff --git a/crates/amux-dashboard/static/index.html b/crates/amux-dashboard/static/index.html
-index 5fae2819..ef5a6f3e 100644
---- a/crates/amux-dashboard/static/index.html
-+++ b/crates/amux-dashboard/static/index.html
-@@ -334,6 +334,12 @@ setTimeout(function(){var f=document.getElementById('js-fallback');if(f&&f.style
-             <option value="gpt-4.1">gpt-4.1</option>
-             <option value="gpt-4.1-mini">gpt-4.1-mini</option>
-             </optgroup>
-+            <optgroup label="Oh-My-Pi / Local">
-+            <option value="qwen3">qwen3</option>
-+            <option value="auto">auto</option>
-+            <option value="llama.cpp/qwen3">llama.cpp/qwen3</option>
-+            <option value="deepseek-r1">deepseek-r1</option>
-+            </optgroup>
-           </select>
-         </div>
-         <div class="settings-sep"></div>
-@@ -1891,6 +1897,7 @@ setTimeout(function(){var f=document.getElementById('js-fallback');if(f&&f.style
-         <button type="button" id="create-provider-codex" class="btn provider-btn" onclick="_selectProvider('codex')">Codex</button>
-         <button type="button" id="create-provider-gemini" class="btn provider-btn" onclick="_selectProvider('gemini')">Gemini</button>
-         <button type="button" id="create-provider-ollama" class="btn provider-btn" onclick="_selectProvider('ollama')">Ollama</button>
-+        <button type="button" id="create-provider-omp" class="btn provider-btn" onclick="_selectProvider('omp')">Oh-My-Pi</button>
-       </div>
-     </div>
-     <div class="field-group" id="create-ollama-model-field" style="display:none;">
 diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/src/api/session_verbs.rs
-index 68553f3b..dde4c60c 100644
+index 68553f3b..9b28beaf 100644
 --- a/crates/amux-server/src/api/session_verbs.rs
 +++ b/crates/amux-server/src/api/session_verbs.rs
-@@ -2054,7 +2054,7 @@ fn render_session_transcript(name: &str, max_chars: usize) -> String {
+@@ -2054,11 +2054,12 @@ fn render_session_transcript(name: &str, max_chars: usize) -> String {
  // contract).
  // ---------------------------------------------------------------------------
  
 -pub const SESSION_PROVIDERS: [&str; 5] = ["claude", "codex", "gemini", "iterm2", "ollama"];
+-const PROVIDER_YOLO_FLAGS: [&str; 3] = [
 +pub const SESSION_PROVIDERS: [&str; 6] = ["claude", "codex", "gemini", "iterm2", "ollama", "omp"];
- const PROVIDER_YOLO_FLAGS: [&str; 3] = [
++const PROVIDER_YOLO_FLAGS: [&str; 4] = [
      "--dangerously-skip-permissions",
      "--dangerously-bypass-approvals-and-sandbox",
-@@ -2277,6 +2277,7 @@ fn provider_yolo_flag(provider: &str) -> &'static str {
-     match provider {
-         "codex" => "--dangerously-bypass-approvals-and-sandbox",
-         "gemini" => "--yolo",
-+        "omp" | "oh-my-pi" => "--approval-mode=yolo",
-         _ => "--dangerously-skip-permissions",
-     }
- }
+     "--yolo",
++    "--approval-mode=yolo",
+ ];
+ const VALID_EFFORTS: [&str; 5] = ["low", "medium", "high", "xhigh", "max"];
+ 
 @@ -2402,6 +2403,7 @@ fn default_model_for_provider(provider: &str) -> String {
          // Ollama runs via `codex --oss --local-provider ollama --model <model>`.
          // A launchable default is required (this box has qwen3.8:27b pulled).
          "ollama" => "qwen3.8:27b".into(),
-+        "omp" | "oh-my-pi" => "auto".into(),
++        "omp" | "oh-my-pi" => "llama.cpp/qwen3".into(),
          _ => get_default_model(),
      }
  }
-@@ -2423,6 +2425,7 @@ pub fn launch_base_binary(provider: &str) -> &'static str {
-     match provider {
+@@ -2424,6 +2426,7 @@ pub fn launch_base_binary(provider: &str) -> &'static str {
          // ollama runs codex under the hood (`--oss --local-provider ollama`).
          "codex" | "ollama" => "codex",
-+        "omp" | "oh-my-pi" => "omp",
          "gemini" => "gemini",
++        "omp" | "oh-my-pi" => "omp",
          // claude, iterm2, and anything unknown launch via build_claude_cmd,
          // whose default binary is `claude` (overridable by AMUX_CLAUDE_CMD).
-@@ -2437,6 +2440,7 @@ fn provider_label(provider: &str) -> &str {
-         "gemini" => "Gemini",
-         "iterm2" => "iTerm2",
-         "ollama" => "Ollama",
-+        "omp" | "oh-my-pi" => "Oh-My-Pi",
-         other => {
-             if other.is_empty() {
-                 "Claude Code"
-@@ -5316,6 +5320,16 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
+         _ => "claude",
+@@ -5316,6 +5319,25 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
              }
              format!("{base_bin}{opts}")
          }
@@ -257,12 +240,21 @@ index 68553f3b..dde4c60c 100644
 +            if !extra_flags.is_empty() {
 +                opts += &format!(" {}", shell_quote_flags(extra_flags));
 +            }
++            let cc_model = cfg.get_or("CC_MODEL", "").trim().to_string();
++            if !opts.contains("--model") {
++                let model_to_use = if !cc_model.is_empty() {
++                    cc_model
++                } else {
++                    default_model_for_provider("omp")
++                };
++                opts += &format!(" --model {}", sh_quote(&model_to_use));
++            }
 +            format!("{base_bin}{opts}")
 +        }
          _ => build_claude_cmd(&cfg, &flags, &default_flags, &session_flag, extra_flags),
      };
  
-@@ -5323,7 +5337,7 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
+@@ -5323,7 +5345,7 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
      // cd, source the global agent credentials.
      let mut has_oauth = false;
      let mut shell_rc = String::new();
@@ -271,110 +263,58 @@ index 68553f3b..dde4c60c 100644
          shell_rc.push_str("unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT; ");
          if let Ok(t) = std::fs::read_to_string(PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".claude.json")) {
              if let Ok(v) = serde_json::from_str::<Value>(&t) {
-@@ -5391,7 +5405,7 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
-             sh_quote(&f.to_string_lossy())
-         ));
-     }
--    if provider != "codex" && provider != "gemini" && provider != "ollama" && has_oauth {
-+    if provider != "codex" && provider != "gemini" && provider != "ollama" && provider != "omp" && provider != "oh-my-pi" && has_oauth {
-         shell_rc.push_str("unset ANTHROPIC_API_KEY; ");
-     }
-     let mut env_args: Vec<String> = Vec::new();
-diff --git a/crates/amux-server/src/provider/mod.rs b/crates/amux-server/src/provider/mod.rs
-index 247be9fd..a463dc4a 100644
---- a/crates/amux-server/src/provider/mod.rs
-+++ b/crates/amux-server/src/provider/mod.rs
-@@ -103,6 +103,7 @@ impl ProviderRegistry {
-         }
-         match id {
-             "claude" => self.adapters.get(&ProviderId::new("claude-code")).cloned(),
-+            "oh-my-pi" => self.adapters.get(&ProviderId::new("omp")).cloned(),
-             _ => None,
-         }
-     }
-@@ -133,6 +134,7 @@ pub fn default_registry() -> ProviderRegistry {
-     reg.register(Arc::new(static_providers::GeminiAdapter));
-     reg.register(Arc::new(static_providers::CodexAdapter));
-     reg.register(Arc::new(static_providers::OllamaAdapter::default()));
-+    reg.register(Arc::new(static_providers::OmpAdapter));
-     reg
- }
- 
-@@ -215,10 +217,10 @@ mod tests {
-     use super::*;
- 
-     #[test]
--    fn default_registry_registers_all_four() {
-+    fn default_registry_registers_all_five() {
-         let reg = default_registry();
--        assert_eq!(reg.len(), 4);
--        for id in ["claude-code", "gemini", "codex", "ollama"] {
-+        assert_eq!(reg.len(), 5);
-+        for id in ["claude-code", "gemini", "codex", "ollama", "omp"] {
-             assert!(
-                 reg.get(&ProviderId::new(id)).is_some(),
-                 "default registry missing {id}"
-@@ -252,7 +254,7 @@ mod tests {
- 
-         let mut reg = default_registry();
-         reg.register(Arc::new(FutureAdapter));
--        assert_eq!(reg.len(), 5);
-+        assert_eq!(reg.len(), 6);
-         let got = reg.get(&ProviderId::new("a-provider-from-2031")).unwrap();
-         assert_eq!(got.id().as_str(), "a-provider-from-2031");
-     }
-@@ -303,3 +305,8 @@ mod tests {
-         conformance_static(&claude::ClaudeAdapter::new());
-     }
- }
-+
-+    #[tokio::test]
-+    async fn conformance_omp() {
-+        conformance(&static_providers::OmpAdapter).await;
-+    }
-diff --git a/crates/amux-server/src/provider/static_providers.rs b/crates/amux-server/src/provider/static_providers.rs
-index d152baa5..946663ed 100644
---- a/crates/amux-server/src/provider/static_providers.rs
-+++ b/crates/amux-server/src/provider/static_providers.rs
-@@ -318,3 +318,41 @@ mod tests {
-         assert!(parse_ollama_list("NAME  ID  SIZE  MODIFIED\n").is_empty());
-     }
- }
-+
-+// ---------------------------------------------------------------------------
-+// Oh-My-Pi (omp)
-+// ---------------------------------------------------------------------------
-+
-+/// Oh-My-Pi CLI (`omp`).
-+pub struct OmpAdapter;
-+
-+#[async_trait]
-+impl ProviderAdapter for OmpAdapter {
-+    fn id(&self) -> ProviderId {
-+        ProviderId::new("omp")
-+    }
-+
-+    fn capabilities(&self) -> ProviderCapabilities {
-+        ProviderCapabilities {
-+            hot_model_switch: false,
-+            reports_usage: false,
-+            structured_events: false,
-+            hooks: false,
+diff --git a/crates/amux-server/src/api/sessions_legacy.rs b/crates/amux-server/src/api/sessions_legacy.rs
+index 788c07e3..0a093185 100644
+--- a/crates/amux-server/src/api/sessions_legacy.rs
++++ b/crates/amux-server/src/api/sessions_legacy.rs
+@@ -398,11 +398,20 @@ impl FleetSignals {
+             ])
+             .output();
+         match &tmux_out {
+-            Ok(o) if !o.status.success() => tracing::warn!(
+-                status = %o.status,
+-                stderr = %String::from_utf8_lossy(&o.stderr).trim(),
+-                "tmux list-sessions failed — fleet will read as not-running"
+-            ),
++            Ok(o) if !o.status.success() => {
++                let stderr = String::from_utf8_lossy(&o.stderr);
++                if !stderr.contains("no server")
++                    && !stderr.contains("No such file")
++                    && !stderr.contains("error connecting to")
++                    && !stderr.contains("no sessions")
++                {
++                    tracing::warn!(
++                        status = %o.status,
++                        stderr = %stderr.trim(),
++                        "tmux list-sessions failed — fleet will read as not-running"
++                    );
++                }
++            }
+             Err(e) => tracing::warn!(
+                 error = %e,
+                 "tmux spawn failed — fleet will read as not-running"
+@@ -1479,8 +1488,15 @@ pub(crate) fn worker_model_env(
+     default_model: &str,
+ ) -> (String, String, String) {
+     let is_ollama = provider == "ollama";
++    let is_omp = provider == "omp" || provider == "oh-my-pi";
+     let model = if is_ollama {
+         raw_model.to_string()
++    } else if is_omp {
++        if raw_model.is_empty() {
++            "llama.cpp/qwen3".to_string()
++        } else {
++            raw_model.to_string()
 +        }
-+    }
-+
-+    async fn usage(&self) -> ProviderUsage {
-+        ProviderUsage::unknown(self.id())
-+    }
-+
-+    async fn models(&self) -> Vec<String> {
-+        Vec::new()
-+    }
-+
-+    fn build_command(&self, prompt_mode: PromptMode) -> Vec<String> {
-+        match prompt_mode {
-+            PromptMode::Interactive => vec!["omp".into()],
-+            PromptMode::HeadlessStructured => vec!["omp".into(), "exec".into()],
-+        }
-+    }
-+}
+     } else if raw_model.is_empty() {
+         default_model.to_string()
+     } else {
+@@ -1493,7 +1509,7 @@ pub(crate) fn worker_model_env(
+     } else {
+         String::new()
+     };
+-    let cc_model = if is_ollama { model.clone() } else { String::new() };
++    let cc_model = if is_ollama || is_omp { model.clone() } else { String::new() };
+     let resolved_model = if is_ollama {
+         model
+     } else {

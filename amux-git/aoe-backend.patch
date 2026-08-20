@@ -1,0 +1,143 @@
+diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/src/api/session_verbs.rs
+--- a/crates/amux-server/src/api/session_verbs.rs
++++ b/crates/amux-server/src/api/session_verbs.rs
+@@ -455,6 +455,9 @@
+ 
+ /// tmux capture-pane -e; lines<=0 → visible screen only (py:4406).
+ pub(crate) async fn tmux_capture(name: &str, lines: i64) -> String {
++    if session_backend(name) == "aoe" {
++        return aoe_capture(name, lines.max(1)).await;
++    }
+     if session_backend(name) == "herdr" {
+         return herdr_capture(name, lines.max(1)).await;
+     }
+@@ -475,7 +478,7 @@
+ 
+ /// `#{alternate_on}` probe (py:4480). herdr keeps scrollback under alt.
+ async fn tmux_alt_screen(name: &str) -> bool {
+-    if session_backend(name) == "herdr" {
++    if session_backend(name) == "aoe" || session_backend(name) == "herdr" {
+         return false;
+     }
+     let pt = pt(name);
+@@ -508,12 +511,12 @@
+ 
+ fn backend_of_cfg(cfg: &EnvFile) -> String {
+     let b = cfg.get_or("CC_BACKEND", "").trim().to_lowercase();
+-    if b == "herdr" || b == "tmux" {
++    if b == "aoe" || b == "herdr" || b == "tmux" {
+         return b;
+     }
+     let ab = std::env::var("AMUX_BACKEND").unwrap_or_default().trim().to_lowercase();
+-    if ab == "herdr" {
+-        "herdr".into()
++    if ab == "aoe" || ab == "herdr" {
++        ab
+     } else {
+         "tmux".into()
+     }
+@@ -525,6 +528,68 @@
+ }
+ 
+ // ---------------------------------------------------------------------------
++// aoe ops via REST API (AOE_URL, default "http://localhost:8080").
++// ---------------------------------------------------------------------------
++
++fn aoe_url() -> String {
++    let u = std::env::var("AOE_URL")
++        .or_else(|_| std::env::var("AMUX_AOE_URL"))
++        .unwrap_or_else(|_| "http://localhost:8080".to_string());
++    u.trim_end_matches('/').to_string()
++}
++
++async fn aoe_agent_running(name: &str) -> bool {
++    let url = format!("{}/api/sessions?state=live", aoe_url());
++    let client = reqwest::Client::builder()
++        .timeout(OP_TIMEOUT)
++        .build()
++        .unwrap_or_default();
++    match client.get(&url).send().await {
++        Ok(resp) if resp.status().is_success() => {
++            if let Ok(val) = resp.json::<Value>().await {
++                if let Some(arr) = val.as_array() {
++                    return arr.iter().any(|s| {
++                        s.get("name").and_then(|v| v.as_str()) == Some(name)
++                            || s.get("id").and_then(|v| v.as_str()) == Some(name)
++                    });
++                }
++            }
++            false
++        }
++        _ => false,
++    }
++}
++
++async fn aoe_capture(name: &str, lines: i64) -> String {
++    let url = format!("{}/api/sessions/{}/output?lines={}&format=text", aoe_url(), name, lines);
++    let client = reqwest::Client::builder()
++        .timeout(Duration::from_secs(8))
++        .build()
++        .unwrap_or_default();
++    match client.get(&url).send().await {
++        Ok(resp) if resp.status().is_success() => resp.text().await.unwrap_or_default(),
++        _ => String::new(),
++    }
++}
++
++async fn aoe_send(name: &str, text: &str) -> (bool, String) {
++    if !aoe_agent_running(name).await {
++        return (false, "not running in aoe".into());
++    }
++    let url = format!("{}/api/sessions/{}/send", aoe_url(), name);
++    let client = reqwest::Client::builder()
++        .timeout(Duration::from_secs(15))
++        .build()
++        .unwrap_or_default();
++    let body = json!({ "message": text });
++    match client.post(&url).json(&body).send().await {
++        Ok(resp) if resp.status().is_success() => (true, "sent to aoe".into()),
++        Ok(resp) => (false, format!("aoe send failed ({})", resp.status())),
++        Err(e) => (false, format!("aoe send error: {e}")),
++    }
++}
++
++// ---------------------------------------------------------------------------
+ // herdr ops via the CLI (py:4700-5150). One named session (AMUX_HERDR_SESSION,
+ // default "amux"); agent name from CC_HERDR_AGENT or the lowercase mapping.
+ // ---------------------------------------------------------------------------
+@@ -3092,6 +3157,9 @@
+     if !iterm2_id(&cfg).is_empty() {
+         return false;
+     }
++    if backend_of_cfg(&cfg) == "aoe" {
++        return aoe_agent_running(name).await;
++    }
+     if backend_of_cfg(&cfg) == "herdr" {
+         return herdr_agent_running(name).await;
+     }
+@@ -4190,6 +4258,9 @@
+     if !iterm2_id(&cfg).is_empty() {
+         return (false, "iTerm2-backed sessions are not supported by the rust origin yet".into());
+     }
++    if backend_of_cfg(&cfg) == "aoe" {
++        return aoe_send(name, text).await;
++    }
+     if backend_of_cfg(&cfg) == "herdr" {
+         return herdr_send(name, text).await;
+     }
+@@ -5768,6 +5839,15 @@
+     let op_lock = session_op_lock(name);
+     let _op = op_lock.lock().await;
+     let cfg = parse_env(name);
++    if backend_of_cfg(&cfg) == "aoe" {
++        if !aoe_agent_running(name).await {
++            return (true, "not running".into());
++        }
++        let url = format!("{}/api/sessions/{}/stop", aoe_url(), name);
++        let client = reqwest::Client::builder().timeout(OP_TIMEOUT).build().unwrap_or_default();
++        let _ = client.post(&url).send().await;
++        return (true, "stopped in aoe".into());
++    }
+     if backend_of_cfg(&cfg) == "herdr" {
+         if !herdr_agent_running(name).await {
+             return (true, "not running".into());

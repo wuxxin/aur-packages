@@ -1,7 +1,7 @@
 # Maintainer: Wuxxin <wuxxin@gmail.com>
 
 pkgname=amux-git
-pkgver=0.1.0.r3529.g29d3c701
+pkgver=0.1.0.r3533.g8a8eda84
 pkgrel=1
 pkgdesc="Multi-session agent orchestrator and control plane (Git version)"
 arch=('x86_64' 'aarch64')
@@ -14,10 +14,12 @@ makedepends=('cargo' 'git')
 options=('!lto' '!debug')
 source=("${pkgname%-git}::git+https://github.com/mixpeek/amux.git"
     "omp-provider.patch"
-    "disable-no-apikey-banner.patch")
+    "disable-no-apikey-banner.patch"
+    "aoe-backend.patch")
 sha256sums=('SKIP'
-            '3606e596e23b3d80e46a094e0586a4974659989a7c9b30a1b659729c28e0cd01'
-            '07e075bcc4914b1a2f143ddb65566273bc31223e5d570d260ccc39f0cd31e29a')
+            'abefbf84076b673c28312b899d001a28396411494872593b39f8867b640ebec9'
+            '07e075bcc4914b1a2f143ddb65566273bc31223e5d570d260ccc39f0cd31e29a'
+            '0f43614cb31e8d1720b29e091fe5de00fa966e2cc9a8f739fce6953e585e2170')
 
 pkgver() {
     cd "${srcdir}/${pkgname%-git}"
@@ -31,6 +33,7 @@ prepare() {
     cd "${srcdir}/${pkgname%-git}"
     patch -Np1 -i "${srcdir}/omp-provider.patch"
     patch -Np1 -i "${srcdir}/disable-no-apikey-banner.patch"
+    patch -Np1 -i "${srcdir}/aoe-backend.patch"
     export RUSTUP_TOOLCHAIN=stable
     export CARGO_HOME="${srcdir}/.cargo-home"
     cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
