@@ -28,7 +28,7 @@ makepkg -si
 
 ```bash
 # Run OpenAI-compatible API server
-vllm-server --model /path/to/model.gguf --port 8080
+vllm-server --model /path/to/model.gguf --port 28080
 
 # Interactive CLI inference
 vllm-cli --model /path/to/model.gguf --prompt "Hello!"

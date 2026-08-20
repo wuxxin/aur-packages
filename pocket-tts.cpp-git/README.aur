@@ -96,11 +96,11 @@ pocket-tts.cpp \
 ### HTTP Server Mode
 Start the OpenAI-compatible HTTP server:
 ```bash
-pocket-tts.cpp --server --models-dir ~/models/english --voices-dir ./voices --port 8080
+pocket-tts.cpp --server --models-dir ~/models/english --voices-dir ./voices --port 28080
 ```
 Querying the server:
 ```bash
-curl -X POST http://localhost:8080/v1/audio/speech \
+curl -X POST http://localhost:28080/v1/audio/speech \
   -H "Content-Type: application/json" \
   -d '{"input": "Hello from the server!", "voice": "default"}' \
   --output response.wav

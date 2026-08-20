@@ -77,7 +77,7 @@ index a58bb76..c20c7f2 100644
 +++ b/src/server.cpp
 @@ -342,6 +342,7 @@ static void print_usage(const char * program) {
      fprintf(stderr, "  -H,  --host <host>              listen host (default: 127.0.0.1)\n");
-     fprintf(stderr, "  -p,  --port <port>              listen port (default: 8080)\n");
+     fprintf(stderr, "  -p,  --port <port>              listen port (default: 28080)\n");
      fprintf(stderr, "  -j,  --threads <n>              compute threads (default: 4)\n");
 +    fprintf(stderr, "  -dev, --device <name>           device to use for offloading (none = don't offload)\n");
      fprintf(stderr, "  -V,  --verbose                  print per-stage progress and timing\n");

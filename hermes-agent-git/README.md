@@ -28,7 +28,7 @@ The gateway process liveness checks (used by the WebUI, Signal channel, and CLI)
 Hindsight memory behavior and constraints can be dynamically configured on a per-profile level by adding overrides to the profile's `.env` file (e.g. `~/.hermes/profiles/<profile_name>/.env`). Supported environment variables include:
 
 * **`HINDSIGHT_MODE`**: Connection mode (choices: `cloud`, `local_embedded`, `local_external`; default: `cloud`).
-* **`HINDSIGHT_API_URL`**: Target server URL (default: `https://api.hindsight.vectorize.io` for cloud, `http://localhost:8888` for local modes).
+* **`HINDSIGHT_API_URL`**: Target server URL (default: `https://api.hindsight.vectorize.io` for cloud, `http://localhost:28888` for local modes).
 * **`HINDSIGHT_API_KEY`**: Cloud or custom server API authorization key, no default, should be empty for compatibility
 
 Patched Support for:

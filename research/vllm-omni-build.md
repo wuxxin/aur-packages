@@ -54,6 +54,6 @@ In the GGUF metadata, it is identified as `qwen35moe`, which maps to `Qwen3NextF
 ---
 
 ## 3. Current Running Status
-- The server is being executed via `launch_vllm_chat.py` on port `50080` with AMD ROCm acceleration.
+- The server is being executed via `launch_vllm_chat.py` on port `20080` with AMD ROCm acceleration.
 - Attention backend overridden to `ROCM_ATTN` out of potential backends `['ROCM_ATTN', 'TRITON_ATTN']`.
 - Prefill kernel uses Triton/FLA GDN.
