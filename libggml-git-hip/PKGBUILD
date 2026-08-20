@@ -201,13 +201,20 @@ build() {
         -DCMAKE_HIP_COMPILER=/opt/rocm/bin/amdclang++
     cmake --build build_llama_hip
 
-    # --- Build whisper.cpp using system ggml ---
+    # Stage llama.cpp for whisper.cpp build
+    mkdir -p "${srcdir}/staging_llama_hip"
+    DESTDIR="${srcdir}/staging_llama_hip" cmake --install build_llama_hip
+
+    # --- Build whisper.cpp using system ggml & staged llama ---
     echo "--- Building whisper.cpp (HIP) ---"
     cmake -B build_whisper_hip -S whisper.cpp -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="/usr" \
         -DWHISPER_SDL2=1 \
         -DWHISPER_USE_SYSTEM_GGML=1 \
+        -DWHISPER_USE_SYSTEM_LLAMA=1 \
+        -Dllama_DIR="${srcdir}/staging_llama_hip/usr/lib/cmake/llama" \
+        -DCMAKE_PREFIX_PATH="${srcdir}/staging_hip/usr;${srcdir}/staging_llama_hip/usr" \
         -DGGML_HIP=ON \
         -DGGML_HIPBLAS=ON \
         -DAMDGPU_TARGETS="${GPU_TARGETS}" \
@@ -281,7 +288,7 @@ package_llama.cpp-git-ggml-hip() {
 
 package_whisper.cpp-git-ggml-hip() {
     pkgdesc="Port of OpenAI's Whisper model (git shared library build)"
-    depends=('libggml-git-hip' 'sdl2-compat' 'hip-runtime-amd')
+    depends=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'sdl2-compat' 'hip-runtime-amd')
     provides=('whisper.cpp' 'whisper.cpp-hip')
 
     DESTDIR="$pkgdir" cmake --install build_whisper_hip

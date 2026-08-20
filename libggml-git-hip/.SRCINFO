@@ -110,6 +110,7 @@ pkgname = llama.cpp-git-ggml-hip
 pkgname = whisper.cpp-git-ggml-hip
 	pkgdesc = Port of OpenAI's Whisper model (git shared library build)
 	depends = libggml-git-hip
+	depends = llama.cpp-git-ggml-hip
 	depends = sdl2-compat
 	depends = hip-runtime-amd
 	provides = whisper.cpp
