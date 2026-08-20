@@ -1,7 +1,7 @@
 # Maintainer: Wuxxin <wuxxin@gmail.com>
 
 pkgname=vllm.cpp-git-hip
-pkgver=0.0.2.r734.g65d6cda
+pkgver=0.0.2.r824.gc8d926e
 pkgrel=1
 pkgdesc="A community oriented 1:1, vLLM-alike engine in C++ with ROCm/HIP and Vulkan acceleration (git version)"
 arch=('x86_64')

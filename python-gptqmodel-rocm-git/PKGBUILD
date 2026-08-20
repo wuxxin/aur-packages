@@ -4,7 +4,7 @@
 _pkgname=gptqmodel
 _pkgdesc="LLM model quantization (compression) toolkit support for HF, vLLM, and SGLang. (ROCm - GIT Version)"
 pkgname=python-${_pkgname}-rocm-git
-pkgver=7.3.2.r31.g7df3d1e83
+pkgver=7.3.4.r0.g783a0fbb9
 pkgrel=1
 pkgdesc="${_pkgdesc}"
 arch=('any')

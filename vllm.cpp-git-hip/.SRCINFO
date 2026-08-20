@@ -1,6 +1,6 @@
 pkgbase = vllm.cpp-git-hip
 	pkgdesc = A community oriented 1:1, vLLM-alike engine in C++ with ROCm/HIP and Vulkan acceleration (git version)
-	pkgver = 0.0.2.r734.g65d6cda
+	pkgver = 0.0.2.r824.gc8d926e
 	pkgrel = 1
 	url = https://github.com/mudler/vllm.cpp
 	arch = x86_64
