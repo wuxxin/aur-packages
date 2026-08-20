@@ -13,29 +13,27 @@ This document tracks repository activity, commit counts, merge frequency, and re
 <!-- START_TABLES -->
 | Package | Upstream Repo | Stars | Forks | Main Branch | Last Commit | Commits (Last Wk) | Merges (Last Wk) | Releases/Tags (Last Wk) | Avg Commits/Wk (4 Wks) | Recent Tags / Versions | Installed Pkg Version | Commits Since Installed | Status |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- | :--- | :---: | :---: |
-| **amux-git** | [mixpeek/amux](https://github.com/mixpeek/amux) | 360 | 39 | `main` | 2026-08-19 | **373** | 10 | 9 | 428.8 | ` ios-build-3187`, ` ios-build-3197` | `0.1.0.r3529.g29d3c701-1` (ref `29d3c701`) | 0 | **Highly Active** |
-| **aoe-git-tag** | [agent-of-empires/agent-of-empires](https://github.com/agent-of-empires/agent-of-empires) | 3,106 | 321 | `main` | 2026-08-19 | **60** | 0 | 0 | 59.0 | — | `1.14.1.r0.g9b0d691-1` (ref `9b0d691`) | 63 | **Highly Active** |
+| **amux-git** | [mixpeek/amux](https://github.com/mixpeek/amux) | 360 | 39 | `main` | 2026-08-19 | **372** | 10 | 9 | 428.8 | ` ios-build-3187`, ` ios-build-3197` | `0.1.0.r3529.g29d3c701-1` (ref `29d3c701`) | 0 | **Highly Active** |
+| **aoe-git-tag** | [agent-of-empires/agent-of-empires](https://github.com/agent-of-empires/agent-of-empires) | 3,106 | 321 | `main` | 2026-08-19 | **59** | 0 | 0 | 58.8 | — | `1.14.1.r0.g9b0d691-1` (ref `9b0d691`) | 63 | **Highly Active** |
 | *└─ llama.cpp* | [ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp) | 124,817 | 21,935 | `master` | 2026-08-20 | **117** | 0 | 52 | 107.0 | ` b10416`, ` b10417` | `10524.r8.g70aff25-1` (ref `70aff25`) | 0 | **Highly Active** |
-| *└─ whisper.cpp* | [ggerganov/whisper.cpp](https://github.com/ggerganov/whisper.cpp) | 53,049 | 6,083 | `master` | 2026-08-20 | **49** | 0 | 4 | 25.8 | ` b4938`, ` v1.9.3` | `10524.r8.g70aff25-1` (ref `592feef`) | 49 | **Active** |
-| *└─ llama-cpp-python* | [abetlen/llama-cpp-python](https://github.com/abetlen/llama-cpp-python) | 0 | 0 | `main` | 2026-08-17 | **6** | 0 | 15 | 1.8 | ` v0.3.35`, ` v0.3.35-cu118` | `10524.r8.g70aff25-1` (ref `67014fd`) | 6 | **Active** |
-| *└─ stable-diffusion.cpp* | [leejet/stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) | 0 | 0 | `master` | 2026-08-19 | **7** | 0 | 7 | 9.8 | ` master-821-6100d83`, ` master-822-58b6cb6` | `10524.r8.g70aff25-1` (ref `c6beeef`) | 13 | **Active** |
-| *└─ sdcpp-webui* | [leejet/sdcpp-webui](https://github.com/leejet/sdcpp-webui) | 0 | 0 | `master` | 2026-06-16 | 0 | 0 | 0 | 0.0 | — | not installed | - | **Stale** |
-| *└─ libwebm* | [webmproject/libwebm](https://github.com/webmproject/libwebm) | 0 | 0 | `main` | 2026-04-21 | 0 | 0 | 0 | 0.0 | — | not installed | - | **Stale** |
+| *└─ whisper.cpp* | [ggerganov/whisper.cpp](https://github.com/ggerganov/whisper.cpp) | 53,049 | 6,083 | `master` | 2026-08-20 | **49** | 0 | 4 | 25.8 | ` b4938`, ` v1.9.3` | `10524.r8.g70aff25-1` (ref `371b5a7`) | 0 | **Active** |
+| *└─ llama-cpp-python* | [abetlen/llama-cpp-python](https://github.com/abetlen/llama-cpp-python) | 0 | 0 | `main` | 2026-08-17 | **6** | 0 | 15 | 1.8 | ` v0.3.35`, ` v0.3.35-cu118` | `10524.r8.g70aff25-1` (ref `3691546`) | 0 | **Active** |
+| *└─ stable-diffusion.cpp* | [leejet/stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) | 0 | 0 | `master` | 2026-08-19 | **7** | 0 | 7 | 9.8 | ` master-821-6100d83`, ` master-822-58b6cb6` | `10524.r8.g70aff25-1` (ref `97d2990`) | 0 | **Active** |
 | *└─ qwen3-tts.cpp* | [khimaros/qwen3-tts.cpp](https://github.com/khimaros/qwen3-tts.cpp) | 0 | 0 | `main` | 2026-06-16 | 0 | 0 | 0 | 0.0 | — | `10524.r8.g70aff25-1` (ref `0c8b2ba`) | 0 | **Stale** |
-| *└─ parakeet.cpp* | [mudler/parakeet.cpp](https://github.com/mudler/parakeet.cpp) | 0 | 0 | `main` | 2026-08-18 | **1** | 0 | 0 | 1.2 | — | `10524.r8.g70aff25-1` (ref `3e1ddd8`) | 4 | **Active** |
-| **oh-my-pi-git-tag** | [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) | 0 | 0 | `main` | 2026-08-20 | **443** | 187 | 10 | 686.5 | ` v17.3.1`, ` v17.3.2` | `17.2.12.r0.g45e12e5-1` (ref `45e12e5`) | 861 | **Highly Active** |
+| *└─ parakeet.cpp* | [mudler/parakeet.cpp](https://github.com/mudler/parakeet.cpp) | 0 | 0 | `main` | 2026-08-18 | **1** | 0 | 0 | 1.2 | — | `10524.r8.g70aff25-1` (ref `e75de9b`) | 0 | **Active** |
+| **oh-my-pi-git-tag** | [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) | 0 | 0 | `main` | 2026-08-20 | **443** | 186 | 10 | 686.2 | ` v17.3.1`, ` v17.3.2` | `17.2.12.r0.g45e12e5-1` (ref `45e12e5`) | 861 | **Highly Active** |
 | **pocket-tts.cpp-git** | [VolgaGerm/PocketTTS.cpp](https://github.com/VolgaGerm/PocketTTS.cpp) | 0 | 0 | `master` | 2026-03-29 | 0 | 0 | 0 | 0.0 | — | `0.1.0.r18.ge801e7d-1` (ref `e801e7d`) | 0 | **Stale** |
 | **python-bitsandbytes-rocm-git** | [bitsandbytes-foundation/bitsandbytes](https://github.com/bitsandbytes-foundation/bitsandbytes) | 0 | 0 | `main` | 2026-08-19 | **7** | 0 | 4 | 5.2 | ` 0.50.1`, ` continuous-release_main` | `0.50.1.r1.g2b6cfb79-1` (ref `2b6cfb79`) | 3 | **Active** |
 | **python-gptqmodel-rocm-git** | [ModelCloud/GPTQModel](https://github.com/ModelCloud/GPTQModel) | 0 | 0 | `main` | 2026-08-20 | **5** | 0 | 3 | 11.5 | ` v7.3.4`, `HEAD -> main` | `7.3.2.r31.g7df3d1e83-1` (ref `7df3d1e83`) | 4 | **Active** |
 | **signal-cli-rest-api-git** | [bbernhard/signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) | 0 | 0 | `master` | 2026-08-16 | **1** | 0 | 0 | 1.2 | — | `0.100.r2.gfe9df01-1` (ref `fe9df01`) | 14 | **Active** |
-| **vllm.cpp-git-hip** | [mudler/vllm.cpp](https://github.com/mudler/vllm.cpp) | 0 | 0 | `main` | 2026-08-20 | **348** | 0 | 0 | 421.0 | — | `0.0.2.r734.g65d6cda-1` (ref `65d6cda`) | 90 | **Highly Active** |
+| **vllm.cpp-git-hip** | [mudler/vllm.cpp](https://github.com/mudler/vllm.cpp) | 0 | 0 | `main` | 2026-08-20 | **348** | 0 | 0 | 420.8 | — | `0.0.2.r734.g65d6cda-1` (ref `65d6cda`) | 90 | **Highly Active** |
 | **python-optimum-amd** | [huggingface/optimum-amd](https://github.com/huggingface/optimum-amd) | 0 | 0 | `main` | 2026-04-15 | 0 | 0 | 0 | 0.0 | — | `0.1.0.r63.gf36a96b-1` (ref `f36a96b`) | 0 | **Stale** |
-| **smg** | [lightseekorg/smg](https://github.com/lightseekorg/smg) | 0 | 0 | `main` | 2026-08-19 | **76** | 0 | 0 | 46.0 | — | not installed | - | **Highly Active** |
+| **smg** | [lightseekorg/smg](https://github.com/lightseekorg/smg) | 0 | 0 | `main` | 2026-08-19 | **74** | 0 | 0 | 46.0 | — | not installed | - | **Highly Active** |
 | **tei-rocm** | [huggingface/text-embeddings-inference](https://github.com/huggingface/text-embeddings-inference) | 0 | 0 | `main` | 2026-07-24 | 0 | 0 | 0 | 0.2 | — | `1.9.3-6` (ref `v1.9.3`) | 18 | **Stale** |
-| **python-optimum-rocm** | [huggingface/optimum](https://github.com/huggingface/optimum) | 0 | 0 | `main` | 2026-08-19 | **2** | 0 | 0 | 0.8 | — | `2.3.0-2` (ref `52367da`) | - | **Active** |
-| **python-peft** | [huggingface/peft](https://github.com/huggingface/peft) | 0 | 0 | `main` | 2026-08-20 | **24** | 0 | 0 | 13.2 | — | `0.20.0-2` (ref `v0.20.0`) | - | **Active** |
-| **python-pocket-tts** | [kyutai-labs/pocket-tts](https://github.com/kyutai-labs/pocket-tts) | 0 | 0 | `main` | 2026-08-17 | **2** | 0 | 0 | 1.5 | — | `2.1.0-1` (ref `v2.1.0`) | - | **Active** |
-| **python-infinity-emb** | [michaelfeil/infinity](https://github.com/michaelfeil/infinity) | 0 | 0 | `main` | 2026-03-23 | 0 | 0 | 0 | 0.0 | — | `0.0.75-3` (ref `0.0.75`) | - | **Stale** |
+| **python-optimum-rocm** | [huggingface/optimum](https://github.com/huggingface/optimum) | 0 | 0 | `main` | 2026-08-19 | **2** | 0 | 0 | 0.8 | `2.3.0` | `2.3.0-2` (ref `52367da`) | - | **Active** |
+| **python-peft** | [huggingface/peft](https://github.com/huggingface/peft) | 0 | 0 | `main` | 2026-08-20 | **24** | 0 | 0 | 13.2 | `0.20.0` | `0.20.0-2` (ref `v0.20.0`) | - | **Active** |
+| **python-pocket-tts** | [kyutai-labs/pocket-tts](https://github.com/kyutai-labs/pocket-tts) | 0 | 0 | `main` | 2026-08-17 | **2** | 0 | 0 | 1.5 | `2.1.0` | `2.1.0-1` (ref `v2.1.0`) | - | **Active** |
+| **python-infinity-emb** | [michaelfeil/infinity](https://github.com/michaelfeil/infinity) | 0 | 0 | `main` | 2026-03-23 | 0 | 0 | 0 | 0.0 | `0.0.77` | `0.0.75-3` (ref `0.0.75`) | - | **Stale** |
 <!-- END_TABLES -->
 
 ---
@@ -44,12 +42,12 @@ This document tracks repository activity, commit counts, merge frequency, and re
 
 <!-- START_DETAILS -->
 ### amux-git (`mixpeek/amux`)
-* **Status**: Highly Active (373 commits, 9 tags/releases in the last week). **0 commits since installed 0.1.0.r3529.g29d3c701-1 (ref `29d3c701`).**
+* **Status**: Highly Active (372 commits, 9 tags/releases in the last week). **0 commits since installed 0.1.0.r3529.g29d3c701-1 (ref `29d3c701`).**
 * **Recent Focus**:
-  - No new commits in this period.
+  - Up to date with installed package (0 new commits).
 
 ### aoe-git-tag (`agent-of-empires/agent-of-empires`)
-* **Status**: Highly Active (60 commits, 0 tags/releases in the last week). **63 commits since installed 1.14.1.r0.g9b0d691-1 (ref `9b0d691`).**
+* **Status**: Highly Active (59 commits, 0 tags/releases in the last week). **63 commits since installed 1.14.1.r0.g9b0d691-1 (ref `9b0d691`).**
 * **Recent Focus**:
   - `242268214` test(session): stop assuming an FHS layout in the launch-path tests (#3421)
   - `b094cf961` fix(build): stop watching .git/index for the build-version rerun trigger (#3432)
@@ -70,67 +68,32 @@ This document tracks repository activity, commit counts, merge frequency, and re
 ### [libggml-git-hip] llama.cpp (`ggml-org/llama.cpp`)
 * **Status**: Highly Active (117 commits, 52 tags/releases in the last week). **0 commits since installed 10524.r8.g70aff25-1 (ref `70aff25`).**
 * **Recent Focus**:
-  - No new commits in this period.
+  - Up to date with installed package (0 new commits).
 
 ### [libggml-git-hip] whisper.cpp (`ggerganov/whisper.cpp`)
-* **Status**: Active (49 commits, 4 tags/releases in the last week). **49 commits since installed 10524.r8.g70aff25-1 (ref `592feef`).**
+* **Status**: Active (49 commits, 4 tags/releases in the last week). **0 commits since installed 10524.r8.g70aff25-1 (ref `371b5a7`).**
 * **Recent Focus**:
-  - `371b5a756` release : v1.9.3 (#4000)
-  - `81c190560` cmake : update semver and release process [no ci] (#3996)
-  - `4834a2327` talk-llama : sync llama.cpp
-  - `6b014cfbf` sync : ggml
-  - `8189458df` ggml : bump version to 0.20.2 (ggml/1589)
-  - `51319a2cd` CUDA: MMVQ nwarps=8 for bs=1 for dense models on DGX Spark (llama/26843)
-  - `71759b7c9` cuda : skip UMA override for HIP builds (llama/27083)
-  - `964bb1b8f` ggml : bump version to 0.20.1 (ggml/1587)
-  - `4257f4701` sycl: fix thread/block count in quantized cpy kernel launches (llama/27160)
-  - `0f3861385` support OP OPT_STEP_ADAMW, OPT_STEP_SGD (llama/25268)
-  - `9a0d19024` vulkan: add SHMEM_STRIDE_PAD/APPLY_SLM_A_RESHAPE for coopmat1 on Intel Xe (llama/25380)
-  - `ab71410c0` fixed indent
-  - `9b98e57d2` Fixed gating logic for problematic Intel driver version
-  - `1fe009cae` talk-llama : fix build (#0)
-  - `733f28198` sync : ggml
+  - Up to date with installed package (0 new commits).
 
 ### [libggml-git-hip] llama-cpp-python (`abetlen/llama-cpp-python`)
-* **Status**: Active (6 commits, 15 tags/releases in the last week). **6 commits since installed 10524.r8.g70aff25-1 (ref `67014fd`).**
+* **Status**: Active (6 commits, 15 tags/releases in the last week). **0 commits since installed 10524.r8.g70aff25-1 (ref `3691546`).**
 * **Recent Focus**:
-  - `3691546f` chore: bump version to 0.3.35 (#2360)
-  - `9dd39500` fix(llama): release a vision chat handler's mtmd context on close (#2342) (#2343)
-  - `d8a4a1e4` fix(server): show falsey defaults in CLI help (#2355)
-  - `03307d86` feat: update llama.cpp to 4df29be4f (#2359)
-  - `987e3df2` fix(example): retain recurrent state for MTP rollback (#2358)
-  - `8a0810fa` feat: update llama.cpp to adb55e514 (#2357)
+  - Up to date with installed package (0 new commits).
 
 ### [libggml-git-hip] stable-diffusion.cpp (`leejet/stable-diffusion.cpp`)
-* **Status**: Active (7 commits, 7 tags/releases in the last week). **13 commits since installed 10524.r8.g70aff25-1 (ref `c6beeef`).**
+* **Status**: Active (7 commits, 7 tags/releases in the last week). **0 commits since installed 10524.r8.g70aff25-1 (ref `97d2990`).**
 * **Recent Focus**:
-  - `97d29908` chore: format code
-  - `16304cc3` fix: guard against missing sampler/scheduler names (#1887)
-  - `760717a0` fix: make max_order of lms sampler configurable (#1885)
-  - `88b044be` fix: mark graph cuts with both a prefix and a suffix (#1883)
-  - `1706b328` fix: re-clamp streaming VRAM budget to currently free memory (#1878)
-  - `58b6cb6b` fix: prevent gallocr hash overflow in tiny graph-cut segments (#1880)
-  - `6100d833` feat: add taeh3 support (#1874)
-
-### [libggml-git-hip] sdcpp-webui (`leejet/sdcpp-webui`)
-* **Status**: Stale (0 commits, 0 tags/releases in the last week).
-* **Recent Focus**:
-  - No new commits in this period.
-
-### [libggml-git-hip] libwebm (`webmproject/libwebm`)
-* **Status**: Stale (0 commits, 0 tags/releases in the last week).
-* **Recent Focus**:
-  - No new commits in this period.
+  - Up to date with installed package (0 new commits).
 
 ### [libggml-git-hip] qwen3-tts.cpp (`khimaros/qwen3-tts.cpp`)
 * **Status**: Stale (0 commits, 0 tags/releases in the last week). **0 commits since installed 10524.r8.g70aff25-1 (ref `0c8b2ba`).**
 * **Recent Focus**:
-  - No new commits in this period.
+  - Up to date with installed package (0 new commits).
 
 ### [libggml-git-hip] parakeet.cpp (`mudler/parakeet.cpp`)
-* **Status**: Active (1 commits, 0 tags/releases in the last week). **4 commits since installed 10524.r8.g70aff25-1 (ref `3e1ddd8`).**
+* **Status**: Active (1 commits, 0 tags/releases in the last week). **0 commits since installed 10524.r8.g70aff25-1 (ref `e75de9b`).**
 * **Recent Focus**:
-  - `e75de9b` mel: skip zero-weight filterbank entries in the mel projection (#64)
+  - Up to date with installed package (0 new commits).
 
 ### oh-my-pi-git-tag (`can1357/oh-my-pi`)
 * **Status**: Highly Active (443 commits, 10 tags/releases in the last week). **861 commits since installed 17.2.12.r0.g45e12e5-1 (ref `45e12e5`).**
@@ -154,7 +117,7 @@ This document tracks repository activity, commit counts, merge frequency, and re
 ### pocket-tts.cpp-git (`VolgaGerm/PocketTTS.cpp`)
 * **Status**: Stale (0 commits, 0 tags/releases in the last week). **0 commits since installed 0.1.0.r18.ge801e7d-1 (ref `e801e7d`).**
 * **Recent Focus**:
-  - No new commits in this period.
+  - Up to date with installed package (0 new commits).
 
 ### python-bitsandbytes-rocm-git (`bitsandbytes-foundation/bitsandbytes`)
 * **Status**: Active (7 commits, 4 tags/releases in the last week). **3 commits since installed 0.50.1.r1.g2b6cfb79-1 (ref `2b6cfb79`).**
@@ -175,6 +138,19 @@ This document tracks repository activity, commit counts, merge frequency, and re
 * **Status**: Active (1 commits, 0 tags/releases in the last week). **14 commits since installed 0.100.r2.gfe9df01-1 (ref `fe9df01`).**
 * **Recent Focus**:
   - `a08db23` fixed bug in textstyleparser
+  - `5cc379f` only (re-)build github pages documentation when a new release is published
+  - `1a2da6c` updated signal-cli to v0.14.7
+  - `54507eb` handle status code -4 in the 'getRaw' method of the JsonRpc2Client
+  - `6a225e6` fixed bug in send endpoint
+  - `0e36e15` remove debug logging
+  - `7138ffd` fixed version in deploy-pages.yml
+  - `7c12204` execute deploy-pages workflow for every commit
+  - `bef1131` dummy change to test github workflow
+  - `2d03a6c` added debug output to deploy-pages.yml
+  - `b13a74f` feat: download the json schemas from the signal-cli releases
+  - `2ee3907` Bump golang.org/x/crypto from 0.51.0 to 0.52.0 in /src
+  - `e34cd5a` Bump golang.org/x/net from 0.47.0 to 0.55.0 in /src
+  - `6e1698e` feat: deploy pages with CI
 
 ### vllm.cpp-git-hip (`mudler/vllm.cpp`)
 * **Status**: Highly Active (348 commits, 0 tags/releases in the last week). **90 commits since installed 0.0.2.r734.g65d6cda-1 (ref `65d6cda`).**
@@ -198,10 +174,10 @@ This document tracks repository activity, commit counts, merge frequency, and re
 ### python-optimum-amd (`huggingface/optimum-amd`)
 * **Status**: Stale (0 commits, 0 tags/releases in the last week). **0 commits since installed 0.1.0.r63.gf36a96b-1 (ref `f36a96b`).**
 * **Recent Focus**:
-  - No new commits in this period.
+  - Up to date with installed package (0 new commits).
 
 ### smg (`lightseekorg/smg`)
-* **Status**: Highly Active (76 commits, 0 tags/releases in the last week).
+* **Status**: Highly Active (74 commits, 0 tags/releases in the last week).
 * **Recent Focus**:
   - `cef710b6` fix(zmq): tolerate trailing wire fields and fail fast on persistent decode errors (#2175)
   - `dd7f911e` refactor(router): make ZMQ stream chunk semantics explicit (#2172)
@@ -222,7 +198,21 @@ This document tracks repository activity, commit counts, merge frequency, and re
 ### tei-rocm (`huggingface/text-embeddings-inference`)
 * **Status**: Stale (0 commits, 0 tags/releases in the last week). **18 commits since installed 1.9.3-6 (ref `v1.9.3`).**
 * **Recent Focus**:
-  - No new commits in this period.
+  - `0d124dc` Fix Cloud Run CLI argument documentation (#901)
+  - `49612a1` Fix link to AMD Instinct GPU guide in README (#898)
+  - `fc071b1` DebertaV2 fix for running with large batches (#846)
+  - `4150561` Align 'cuda-{all-entrypoint,entrypoint}.sh' (#893)
+  - `8ea5838` fix(docker): detect CUDA version from 'CUDA UMD Version' header on driver 6xx (#870) (#871)
+  - `30507cb` Fix 'max_position_embeddings' handling in 'NomicBertConfig' and 'FlashNomicBertConfig' (#876)
+  - `4f7dd3c` Add default user-agent header (#892)
+  - `f9a0643` fix(entrypoint): add /usr/local/nvidia to PATH and ldconfig on GKE (#877)
+  - `5bc4d88` chore: bump doc-builder SHA for PR upload workflow (#862)
+  - `1588129` [AMD] Add Instinct GPU setup guide (#856)
+  - `f4483f3` Add dedicated linux/arm64 runner (#858)
+  - `908424d` 🔒 Pin GitHub Actions to commit SHAs (#855)
+  - `ba265a3` Add minimal AMD ROCm GPU support (#853)
+  - `cc7ca31` Fix to only build 'Dockerfile-cuda' w/ Blackwell 12.1 on linux/arm64 (#852)
+  - `9dd0c15` Support 'harrier-oss-v1' model (#854)
 
 ### python-optimum-rocm (`huggingface/optimum`)
 * **Status**: Active (2 commits, 0 tags/releases in the last week).

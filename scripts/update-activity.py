@@ -52,7 +52,8 @@ TRACKED_REPOS: List[Dict[str, Any]] = [
         "repo_type": "git",
         "pkg_dir": "libggml-git-hip",
         "src_name": "llama.cpp",
-        "default_ref": "030ebb5",
+        "version_cmd": ["llama-cli", "--version"],
+        "default_ref": "70aff25",
     },
     {
         "name": "whisper.cpp",
@@ -64,7 +65,8 @@ TRACKED_REPOS: List[Dict[str, Any]] = [
         "repo_type": "git",
         "pkg_dir": "libggml-git-hip",
         "src_name": "whisper.cpp",
-        "default_ref": "592feef",
+        "version_cmd": ["whisper-cli", "--version"],
+        "default_ref": "371b5a7",
     },
     {
         "name": "llama-cpp-python",
@@ -76,7 +78,7 @@ TRACKED_REPOS: List[Dict[str, Any]] = [
         "repo_type": "git",
         "pkg_dir": "libggml-git-hip",
         "src_name": "llama-cpp-python",
-        "default_ref": "67014fd",
+        "default_ref": "3691546",
     },
     {
         "name": "stable-diffusion.cpp",
@@ -88,29 +90,8 @@ TRACKED_REPOS: List[Dict[str, Any]] = [
         "repo_type": "git",
         "pkg_dir": "libggml-git-hip",
         "src_name": "stable-diffusion.cpp",
-        "default_ref": "c6beeef",
-    },
-    {
-        "name": "sdcpp-webui",
-        "display_name": "sdcpp-webui",
-        "parent_pkg": "libggml-git-hip",
-        "github": "leejet/sdcpp-webui",
-        "branch": "master",
-        "repo_type": "git",
-        "pkg_dir": "libggml-git-hip",
-        "src_name": "sdcpp-webui",
-        "default_ref": "",
-    },
-    {
-        "name": "libwebm",
-        "display_name": "libwebm",
-        "parent_pkg": "libggml-git-hip",
-        "github": "webmproject/libwebm",
-        "branch": "main",
-        "repo_type": "git",
-        "pkg_dir": "libggml-git-hip",
-        "src_name": "libwebm",
-        "default_ref": "",
+        "version_cmd": ["sd-cli", "--version"],
+        "default_ref": "97d2990",
     },
     {
         "name": "qwen3-tts.cpp",
@@ -122,6 +103,7 @@ TRACKED_REPOS: List[Dict[str, Any]] = [
         "repo_type": "git",
         "pkg_dir": "libggml-git-hip",
         "src_name": "qwen3-tts.cpp",
+        "version_cmd": ["qwen3-tts-cli", "--version"],
         "default_ref": "0c8b2ba",
     },
     {
@@ -134,7 +116,7 @@ TRACKED_REPOS: List[Dict[str, Any]] = [
         "repo_type": "git",
         "pkg_dir": "libggml-git-hip",
         "src_name": "parakeet.cpp",
-        "default_ref": "3e1ddd8",
+        "default_ref": "e75de9b",
     },
     {
         "name": "oh-my-pi",
@@ -309,6 +291,28 @@ def is_commit_in_repo(repo_dir: str, ref: str) -> bool:
     return res.returncode == 0
 
 
+def extract_ref_from_version_cmd(cmd: List[str], repo_dir: str) -> Optional[str]:
+    """Run binary --version and extract matching commit hash for libggml packages."""
+    try:
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        text = res.stdout + "\n" + res.stderr
+        patterns = [
+            r"commit\s+([0-9a-f]{7,})",
+            r"\(([0-9a-f]{7,})\)",
+            r"-([0-9a-f]{7,})\+?",
+            r"version\s+([0-9a-f]{7,})",
+        ]
+        for pat in patterns:
+            m = re.search(pat, text, re.I)
+            if m:
+                cand = m.group(1)
+                if is_commit_in_repo(repo_dir, cand):
+                    return cand[:7]
+    except Exception:
+        pass
+    return None
+
+
 def get_pkgbuild_version(pkg_dir: str) -> str:
     """Extract pkgver from PKGBUILD."""
     pkgbuild_path = os.path.join(pkg_dir, "PKGBUILD")
@@ -326,12 +330,20 @@ def get_pkgbuild_version(pkg_dir: str) -> str:
 
 def get_git_installed_ref(repo_cfg: Dict[str, Any], repo_dir: str) -> str:
     """Resolve the git ref of the currently installed package."""
+    parent_pkg = repo_cfg.get("parent_pkg")
+    default_ref = repo_cfg.get("default_ref", "")
+
+    # For libggml packages: use binary --version if configured
+    if parent_pkg == "libggml-git-hip" and repo_cfg.get("version_cmd"):
+        cmd_ref = extract_ref_from_version_cmd(repo_cfg["version_cmd"], repo_dir)
+        if cmd_ref:
+            return cmd_ref
+
     pkgs = repo_cfg.get("pkgs") or (
         [repo_cfg.get("pkg")] if repo_cfg.get("pkg") else []
     )
-    default_ref = repo_cfg.get("default_ref", "")
 
-    # 1. Extract git suffix from pacman version and verify it exists in repo_dir
+    # Extract git suffix from pacman version and verify it exists in repo_dir
     for pkg in pkgs:
         if pkg:
             pkg_ver = run_cmd(["pacman", "-Q", pkg])
@@ -342,18 +354,17 @@ def get_git_installed_ref(repo_cfg: Dict[str, Any], repo_dir: str) -> str:
                     commit_hash = match.group(1)
                     if is_commit_in_repo(repo_dir, commit_hash):
                         return commit_hash
-                # Check for version-based match if tag ref
                 tag_match = re.match(r"^([0-9]+\.[0-9]+(\.[0-9]+)?)", ver_part)
                 if tag_match:
                     ver_tag = tag_match.group(1)
                     if is_commit_in_repo(repo_dir, ver_tag):
                         return ver_tag
 
-    # 2. Check default_ref
+    # Fallback to default_ref if in repo
     if default_ref and is_commit_in_repo(repo_dir, default_ref):
         return default_ref
 
-    # 3. Fallback to git repo HEAD if present
+    # Fallback to git repo HEAD if present
     if repo_dir and os.path.isdir(repo_dir):
         short_ref = run_cmd(["git", "-C", repo_dir, "rev-parse", "--short=7", "HEAD"])
         if short_ref:
@@ -373,7 +384,6 @@ def parse_cached_metrics_from_file(file_path: str) -> Dict[str, Dict[str, int]]:
                 if line.startswith("|") and "github.com/" in line:
                     parts = [p.strip() for p in line.split("|")]
                     if len(parts) >= 6:
-                        # parts: ['', name, github_link, stars, forks, ...]
                         link_match = re.search(r"github\.com/([^/\)]+/[^/\)]+)", parts[2])
                         if link_match:
                             slug = link_match.group(1).rstrip(")")
@@ -612,27 +622,28 @@ def make_recent_focus_block(stats: Dict[str, Any], repo_dir: str) -> str:
     installed_ref = stats.get("installed_ref")
     since_commits_str = stats.get("since_commits", "—")
     since_commits_int = int(since_commits_str) if since_commits_str.isdigit() else None
+    installed_ver = stats.get("installed_ver")
+    is_installed = installed_ver and installed_ver not in ("not installed", "—")
 
-    use_installed_range = False
-    if (
-        installed_ref
-        and since_commits_int is not None
-        and since_commits_int < stats.get("commits", 0)
-    ):
-        use_installed_range = True
-
-    if use_installed_range:
-        cmd = [
-            "git",
-            "-C",
-            repo_dir,
-            "log",
-            "--no-merges",
-            "--oneline",
-            "-n",
-            "15",
-            f"{installed_ref}..HEAD",
-        ]
+    if is_installed and installed_ref:
+        if since_commits_int is not None and since_commits_int > 0:
+            cmd = [
+                "git",
+                "-C",
+                repo_dir,
+                "log",
+                "--no-merges",
+                "--oneline",
+                "-n",
+                "15",
+                f"{installed_ref}..HEAD",
+            ]
+        else:
+            lines = [
+                "* **Recent Focus**:",
+                "  - Up to date with installed package (0 new commits).",
+            ]
+            return "\n".join(lines)
     else:
         cmd = [
             "git",
@@ -817,7 +828,12 @@ def compile_activity(write_to_file: bool = False) -> None:
 
     # Format Table
     def format_row(r: Dict[str, Any]) -> str:
-        tags_str = ", ".join(f"`{t}`" for t in r["tags"][:2]) if r["tags"] else "—"
+        if r.get("repo_type") == "release":
+            newest_rel = r.get("latest_release") or r.get("pypi_latest")
+            tags_str = f"`{newest_rel}`" if newest_rel else "—"
+        else:
+            tags_str = ", ".join(f"`{t}`" for t in r["tags"][:2]) if r["tags"] else "—"
+
         name_display = f"**{r['display_name']}**"
         if r.get("parent_pkg") == "libggml-git-hip":
             name_display = f"*└─ {r['name']}*"
