@@ -69,26 +69,12 @@ This package applies a custom patch to maximize stability and performance on RDN
 | Stock (TILE) | ~280 Char/s | >145k Chars |
 | **Optimized TILE** | **~1485 Char/s**| **>145k Chars** |
 
-### Python Binding Fixes (`python-llama-cpp`)
-To bridge the gap between latest `libllama.so` and the `llama-cpp-python` bindings, we apply functional shims and symbol aliasing.
+### Python Binding System Library Integration (`llama-cpp-system.patch`)
+With modern `llama-cpp-python` git HEAD, the binding layer natively matches upstream `llama.h` ABI structures and exports (including `llama_context_params`, `llama_model_params`, and modern LoRA / sampler functions).
 
-#### Symbol Resolution Table
+Previously required symbol aliasing and runtime monkey-patching scripts (`llama-patch-abi.py`, `llama-shims.py`) have been retired. The package now only applies a clean one-line patch (`llama-cpp-system.patch`) to configure the Python binding to load the system-wide `/usr/lib/libllama.so` and dynamic backend libraries by default.
 
-| Symbol Name | Resolution | Status |
-| :--- | :--- | :--- |
-| `llama_set_adapter_lora` | **Shimmed** | Re-implemented using `llama_set_adapters_lora` (plural API). Wraps single adapter into array. |
-| `llama_adapter_lora_init` | **Shimmed** | Bound to C symbol with UTF-8 path encoding safety. |
-| `llama_adapter_lora_free` | **Shimmed** | Bound to C symbol for manual memory management. |
-| `llama_get_kv_self` | Aliased | Dummied to `llama_get_memory`. Deprecated in library. |
-| `llama_rm_adapter_lora` | Aliased | Dummied to `llama_get_memory`. Unused by high-level API. |
-| `llama_clear_adapter_lora`| Aliased | Dummied to `llama_get_memory`. Unused by high-level API. |
-| `llama_apply_adapter_cvec`| Aliased | Dummied to `llama_get_memory`. Unused by high-level API. |
-| `llama_kv_self_*` (13 variants)| Aliased | Dummied to `llama_get_memory`. Internal seq management replaced by library. |
-| `llama_sampler_init_softmax`| Aliased | Dummied to `llama_get_memory`. Deprecated in library. |
-
-**Implementation:** Shims are injected via `EOF` concatenation at the end of `llama_cpp/llama_cpp.py`. Aliases are applied via `sed` substitutions during the `prepare()` phase.
-
-### Qwen3-TTS Hybrid mode , offload Device selection, Voice Fallback & Built-in Voices 
+### Qwen3-TTS Hybrid mode, offload Device selection, Voice Fallback & Built-in Voices 
 
 #### Additional Environment Variables
 
@@ -147,6 +133,36 @@ Adds upstream support for the [jina-reranker-v3](https://huggingface.co/jinaai/j
   llama-server -m jina-reranker-v3.gguf --embeddings --pooling last
   ```
   Then POST to `/v1/embeddings` to get 512-dim projected embeddings; compute cosine similarity client-side for reranking.
+
+---
+
+## Changelog
+
+### `10524.r8.g70aff25-1` (Current)
+- **Patch Modernization & Cleanup**:
+  - Replaced outdated / fuzzy patches with clean diffs matching latest upstream Git HEADs (zero fuzz, zero offsets, zero rejects).
+  - Dropped `llama-cmake-include.patch`: upstream `llama.cpp` has integrated `INTERFACE_INCLUDE_DIRECTORIES` into `ggml-config.cmake.in`.
+  - Dropped `llama-patch-abi.py` & `llama-shims.py`: upstream `llama-cpp-python` Git HEAD now natively supports modern `llama.h` ABI and functions.
+  - Refreshed `jina-reranker-v3.patch` cleanly against latest `llama.cpp` `src/llama-graph`, `src/llama-model`, and Qwen3 architectures.
+  - Refreshed `whisper-version-commit.patch` cleanly against latest `whisper.cpp`.
+- **Build System**: Updated all source checksums via `updpkgsums` and validated compilation of all 7 split packages.
+
+### `10344.r14.g030ebb5-1`
+- **Jina Reranker v3 Integration**: Added `jina-reranker-v3.patch` for Qwen3 cross-encoder embeddings and dense projection layers.
+- **Python Bindings Compatibility**: Introduced ABI shims for LoRA and sampler functions to bridge `llama-cpp-python` with dynamic `libllama.so`.
+- **Dynamic Backend Loading**: Hardened `GGML_BACKEND_DL=ON` across CPU variants, OpenBLAS, HIP/ROCm, and Vulkan.
+
+### `9700.r12.g41bf982-1`
+- **New Split Packages**:
+  - Added `qwen3-tts.cpp-git-ggml-hip` with hybrid CPU/GPU split execution, device selection, and automatic voice fallback.
+  - Added `parakeet.cpp-git-ggml-hip` (FastConformer and TDT ASR).
+  - Added `stable-diffusion.cpp-git-ggml-hip` with web UI and system ggml integration.
+- **Version Identification**: Implemented commit-hash tagging patches for `whisper.cpp` and `qwen3-tts.cpp`.
+
+### `7974.r6.g262364e-1`
+- **Initial Release**: Unified shared library `libggml-git-hip` with split packages `llama.cpp-git-ggml-hip`, `whisper.cpp-git-ggml-hip`, and `python-llama-cpp-git-ggml-hip`.
+- **RDNA2 Acceleration**: HIP compilation with ROCm toolchain targeting modern AMD architectures (gfx1030+).
+
 
 
 

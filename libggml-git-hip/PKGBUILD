@@ -2,7 +2,7 @@
 
 pkgbase=libggml-git-hip
 pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip' 'parakeet.cpp-git-ggml-hip')
-pkgver=10344.r14.g030ebb5
+pkgver=10524.r8.g70aff25
 pkgrel=1
 pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp, parakeet.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
@@ -32,15 +32,12 @@ source=(
     "parakeet.cpp::git+https://github.com/mudler/parakeet.cpp.git"
     "README.md"
     "ggml.pc.in"
-    "llama-patch-abi.py"
-    "llama-shims.py"
     "llama-cpp-system.patch"
     "qwen3-tts-system-ggml.patch"
     "parakeet-system-ggml.patch"
     "qwen3-tts-threading.patch"
     "qwen3-tts-backend-allocation.patch"
     "qwen3-tts-hybrid-backend.patch"
-    "llama-cmake-include.patch"
     "qwen3-tts-dl-shims.patch"
     "qwen3-tts-voice-fallback.patch"
     "qwen3-tts-device.patch"
@@ -58,24 +55,21 @@ sha256sums=('SKIP'
             'SKIP'
             'SKIP'
             'SKIP'
-            '8c3f415f79bf33adad0e3b9e810461b5646b2eda453088e915cf9644a1eda283'
+            'f02776049f3fd1b86ed6b8289e8968e5ca26830664fca8986bb0b8fbcd75c090'
             '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
-            'e7430489ec842c7c10d6976e04c63023c24ebf9fa080ea3fad55ab19c636d875'
-            '3cff47657d41fecfe69314df2de602ef1be750dd68d84b21ac4986e5446b9391'
             '8c8d5aae9919b94febf30302daa483c448c5106c0de9f3e6f7052766b26fb068'
             '1204bae0ca0f976ac476b29dc75642b0896cbec74d05e9b79c2592f34e348da4'
             '934d9e1c26f5f2104d85a071e7af07d7336c292930734b907012ed68ffcc8074'
             '17fdfd17833fdd7d2a5f584c1d781c1e5340d47f05555ec1cf89487a341c8bea'
             '3f6b0f1e6111da9866f8cced49bca0e34972171017455700624792a6b749ced0'
             '1e50216d2a837c1aa8537a3acecbe05f8cc147eb54e6a73600de9419678202c4'
-            'a77d7ad0129022aaa9d976ce3ac064611f7c809da8127440737e8ef859ecc8f0'
             'dbaf6c498a0d0a1086daecce51025a0fd30521089735dbd74c95973dab300e58'
             'bdfaa2ac8b095b086ca36de39bd37cfd56732ba400688a255d0de7cc005e4e53'
             'cc552b3a2051901acee7dfa4dc01b404bdd8f204adb9c112a2830b35ca86b333'
             'd1f2f2a5454b335b7e23c82df22753362446d87a889eabb0fe4d6d38a93386cb'
-            '3adad2f48b5c0f8f85e4a3dd425475d6597a2ceaa31e18f23bb6913012952f85'
+            '737a8fc6703473eeca7578c03eab8f9a785ba4280d35e018621441e06205d853'
             '9d05bdb874ee51604912d8cb5a404755f4606f12f50cd5ea435622ff573a409b'
-            '2c3abb3bc5245970aac528e4567f6ca3551b939ed141e6795514940f1e2de664')
+            '2be0871f0b9dd31a22d20558aeb19ea5cf32d6aa78a6052f9bcd13494431b86a')
 
 pkgver() {
     cd llama.cpp
@@ -86,9 +80,7 @@ prepare() {
     # Patch ggml inside llama.cpp (patch path is ggml/src/...)
     cd "${srcdir}/llama.cpp"
     git submodule update --init --recursive
-    patch -p1 <"${srcdir}/llama-cmake-include.patch"
     patch -p1 <"${srcdir}/jina-reranker-v3.patch"
-    #patch -p1 <"${srcdir}/rtld-cpu-global.patch"
 
     # Manually create ggml.pc.in if it's missing (needed for shared library build)
     if [ ! -f "ggml/ggml.pc.in" ]; then
@@ -99,39 +91,6 @@ prepare() {
     # Prepare python binding to use system library path
     cd "${srcdir}/llama-cpp-python"
     patch -p0 <"${srcdir}/llama-cpp-system.patch"
-
-    # Fix undefined symbols by aliasing them to llama_missing_symbol_dummy (defined in llama_shims.py)
-    # This avoids import-time errors while ensuring a clean crash if actually called.
-    local _MISSING_SYMBOLS=(
-        "llama_get_kv_self"
-        "llama_set_adapter_lora"
-        "llama_rm_adapter_lora"
-        "llama_clear_adapter_lora"
-        "llama_apply_adapter_cvec"
-        "llama_kv_self_can_shift"
-        "llama_kv_self_clear"
-        "llama_kv_self_defrag"
-        "llama_kv_self_n_tokens"
-        "llama_kv_self_seq_add"
-        "llama_kv_self_seq_cp"
-        "llama_kv_self_seq_div"
-        "llama_kv_self_seq_keep"
-        "llama_kv_self_seq_pos_max"
-        "llama_kv_self_seq_pos_min"
-        "llama_kv_self_seq_rm"
-        "llama_kv_self_update"
-        "llama_kv_self_used_cells"
-        "llama_sampler_init_softmax"
-    )
-    for sym in "${_MISSING_SYMBOLS[@]}"; do
-        sed -i "s|\"${sym}\"|\"llama_get_memory\"|" llama_cpp/llama_cpp.py
-    done
-
-    # Patch ABI mismatches in llama_cpp.py
-    python3 "${srcdir}/llama-patch-abi.py" "llama_cpp/llama_cpp.py"
-
-    # Inject Shims (LoRA, Samplers, etc.)
-    cat "${srcdir}/llama-shims.py" >>llama_cpp/llama_cpp.py
 
     # Patch whisper.cpp
     cd "${srcdir}/whisper.cpp"
