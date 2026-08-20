@@ -3,7 +3,7 @@
 
 A script to automate gathering statistics and recent git history for AUR packages.
 This script checks local pacman installations, fetches upstream repository
-updates, queries GitHub metrics, compiles activity tables, and can optionally
+updates, queries GitHub/PyPI metrics, compiles activity tables, and can optionally
 write them directly to research/weekly-devel-activity.md.
 """
 
@@ -11,6 +11,7 @@ import datetime
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import urllib.request
@@ -18,113 +19,264 @@ from typing import Any, Dict, List, Optional
 
 # Define the repositories to track
 TRACKED_REPOS: List[Dict[str, Any]] = [
+    # 1. Real git repos
     {
-        "name": "oh-my-pi",
-        "github": "can1357/oh-my-pi",
-        "pkg": "oh-my-pi-git-tag",
+        "name": "amux-git",
+        "display_name": "amux-git",
+        "github": "mixpeek/amux",
+        "pkg": "amux-git",
         "branch": "main",
-        "src_path": "oh-my-pi-git-tag/src/oh-my-pi",
-        "category": "ai",
-        "default_ref": "39477ba",
+        "repo_type": "git",
+        "pkg_dir": "amux-git",
+        "src_name": "amux",
+        "default_ref": "29d3c70",
+    },
+    {
+        "name": "aoe-git-tag",
+        "display_name": "aoe-git-tag",
+        "github": "agent-of-empires/agent-of-empires",
+        "pkg": "aoe-git-tag",
+        "branch": "main",
+        "repo_type": "git",
+        "pkg_dir": "aoe-git-tag",
+        "src_name": "agent-of-empires",
+        "default_ref": "9b0d691",
     },
     {
         "name": "llama.cpp",
+        "display_name": "llama.cpp",
+        "parent_pkg": "libggml-git-hip",
         "github": "ggml-org/llama.cpp",
-        "pkg": "libggml-git-hip",
+        "pkgs": ["libggml-git-hip", "llama.cpp-git-ggml-hip"],
         "branch": "master",
-        "src_path": "libggml-git-hip/src/llama.cpp",
-        "category": "ai",
-        "default_ref": "c576070",
-    },
-    {
-        "name": "llama-cpp-python",
-        "github": "abetlen/llama-cpp-python",
-        "pkg": "python-llama-cpp-git-ggml-hip",
-        "branch": "main",
-        "src_path": "libggml-git-hip/src/llama-cpp-python",
-        "category": "ai",
-        "default_ref": "b11fe07",
-    },
-    {
-        "name": "stable-diffusion.cpp",
-        "github": "leejet/stable-diffusion.cpp",
-        "pkg": "stable-diffusion.cpp-git-ggml-hip",
-        "branch": "master",
-        "src_path": "libggml-git-hip/src/stable-diffusion.cpp",
-        "category": "ai",
-        "default_ref": "7f0e728",
+        "repo_type": "git",
+        "pkg_dir": "libggml-git-hip",
+        "src_name": "llama.cpp",
+        "default_ref": "030ebb5",
     },
     {
         "name": "whisper.cpp",
+        "display_name": "whisper.cpp",
+        "parent_pkg": "libggml-git-hip",
         "github": "ggerganov/whisper.cpp",
         "pkg": "whisper.cpp-git-ggml-hip",
         "branch": "master",
-        "src_path": "libggml-git-hip/src/whisper.cpp",
-        "category": "ai",
-        "default_ref": "5ed76e9a",
+        "repo_type": "git",
+        "pkg_dir": "libggml-git-hip",
+        "src_name": "whisper.cpp",
+        "default_ref": "592feef",
     },
     {
-        "name": "qwen3-tts.cpp",
-        "github": "khimaros/qwen3-tts.cpp",
-        "pkg": "qwen3-tts.cpp-git-ggml-hip",
+        "name": "llama-cpp-python",
+        "display_name": "llama-cpp-python",
+        "parent_pkg": "libggml-git-hip",
+        "github": "abetlen/llama-cpp-python",
+        "pkg": "python-llama-cpp-git-ggml-hip",
         "branch": "main",
-        "src_path": "libggml-git-hip/src/qwen3-tts.cpp",
-        "category": "ai",
-        "default_ref": "0c8b2ba",
+        "repo_type": "git",
+        "pkg_dir": "libggml-git-hip",
+        "src_name": "llama-cpp-python",
+        "default_ref": "67014fd",
     },
     {
-        "name": "qwen3-tts-upstream",
-        "github": "predict-woo/qwen3-tts.cpp",
-        "pkg": "",
-        "branch": "main",
-        "src_path": "",
-        "category": "ai",
+        "name": "stable-diffusion.cpp",
+        "display_name": "stable-diffusion.cpp",
+        "parent_pkg": "libggml-git-hip",
+        "github": "leejet/stable-diffusion.cpp",
+        "pkg": "stable-diffusion.cpp-git-ggml-hip",
+        "branch": "master",
+        "repo_type": "git",
+        "pkg_dir": "libggml-git-hip",
+        "src_name": "stable-diffusion.cpp",
+        "default_ref": "c6beeef",
+    },
+    {
+        "name": "sdcpp-webui",
+        "display_name": "sdcpp-webui",
+        "parent_pkg": "libggml-git-hip",
+        "github": "leejet/sdcpp-webui",
+        "branch": "master",
+        "repo_type": "git",
+        "pkg_dir": "libggml-git-hip",
+        "src_name": "sdcpp-webui",
         "default_ref": "",
     },
     {
-        "name": "bitsandbytes",
-        "github": "bitsandbytes-foundation/bitsandbytes",
-        "pkg": "python-bitsandbytes-rocm-git",
+        "name": "libwebm",
+        "display_name": "libwebm",
+        "parent_pkg": "libggml-git-hip",
+        "github": "webmproject/libwebm",
         "branch": "main",
-        "src_path": "python-bitsandbytes-rocm-git/src/bitsandbytes",
-        "category": "ai",
-        "default_ref": "435b8b3",
+        "repo_type": "git",
+        "pkg_dir": "libggml-git-hip",
+        "src_name": "libwebm",
+        "default_ref": "",
     },
     {
-        "name": "infinity_emb",
-        "github": "michaelfeil/infinity",
-        "pkg": "python-infinity-emb",
+        "name": "qwen3-tts.cpp",
+        "display_name": "qwen3-tts.cpp",
+        "parent_pkg": "libggml-git-hip",
+        "github": "khimaros/qwen3-tts.cpp",
+        "pkg": "qwen3-tts.cpp-git-ggml-hip",
         "branch": "main",
-        "src_path": "",
-        "category": "ai",
-        "default_ref": "0.0.75",
+        "repo_type": "git",
+        "pkg_dir": "libggml-git-hip",
+        "src_name": "qwen3-tts.cpp",
+        "default_ref": "0c8b2ba",
     },
     {
-        "name": "pockettts.cpp",
+        "name": "parakeet.cpp",
+        "display_name": "parakeet.cpp",
+        "parent_pkg": "libggml-git-hip",
+        "github": "mudler/parakeet.cpp",
+        "pkg": "parakeet.cpp-git-ggml-hip",
+        "branch": "main",
+        "repo_type": "git",
+        "pkg_dir": "libggml-git-hip",
+        "src_name": "parakeet.cpp",
+        "default_ref": "3e1ddd8",
+    },
+    {
+        "name": "oh-my-pi",
+        "display_name": "oh-my-pi-git-tag",
+        "github": "can1357/oh-my-pi",
+        "pkg": "oh-my-pi-git-tag",
+        "branch": "main",
+        "repo_type": "git",
+        "pkg_dir": "oh-my-pi-git-tag",
+        "src_name": "oh-my-pi",
+        "default_ref": "45e12e5",
+    },
+    {
+        "name": "pocket-tts.cpp",
+        "display_name": "pocket-tts.cpp-git",
         "github": "VolgaGerm/PocketTTS.cpp",
         "pkg": "pocket-tts.cpp-git",
         "branch": "master",
-        "src_path": "pocket-tts.cpp-git/src/pockettts.cpp",
-        "category": "ai",
+        "repo_type": "git",
+        "pkg_dir": "pocket-tts.cpp-git",
+        "src_name": "pocket-tts-cpp",
         "default_ref": "e801e7d",
     },
     {
-        "name": "pocket-tts",
-        "github": "kyutai-labs/pocket-tts",
-        "pkg": "python-pocket-tts",
+        "name": "python-bitsandbytes-rocm",
+        "display_name": "python-bitsandbytes-rocm-git",
+        "github": "bitsandbytes-foundation/bitsandbytes",
+        "pkg": "python-bitsandbytes-rocm-git",
         "branch": "main",
-        "src_path": "",
-        "category": "ai",
-        "default_ref": "v2.1.0",
+        "repo_type": "git",
+        "pkg_dir": "python-bitsandbytes-rocm-git",
+        "src_name": "python-bitsandbytes-rocm-git",
+        "default_ref": "2b6cfb79",
+    },
+    {
+        "name": "python-gptqmodel-rocm",
+        "display_name": "python-gptqmodel-rocm-git",
+        "github": "ModelCloud/GPTQModel",
+        "pkg": "python-gptqmodel-rocm-git",
+        "branch": "main",
+        "repo_type": "git",
+        "pkg_dir": "python-gptqmodel-rocm-git",
+        "src_name": "python-gptqmodel-rocm-git",
+        "default_ref": "7df3d1e83",
     },
     {
         "name": "signal-cli-rest-api",
+        "display_name": "signal-cli-rest-api-git",
         "github": "bbernhard/signal-cli-rest-api",
         "pkg": "signal-cli-rest-api-git",
         "branch": "master",
-        "src_path": "signal-cli-rest-api-git/src/signal-cli-rest-api",
-        "category": "other",
-        "default_ref": "a4f5855",
+        "repo_type": "git",
+        "pkg_dir": "signal-cli-rest-api-git",
+        "src_name": "signal-cli-rest-api-git",
+        "default_ref": "fe9df01",
+    },
+    {
+        "name": "vllm.cpp",
+        "display_name": "vllm.cpp-git-hip",
+        "github": "mudler/vllm.cpp",
+        "pkg": "vllm.cpp-git-hip",
+        "branch": "main",
+        "repo_type": "git",
+        "pkg_dir": "vllm.cpp-git-hip",
+        "src_name": "vllm.cpp",
+        "default_ref": "65d6cda",
+    },
+    # 2. From git download tar.gz repos
+    {
+        "name": "python-optimum-amd",
+        "display_name": "python-optimum-amd",
+        "github": "huggingface/optimum-amd",
+        "pkg": "python-optimum-amd",
+        "branch": "main",
+        "repo_type": "tarball",
+        "pkg_dir": "python-optimum-amd",
+        "default_ref": "f36a96b",
+    },
+    {
+        "name": "smg",
+        "display_name": "smg",
+        "github": "lightseekorg/smg",
+        "pkgs": ["smg", "python-smg"],
+        "branch": "main",
+        "repo_type": "tarball",
+        "pkg_dir": "smg",
+        "default_ref": "v1.8.0",
+    },
+    {
+        "name": "tei-rocm",
+        "display_name": "tei-rocm",
+        "github": "huggingface/text-embeddings-inference",
+        "pkg": "tei-rocm",
+        "branch": "main",
+        "repo_type": "tarball",
+        "pkg_dir": "tei-rocm",
+        "default_ref": "v1.9.3",
+    },
+    # 3. Repos that use releases
+    {
+        "name": "python-optimum-rocm",
+        "display_name": "python-optimum-rocm",
+        "github": "huggingface/optimum",
+        "pkg": "python-optimum-rocm",
+        "pypi_name": "optimum",
+        "branch": "main",
+        "repo_type": "release",
+        "pkg_dir": "python-optimum-rocm",
+        "default_ref": "v2.3.0",
+    },
+    {
+        "name": "python-peft",
+        "display_name": "python-peft",
+        "github": "huggingface/peft",
+        "pkg": "python-peft",
+        "pypi_name": "peft",
+        "branch": "main",
+        "repo_type": "release",
+        "pkg_dir": "python-peft",
+        "default_ref": "v0.20.0",
+    },
+    {
+        "name": "python-pocket-tts",
+        "display_name": "python-pocket-tts",
+        "github": "kyutai-labs/pocket-tts",
+        "pkg": "python-pocket-tts",
+        "pypi_name": "pocket-tts",
+        "branch": "main",
+        "repo_type": "release",
+        "pkg_dir": "python-pocket-tts",
+        "default_ref": "v2.1.0",
+    },
+    {
+        "name": "python-infinity-emb",
+        "display_name": "python-infinity-emb",
+        "github": "michaelfeil/infinity",
+        "pkg": "python-infinity-emb",
+        "pypi_name": "infinity_emb",
+        "branch": "main",
+        "repo_type": "release",
+        "pkg_dir": "python-infinity-emb",
+        "default_ref": "0.0.75",
     },
 ]
 
@@ -145,59 +297,163 @@ def run_cmd(cmd: List[str], cwd: Optional[str] = None) -> str:
         return ""
 
 
-def get_git_installed_ref(repo_cfg: Dict[str, Any]) -> str:
-    """Resolve the git ref of the currently installed package."""
-    src_paths = repo_cfg.get("src_paths") or (
-        [repo_cfg.get("src_path")] if repo_cfg.get("src_path") else []
+def is_commit_in_repo(repo_dir: str, ref: str) -> bool:
+    """Check whether a git ref/commit exists in the specified repository."""
+    if not ref or not repo_dir or not os.path.exists(repo_dir):
+        return False
+    res = subprocess.run(
+        ["git", "-C", repo_dir, "cat-file", "-e", f"{ref}^{{commit}}"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
+    return res.returncode == 0
+
+
+def get_pkgbuild_version(pkg_dir: str) -> str:
+    """Extract pkgver from PKGBUILD."""
+    pkgbuild_path = os.path.join(pkg_dir, "PKGBUILD")
+    if not os.path.exists(pkgbuild_path):
+        return ""
+    try:
+        with open(pkgbuild_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("pkgver="):
+                    return line.split("=", 1)[1].strip().strip("\"'")
+    except Exception:
+        pass
+    return ""
+
+
+def get_git_installed_ref(repo_cfg: Dict[str, Any], repo_dir: str) -> str:
+    """Resolve the git ref of the currently installed package."""
     pkgs = repo_cfg.get("pkgs") or (
         [repo_cfg.get("pkg")] if repo_cfg.get("pkg") else []
     )
     default_ref = repo_cfg.get("default_ref", "")
 
-    # 1. Check if git repo exists in package src directory
-    for src_path in src_paths:
-        if src_path and os.path.isdir(os.path.join(src_path, ".git")):
-            short_ref = run_cmd(
-                ["git", "-C", src_path, "rev-parse", "--short=7", "HEAD"]
-            )
-            if short_ref:
-                return short_ref
-
-    # 2. Extract git suffix from pacman version
+    # 1. Extract git suffix from pacman version and verify it exists in repo_dir
     for pkg in pkgs:
         if pkg:
             pkg_ver = run_cmd(["pacman", "-Q", pkg])
             if pkg_ver:
-                # Extract suffix after ".g" or "-g" followed by hex characters
                 ver_part = pkg_ver.split()[-1]
                 match = re.search(r"\.g([0-9a-f]{7,})(-.*)?$", ver_part)
                 if match:
-                    return match.group(1)
+                    commit_hash = match.group(1)
+                    if is_commit_in_repo(repo_dir, commit_hash):
+                        return commit_hash
+                # Check for version-based match if tag ref
+                tag_match = re.match(r"^([0-9]+\.[0-9]+(\.[0-9]+)?)", ver_part)
+                if tag_match:
+                    ver_tag = tag_match.group(1)
+                    if is_commit_in_repo(repo_dir, ver_tag):
+                        return ver_tag
+
+    # 2. Check default_ref
+    if default_ref and is_commit_in_repo(repo_dir, default_ref):
+        return default_ref
+
+    # 3. Fallback to git repo HEAD if present
+    if repo_dir and os.path.isdir(repo_dir):
+        short_ref = run_cmd(["git", "-C", repo_dir, "rev-parse", "--short=7", "HEAD"])
+        if short_ref:
+            return short_ref
 
     return default_ref
 
 
-def query_github_api(repo_slug: str) -> Dict[str, int]:
-    """Query GitHub API for stargazers and forks counts."""
+def parse_cached_metrics_from_file(file_path: str) -> Dict[str, Dict[str, int]]:
+    """Parse stars and forks from previous markdown report to prevent 0s on rate limits."""
+    metrics: Dict[str, Dict[str, int]] = {}
+    if not os.path.exists(file_path):
+        return metrics
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("|") and "github.com/" in line:
+                    parts = [p.strip() for p in line.split("|")]
+                    if len(parts) >= 6:
+                        # parts: ['', name, github_link, stars, forks, ...]
+                        link_match = re.search(r"github\.com/([^/\)]+/[^/\)]+)", parts[2])
+                        if link_match:
+                            slug = link_match.group(1).rstrip(")")
+                            try:
+                                stars = int(parts[3].replace(",", ""))
+                                forks = int(parts[4].replace(",", ""))
+                                if stars > 0 or forks > 0:
+                                    metrics[slug] = {"stars": stars, "forks": forks}
+                            except ValueError:
+                                pass
+    except Exception:
+        pass
+    return metrics
+
+
+def query_github_api(
+    repo_slug: str, cached_metrics: Optional[Dict[str, Dict[str, int]]] = None
+) -> Dict[str, Any]:
+    """Query GitHub API for stargazers, forks counts, and latest release."""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (AUR weekly report generator)",
+        "Accept": "application/vnd.github+json",
+    }
+    gh_token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if gh_token:
+        headers["Authorization"] = f"Bearer {gh_token}"
+
+    fallback_stars = 0
+    fallback_forks = 0
+    if cached_metrics and repo_slug in cached_metrics:
+        fallback_stars = cached_metrics[repo_slug].get("stars", 0)
+        fallback_forks = cached_metrics[repo_slug].get("forks", 0)
+
+    res_data: Dict[str, Any] = {
+        "stars": fallback_stars,
+        "forks": fallback_forks,
+        "latest_release": "",
+    }
+
     url = f"https://api.github.com/repos/{repo_slug}"
+    req = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            res_data["stars"] = data.get("stargazers_count", fallback_stars)
+            res_data["forks"] = data.get("forks_count", fallback_forks)
+    except Exception:
+        pass
+
+    # Query latest release
+    rel_url = f"https://api.github.com/repos/{repo_slug}/releases/latest"
+    rel_req = urllib.request.Request(rel_url, headers=headers)
+    try:
+        with urllib.request.urlopen(rel_req, timeout=5) as rel_resp:
+            rel_data = json.loads(rel_resp.read().decode("utf-8"))
+            res_data["latest_release"] = rel_data.get("tag_name", "")
+    except Exception:
+        pass
+
+    return res_data
+
+
+def query_pypi_latest(pypi_name: str) -> str:
+    """Query PyPI API for the latest package version."""
+    if not pypi_name:
+        return ""
+    url = f"https://pypi.org/pypi/{pypi_name}/json"
     req = urllib.request.Request(
         url,
         headers={
             "User-Agent": "Mozilla/5.0 (AUR weekly report generator)",
-            "Accept": "application/vnd.github+json",
+            "Accept": "application/json",
         },
     )
     try:
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode("utf-8"))
-            return {
-                "stars": data.get("stargazers_count", 0),
-                "forks": data.get("forks_count", 0),
-            }
+            return data.get("info", {}).get("version", "")
     except Exception:
-        # Fallback to zeros if offline or rate-limited
-        return {"stars": 0, "forks": 0}
+        return ""
 
 
 def get_repo_tags(repo_dir: str) -> List[str]:
@@ -228,6 +484,85 @@ def get_repo_tags(repo_dir: str) -> List[str]:
     return sorted(list(set(tags)))
 
 
+def sync_repository(repo: Dict[str, Any]) -> str:
+    """Ensure repository sources are up-to-date and return the inspectable directory."""
+    repo_type = repo.get("repo_type", "git")
+    github = repo["github"]
+    name = repo["name"]
+    branch = repo.get("branch", "main")
+    pkg_dir = repo.get("pkg_dir", "")
+    src_name = repo.get("src_name", name)
+    target_url = f"https://github.com/{github}.git"
+
+    if repo_type == "git" and pkg_dir:
+        # Check standard PKGBUILD source locations
+        src_path = os.path.join(pkg_dir, "src", src_name)
+        bare_path = os.path.join(pkg_dir, src_name)
+
+        # Check if src_path exists and is healthy
+        src_valid = (
+            os.path.exists(src_path)
+            and run_cmd(["git", "-C", src_path, "rev-parse", "HEAD"]) != ""
+        )
+        bare_valid = (
+            os.path.exists(bare_path)
+            and run_cmd(["git", "-C", bare_path, "rev-parse", "HEAD"]) != ""
+        )
+
+        if not src_valid and not bare_valid:
+            print(f"Updating PKGBUILD sources for {pkg_dir} via makepkg...")
+            if os.path.exists(src_path) and not src_valid:
+                shutil.rmtree(src_path, ignore_errors=True)
+            run_cmd(["makepkg", "--nobuild", "-od"], cwd=pkg_dir)
+            src_valid = (
+                os.path.exists(src_path)
+                and run_cmd(["git", "-C", src_path, "rev-parse", "HEAD"]) != ""
+            )
+            bare_valid = (
+                os.path.exists(bare_path)
+                and run_cmd(["git", "-C", bare_path, "rev-parse", "HEAD"]) != ""
+            )
+
+        # Inspect working tree if present and valid, else bare repository
+        if src_valid:
+            run_cmd(["git", "-C", src_path, "fetch", "origin"])
+            run_cmd(["git", "-C", src_path, "checkout", branch])
+            run_cmd(["git", "-C", src_path, "reset", "--hard", f"origin/{branch}"])
+            return src_path
+        elif bare_valid:
+            run_cmd(
+                [
+                    "git",
+                    "-C",
+                    bare_path,
+                    "fetch",
+                    "origin",
+                    "+refs/heads/*:refs/heads/*",
+                    "+refs/tags/*:refs/tags/*",
+                ]
+            )
+            return bare_path
+
+    # Fallback / tarball / release repos: maintain in scratch/<name>
+    os.makedirs("scratch", exist_ok=True)
+    scratch_dir = os.path.join("scratch", name)
+
+    if os.path.exists(scratch_dir):
+        current_remote = run_cmd(["git", "-C", scratch_dir, "remote", "get-url", "origin"])
+        if current_remote and current_remote != target_url and current_remote != target_url[:-4]:
+            print(f"Remote mismatch for {name}. Re-cloning into scratch...")
+            shutil.rmtree(scratch_dir)
+
+    if not os.path.exists(scratch_dir):
+        print(f"Cloning {name} into {scratch_dir}...")
+        run_cmd(["git", "clone", "--depth", "2000", target_url, scratch_dir])
+
+    run_cmd(["git", "-C", scratch_dir, "fetch", "origin"])
+    run_cmd(["git", "-C", scratch_dir, "checkout", branch])
+    run_cmd(["git", "-C", scratch_dir, "reset", "--hard", f"origin/{branch}"])
+    return scratch_dir
+
+
 def make_status_line(stats: Dict[str, Any]) -> str:
     """Format the Status line for package breakdown."""
     commits = stats["commits"]
@@ -246,33 +581,34 @@ def make_status_line(stats: Dict[str, Any]) -> str:
         ref_suffix = (
             f" (ref `{stats['installed_ref']}`)" if stats["installed_ref"] else ""
         )
-        pkg_phrase = f" **{stats['since_commits']} commits since installed {stats['installed_ver']}{ref_suffix}.**"
+        since_val = stats.get("since_commits", "0")
+        if since_val != "-":
+            pkg_phrase = f" **{since_val} commits since installed {stats['installed_ver']}{ref_suffix}.**"
 
     return f"* **Status**: {status} ({commits} commits, {tag_phrase}).{pkg_phrase}"
 
 
-def update_assistant_section_with_anchor(
-    content: str, name: str, stats: Dict[str, Any]
-) -> str:
-    """Locate and update status lists for a package section in content using comment anchors."""
-    anchor_name = name.upper().replace(".", "_").replace("-", "_")
-    start_tag = f"<!-- START_BD_{anchor_name} -->"
-    end_tag = f"<!-- END_BD_{anchor_name} -->"
-
-    status_line = make_status_line(stats)
-    new_body = f"{status_line}"
-
-    pattern = re.compile(rf"{re.escape(start_tag)}.*?{re.escape(end_tag)}", re.DOTALL)
-    if not pattern.search(content):
-        print(f"Warning: Comment anchor {start_tag} / {end_tag} not found in markdown.")
-        return content
-
-    new_block = f"{start_tag}\n{new_body}\n{end_tag}"
-    return re.sub(pattern, lambda m: new_block, content)
-
-
 def make_recent_focus_block(stats: Dict[str, Any], repo_dir: str) -> str:
-    """Fetch and format the Recent Focus block using git log."""
+    """Fetch and format the Recent Focus block using git log or release comparison."""
+    if stats.get("repo_type") == "release":
+        latest_rel = stats.get("latest_release") or stats.get("pypi_latest") or "N/A"
+        pkgver = stats.get("pkgbuild_ver", "N/A")
+        inst_ver = stats.get("installed_ver", "not installed")
+
+        status_flag = "✅ Up to date"
+        if latest_rel and latest_rel != "N/A":
+            clean_rel = latest_rel.lstrip("v")
+            clean_pkgver = pkgver.lstrip("v")
+            if clean_rel != clean_pkgver and clean_rel > clean_pkgver:
+                status_flag = f"⚠️ **Newer release available: `{latest_rel}`**"
+
+        lines = [
+            "* **Release Status**:",
+            f"  - {status_flag}",
+            f"  - Upstream Latest: `{latest_rel}` | PKGBUILD: `{pkgver}` | Installed: `{inst_ver}`",
+        ]
+        return "\n".join(lines)
+
     installed_ref = stats.get("installed_ref")
     since_commits_str = stats.get("since_commits", "—")
     since_commits_int = int(since_commits_str) if since_commits_str.isdigit() else None
@@ -293,6 +629,8 @@ def make_recent_focus_block(stats: Dict[str, Any], repo_dir: str) -> str:
             "log",
             "--no-merges",
             "--oneline",
+            "-n",
+            "15",
             f"{installed_ref}..HEAD",
         ]
     else:
@@ -330,28 +668,6 @@ def make_recent_focus_block(stats: Dict[str, Any], repo_dir: str) -> str:
     return "\n".join(lines)
 
 
-def update_focus_section_with_anchor(
-    content: str, name: str, stats: Dict[str, Any]
-) -> str:
-    """Locate and update Recent Focus lists for a section in content using comment anchors."""
-    anchor_name = name.upper().replace(".", "_").replace("-", "_")
-    start_tag = f"<!-- START_RF_{anchor_name} -->"
-    end_tag = f"<!-- END_RF_{anchor_name} -->"
-
-    repo_dir = os.path.join("scratch", name)
-    focus_block = make_recent_focus_block(stats, repo_dir)
-
-    pattern = re.compile(rf"{re.escape(start_tag)}.*?{re.escape(end_tag)}", re.DOTALL)
-    if not pattern.search(content):
-        print(
-            f"Warning: Focus comment anchor {start_tag} / {end_tag} not found in markdown."
-        )
-        return content
-
-    new_block = f"{start_tag}\n{focus_block}\n{end_tag}"
-    return re.sub(pattern, lambda m: new_block, content)
-
-
 def compile_activity(write_to_file: bool = False) -> None:
     """Compile the weekly development activity report."""
     print("Starting development activity report update...")
@@ -361,47 +677,22 @@ def compile_activity(write_to_file: bool = False) -> None:
     end_date = datetime.date.today().strftime("%B %d, %Y")
     print(f"Reporting Period: {start_date} - {end_date}")
 
-    os.makedirs("scratch", exist_ok=True)
+    file_path = "research/weekly-devel-activity.md"
+    cached_metrics = parse_cached_metrics_from_file(file_path)
 
     results: List[Dict[str, Any]] = []
 
     for repo in TRACKED_REPOS:
         name = repo["name"]
+        display_name = repo.get("display_name", name)
         github = repo["github"]
-        pkg = repo["pkg"]
-        branch = repo["branch"]
+        branch = repo.get("branch", "main")
+        pkg_dir = repo.get("pkg_dir", "")
+        repo_type = repo.get("repo_type", "git")
+        pypi_name = repo.get("pypi_name", "")
 
-        repo_dir = f"scratch/{name}"
-        print(f"\nProcessing {name} ({github})...")
-
-        # Validate remote URL and clone/re-clone if needed
-        target_url = f"https://github.com/{github}.git"
-        if os.path.exists(repo_dir):
-            current_remote = run_cmd(
-                ["git", "-C", repo_dir, "remote", "get-url", "origin"]
-            )
-            if current_remote and current_remote != target_url and current_remote != target_url[:-4]:
-                import shutil
-                print(f"Remote mismatch for {name} ({current_remote} != {target_url}). Re-cloning...")
-                shutil.rmtree(repo_dir)
-
-        if not os.path.exists(repo_dir):
-            print(f"Cloning {name}...")
-            run_cmd(
-                [
-                    "git",
-                    "clone",
-                    "--depth",
-                    "2000",
-                    target_url,
-                    repo_dir,
-                ]
-            )
-
-        # Fetch and reset
-        run_cmd(["git", "-C", repo_dir, "fetch", "origin"])
-        run_cmd(["git", "-C", repo_dir, "checkout", branch])
-        run_cmd(["git", "-C", repo_dir, "reset", "--hard", f"origin/{branch}"])
+        print(f"\nProcessing {name} ({github}) [{repo_type}]...")
+        repo_dir = sync_repository(repo)
 
         # Commits & Merges in last 7 days
         log_7d = run_cmd(
@@ -449,7 +740,7 @@ def compile_activity(write_to_file: bool = False) -> None:
         commits_28 = len(log_28d.splitlines()) if log_28d else 0
         avg_commits = f"{commits_28 / 4:.1f}"
 
-        # Tags
+        # Tags in last 7 days
         tags = get_repo_tags(repo_dir)
 
         # Pacman version & since installed
@@ -463,11 +754,11 @@ def compile_activity(write_to_file: bool = False) -> None:
                 pkg_ver_str = run_cmd(["pacman", "-Q", p])
                 if pkg_ver_str:
                     break
+
         if pkg_ver_str:
             installed_ver = pkg_ver_str.split()[-1]
-            installed_ref = get_git_installed_ref(repo)
-            if installed_ref:
-                # Calculate commits since installed ref
+            installed_ref = get_git_installed_ref(repo, repo_dir)
+            if installed_ref and repo_type != "release":
                 log_since = run_cmd(
                     [
                         "git",
@@ -483,10 +774,13 @@ def compile_activity(write_to_file: bool = False) -> None:
                     str(len(log_since.strip().splitlines())) if log_since else "0"
                 )
 
-        # GitHub Stars & Forks
-        github_metrics = query_github_api(github)
+        pkgbuild_ver = get_pkgbuild_version(pkg_dir) if pkg_dir else ""
 
-        # Status
+        # GitHub metrics & release info
+        github_metrics = query_github_api(github, cached_metrics)
+        pypi_latest = query_pypi_latest(pypi_name) if pypi_name else ""
+
+        # Status determination
         status = "Stale"
         if commits > 50:
             status = "Highly Active"
@@ -496,11 +790,18 @@ def compile_activity(write_to_file: bool = False) -> None:
         results.append(
             {
                 "name": name,
+                "display_name": display_name,
+                "parent_pkg": repo.get("parent_pkg", ""),
                 "github": github,
-                "pkg": pkg,
-                "category": repo["category"],
+                "pkg": repo.get("pkg", ""),
+                "pkgs": pkgs,
+                "repo_type": repo_type,
+                "repo_dir": repo_dir,
+                "pkgbuild_ver": pkgbuild_ver,
                 "stars": github_metrics["stars"],
                 "forks": github_metrics["forks"],
+                "latest_release": github_metrics.get("latest_release", ""),
+                "pypi_latest": pypi_latest,
                 "branch": branch,
                 "last_commit": last_commit,
                 "commits": commits,
@@ -514,20 +815,12 @@ def compile_activity(write_to_file: bool = False) -> None:
             }
         )
 
-    # Format output
+    # Format Table
     def format_row(r: Dict[str, Any]) -> str:
         tags_str = ", ".join(f"`{t}`" for t in r["tags"][:2]) if r["tags"] else "—"
-        # Custom indentation for split packages
-        name_display = f"**{r['name']}**"
-        if r["name"] in [
-            "llama-cpp-python",
-            "stable-diffusion.cpp",
-            "whisper.cpp",
-            "qwen3-tts.cpp",
-        ]:
+        name_display = f"**{r['display_name']}**"
+        if r.get("parent_pkg") == "libggml-git-hip":
             name_display = f"*└─ {r['name']}*"
-        elif r["name"] == "qwen3-tts-upstream":
-            name_display = "*   └─ [Fork Origin]*"
 
         installed_str = r["installed_ver"]
         if r["installed_ref"]:
@@ -544,46 +837,28 @@ def compile_activity(write_to_file: bool = False) -> None:
             f"| {tags_str} | {installed_str} | {r['since_commits']} | **{r['status']}** |"
         )
 
-    ai_table = [
-        "### AI Backend & Inference Packages",
-        "",
-        "| Package | Upstream Repo | Stars | Forks | Main Branch | Last Commit | Commits (Last Wk) | Merges (Last Wk) | Releases/Tags (Last Wk) | Avg Commits/Wk (4 Wks) | Recent Tags / Versions | Installed Pkg Version | Commits Since Installed | Status |",
-        "| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- | :--- | :---: | :---: |",
-    ]
-    other_table = [
-        "### Other Custom Packages",
-        "",
+    table_lines = [
         "| Package | Upstream Repo | Stars | Forks | Main Branch | Last Commit | Commits (Last Wk) | Merges (Last Wk) | Releases/Tags (Last Wk) | Avg Commits/Wk (4 Wks) | Recent Tags / Versions | Installed Pkg Version | Commits Since Installed | Status |",
         "| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- | :--- | :---: | :---: |",
     ]
 
     for r in results:
-        if r["category"] == "ai":
-            ai_table.append(format_row(r))
-        else:
-            other_table.append(format_row(r))
+        table_lines.append(format_row(r))
 
-    ai_table_str = "\n".join(ai_table)
-    other_table_str = "\n".join(other_table)
+    table_str = "\n".join(table_lines)
 
-    note_note = (
-        "\n> [!NOTE]\n"
-        "> `bitsandbytes`, `pocket-tts`, and most split sub-repositories of the `libggml-git-hip` "
-        "package squash-merge PRs directly into their primary branch instead of creating merge commits, "
-        'which is why the "Merges" column displays `0`.'
-    )
+    # Format Details Section
+    details_blocks = []
+    for r in results:
+        parent_prefix = f"[{r['parent_pkg']}] " if r.get("parent_pkg") else ""
+        header = f"### {parent_prefix}{r['display_name']} (`{r['github']}`)"
+        status_line = make_status_line(r)
+        focus_block = make_recent_focus_block(r, r["repo_dir"])
+        details_blocks.append(f"{header}\n{status_line}\n{focus_block}")
 
-    other_note = (
-        "\n> [!NOTE]\n"
-        "> `zeroclaw-git` (upstream: [zeroclaw-labs/zeroclaw](https://github.com/zeroclaw-labs/zeroclaw)) "
-        "> `ironclaw-git` (upstream: [nearai/ironclaw](https://github.com/nearai/ironclaw)) "
-        "are hosted and tracked separately under the `agents-shared` repository."
-    )
-
-    new_tables_block = f"{ai_table_str}\n{note_note}\n\n{other_table_str}\n{other_note}"
+    details_str = "\n\n".join(details_blocks)
 
     if write_to_file:
-        file_path = "research/weekly-devel-activity.md"
         if not os.path.exists(file_path):
             print(f"Error: {file_path} not found in the current directory.")
             return
@@ -591,24 +866,41 @@ def compile_activity(write_to_file: bool = False) -> None:
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Update date header
-        header_pattern = r"(## 📅 Summary of Last 7 Days Activity \()[^\)]+(\))"
-        new_header = f"\\1{start_date} – {end_date}\\2"
-        content = re.sub(header_pattern, new_header, content)
-
-        # Update tables
-        start_tag = "<!-- START_TABLES -->"
-        end_tag = "<!-- END_TABLES -->"
-        table_pattern = re.compile(
-            rf"{re.escape(start_tag)}.*?{re.escape(end_tag)}", re.DOTALL
+        # Update date anchor
+        date_pattern = re.compile(
+            r"<!-- START_DATE -->.*?<!-- END_DATE -->", re.DOTALL
         )
-        new_block = f"{start_tag}\n{new_tables_block}\n{end_tag}"
-        content = re.sub(table_pattern, lambda m: new_block, content)
+        new_date_block = f"<!-- START_DATE -->\n**Last 7 Days Activity ({start_date} – {end_date})**\n<!-- END_DATE -->"
+        if date_pattern.search(content):
+            content = re.sub(date_pattern, lambda m: new_date_block, content)
+        else:
+            # Fallback legacy regex replacement
+            header_pattern = r"(## 📅 Summary.*?\n\n)(\*\*[^\n]+\*\*)"
+            content = re.sub(header_pattern, f"\\1{new_date_block}", content)
 
-        # Update breakdown and focus sections
-        for r in results:
-            content = update_assistant_section_with_anchor(content, r["name"], r)
-            content = update_focus_section_with_anchor(content, r["name"], r)
+        # Update table anchor
+        table_pattern = re.compile(
+            r"<!-- START_TABLES -->.*?<!-- END_TABLES -->", re.DOTALL
+        )
+        new_table_block = f"<!-- START_TABLES -->\n{table_str}\n<!-- END_TABLES -->"
+        content = re.sub(table_pattern, lambda m: new_table_block, content)
+
+        # Update details anchor
+        details_pattern = re.compile(
+            r"<!-- START_DETAILS -->.*?<!-- END_DETAILS -->", re.DOTALL
+        )
+        new_details_block = f"<!-- START_DETAILS -->\n{details_str}\n<!-- END_DETAILS -->"
+        if details_pattern.search(content):
+            content = re.sub(details_pattern, lambda m: new_details_block, content)
+        else:
+            # Locate "## 🔍 Repository Focus & Developments Details" and replace until next section or end
+            focus_sec_pattern = re.compile(
+                r"(## 🔍 Repository Focus & Developments Details\n\n).*?(?=\n---|\Z)",
+                re.DOTALL,
+            )
+            content = re.sub(
+                focus_sec_pattern, f"\\1{new_details_block}\n", content
+            )
 
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
@@ -616,71 +908,14 @@ def compile_activity(write_to_file: bool = False) -> None:
 
     else:
         print("\n" + "=" * 40)
-        print("AI Backend & Inference Table Output:")
+        print("Unified Packages Table Output:")
         print("=" * 40)
-        print(ai_table_str)
+        print(table_str)
 
         print("\n" + "=" * 40)
-        print("Other Custom Packages Table Output:")
+        print("Repository Focus & Development Details Output:")
         print("=" * 40)
-        print(other_table_str)
-
-    # Print raw logs to assist summary creation
-    print("\n" + "=" * 40)
-    print("Recent Upstream Commit Logs:")
-    print("=" * 40)
-    for r in results:
-        inst_ref = r.get("installed_ref")
-        since_commits_str = r.get("since_commits", "—")
-        since_commits_int = (
-            int(since_commits_str) if since_commits_str.isdigit() else None
-        )
-
-        use_installed_range = False
-        if (
-            inst_ref
-            and since_commits_int is not None
-            and since_commits_int < r["commits"]
-        ):
-            use_installed_range = True
-
-        if use_installed_range:
-            print(
-                f"\n### {r['name']} ({r['github']}) - {since_commits_int} commits since installed {r['installed_ver']}"
-            )
-            if since_commits_int is not None and since_commits_int > 0:
-                log = run_cmd(
-                    [
-                        "git",
-                        "-C",
-                        f"scratch/{r['name']}",
-                        "log",
-                        "--no-merges",
-                        "--oneline",
-                        f"{inst_ref}..HEAD",
-                    ]
-                )
-                print(log)
-        else:
-            if r["commits"] == 0:
-                continue
-            print(
-                f"\n### {r['name']} ({r['github']}) - {r['commits']} commits (Last 7 Days)"
-            )
-            log = run_cmd(
-                [
-                    "git",
-                    "-C",
-                    f"scratch/{r['name']}",
-                    "log",
-                    "--since=7 days ago",
-                    "--no-merges",
-                    "--oneline",
-                    "-n",
-                    "15",
-                ]
-            )
-            print(log)
+        print(details_str)
 
 
 if __name__ == "__main__":
