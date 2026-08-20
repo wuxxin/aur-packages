@@ -1,4 +1,2 @@
-/pkg/
-/src/
 /ironclaw/
-/*.tar.*
+/*.pkg.tar.*
