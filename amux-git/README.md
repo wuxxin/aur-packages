@@ -1,36 +1,29 @@
-# amux-git (with Oh-My-Pi Provider & Local Workflow Patches)
+# amux-git
 
 Arch Linux PKGBUILD for [amux](https://github.com/mixpeek/amux) — the multi-session AI agent orchestrator and control plane.
 
-This package includes custom enhancements to support **Oh-My-Pi (`omp`)** ([can1357/oh-my-pi](https://github.com/can1357/oh-my-pi)) as a first-class agent provider alongside Claude Code, Codex, and Gemini, as well as UI and UX patches optimized for local/offline agent environments.
+This package includes the following custom enhancements:
+- `aoe-backend.patch`: support **Agent of Empires (`aoe`)** as additional process execution and dispatch backend
+- `omp-provider.patch`: support **Oh-My-Pi (`omp`)** ([can1357/oh-my-pi](https://github.com/can1357/oh-my-pi)) as additional agent provider
+- `disable-no-apikey-banner.patch`: Suppresses the persistent "No Anthropic API key set" warning banner
 
----
+## Running `amux-server`
 
-1. `aoe-backend.patch`
-Adds native **Agent of Empires (`aoe`)** backend execution and REST delegation support to `amux-server`.
-2. `omp-provider.patch`
-Adds full end-to-end integration for the **Oh-My-Pi (`omp`)** CLI provider across the CLI harness, Rust server daemon, and Web Dashboard.
-3. `disable-no-apikey-banner.patch`
-Suppresses the persistent "No Anthropic API key set" warning banner
-
-
-## Running `amux-server` with AoE Backend & Custom Data Directory
-
-To start `amux-server` in standalone / cognitive-bus mode with the **AoE backend active** (and Herdr completely inactive):
+To start `amux-server` in standalone / cognitive-bus mode:
 
 ### Environment Variables
 
 | Variable | Recommended Value | Purpose |
 | :--- | :--- | :--- |
 | `AMUX_BACKEND` | `aoe` | Selects AoE as the default process execution and dispatch backend (deactivates `herdr` & local tmux). |
-| `AOE_DAEMON_URL` | `http://127.0.0.1:28080` | URL of the running `aoe` execution cockpit / ACP host. |
-| `AOE_DAEMON_TOKEN` | `set-to-long-random` | Bearer token for authenticating requests sent to the AoE daemon REST API. |
 | `AMUX_HOME` | `/path/to/.amux` | Custom base directory for `amux.db`, server config, and auth tokens. |
 | `AMUX_DATA_DIR` | `/path/to/.amux/data` | Working data directory for SQLite storage and session state. |
 | `AMUX_PORT` | `28824` | HTTPS server listening port. |
 | `AMUX_ALLOW_AGENT_SESSION_DELETE` | `1` | Allows automated session cleanup from agents and scripts. |
+| `AOE_DAEMON_URL` | `http://127.0.0.1:28080` | URL of the running `aoe` execution cockpit / ACP host. |
+| `AOE_DAEMON_TOKEN` | `set-to-long-random` | Bearer token for authenticating requests sent to the AoE daemon REST API. |
 
-### Startup Example
+### Usage with AoE Example
 
 ```bash
 #!/usr/bin/env bash
@@ -41,7 +34,6 @@ export AMUX_DATA_DIR="${HOME}/.amux/data"
 export AMUX_BACKEND="aoe"
 export AOE_DAEMON_URL="http://127.0.0.1:28080"
 export AOE_DAEMON_TOKEN="set-to-long-random"
-export AMUX_PORT=28824
 export AMUX_ALLOW_AGENT_SESSION_DELETE=1
 
 # Ensure data directories exist
@@ -53,7 +45,7 @@ exec amux-server
 
 ---
 
-## Usage with Oh-My-Pi
+### Usage with Oh-My-Pi Example
 
 1. **Creating an Oh-My-Pi Worker via Web Dashboard:**
    - Open WebUI at `https://127.0.0.1:28824`.
