@@ -1,7 +1,8 @@
 diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/src/api/session_verbs.rs
+index 81565c5f..0525aa24 100644
 --- a/crates/amux-server/src/api/session_verbs.rs
 +++ b/crates/amux-server/src/api/session_verbs.rs
-@@ -455,6 +455,9 @@
+@@ -480,6 +480,9 @@ async fn tmux_sessions_set() -> std::collections::BTreeSet<String> {
  
  /// tmux capture-pane -e; lines<=0 → visible screen only (py:4406).
  pub(crate) async fn tmux_capture(name: &str, lines: i64) -> String {
@@ -11,7 +12,7 @@ diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/sr
      if session_backend(name) == "herdr" {
          return herdr_capture(name, lines.max(1)).await;
      }
-@@ -475,7 +478,7 @@
+@@ -501,7 +504,7 @@ pub(crate) async fn tmux_capture(name: &str, lines: i64) -> String {
  
  /// `#{alternate_on}` probe (py:4480). herdr keeps scrollback under alt.
  async fn tmux_alt_screen(name: &str) -> bool {
@@ -20,7 +21,7 @@ diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/sr
          return false;
      }
      let pt = pt(name);
-@@ -508,12 +511,12 @@
+@@ -530,12 +533,12 @@ async fn sleep_ms(ms: u64) {
  
  fn backend_of_cfg(cfg: &EnvFile) -> String {
      let b = cfg.get_or("CC_BACKEND", "").trim().to_lowercase();
@@ -36,18 +37,33 @@ diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/sr
      } else {
          "tmux".into()
      }
-@@ -525,6 +528,68 @@
+@@ -547,6 +550,82 @@ fn iterm2_id(cfg: &EnvFile) -> String {
+     cfg.get_or("CC_ITERM2_SESSION_ID", "").trim().to_string()
  }
  
- // ---------------------------------------------------------------------------
-+// aoe ops via REST API (AOE_URL, default "http://localhost:8080").
++// ---------------------------------------------------------------------------
++// aoe ops via REST API (AOE_DAEMON_URL, default "http://localhost:8080").
 +// ---------------------------------------------------------------------------
 +
 +fn aoe_url() -> String {
-+    let u = std::env::var("AOE_URL")
-+        .or_else(|_| std::env::var("AMUX_AOE_URL"))
++    let u = std::env::var("AOE_DAEMON_URL")
 +        .unwrap_or_else(|_| "http://localhost:8080".to_string());
 +    u.trim_end_matches('/').to_string()
++}
++
++fn aoe_token() -> Option<String> {
++    std::env::var("AOE_DAEMON_TOKEN")
++        .ok()
++        .map(|t| t.trim().to_string())
++        .filter(|t| !t.is_empty())
++}
++
++fn aoe_req(req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
++    if let Some(tok) = aoe_token() {
++        req.bearer_auth(tok)
++    } else {
++        req
++    }
 +}
 +
 +async fn aoe_agent_running(name: &str) -> bool {
@@ -56,7 +72,7 @@ diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/sr
 +        .timeout(OP_TIMEOUT)
 +        .build()
 +        .unwrap_or_default();
-+    match client.get(&url).send().await {
++    match aoe_req(client.get(&url)).send().await {
 +        Ok(resp) if resp.status().is_success() => {
 +            if let Ok(val) = resp.json::<Value>().await {
 +                if let Some(arr) = val.as_array() {
@@ -78,7 +94,7 @@ diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/sr
 +        .timeout(Duration::from_secs(8))
 +        .build()
 +        .unwrap_or_default();
-+    match client.get(&url).send().await {
++    match aoe_req(client.get(&url)).send().await {
 +        Ok(resp) if resp.status().is_success() => resp.text().await.unwrap_or_default(),
 +        _ => String::new(),
 +    }
@@ -94,18 +110,17 @@ diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/sr
 +        .build()
 +        .unwrap_or_default();
 +    let body = json!({ "message": text });
-+    match client.post(&url).json(&body).send().await {
++    match aoe_req(client.post(&url)).json(&body).send().await {
 +        Ok(resp) if resp.status().is_success() => (true, "sent to aoe".into()),
 +        Ok(resp) => (false, format!("aoe send failed ({})", resp.status())),
 +        Err(e) => (false, format!("aoe send error: {e}")),
 +    }
 +}
 +
-+// ---------------------------------------------------------------------------
+ // ---------------------------------------------------------------------------
  // herdr ops via the CLI (py:4700-5150). One named session (AMUX_HERDR_SESSION,
  // default "amux"); agent name from CC_HERDR_AGENT or the lowercase mapping.
- // ---------------------------------------------------------------------------
-@@ -3092,6 +3157,9 @@
+@@ -3317,6 +3396,9 @@ pub(crate) async fn is_running(name: &str) -> bool {
      if !iterm2_id(&cfg).is_empty() {
          return false;
      }
@@ -115,7 +130,7 @@ diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/sr
      if backend_of_cfg(&cfg) == "herdr" {
          return herdr_agent_running(name).await;
      }
-@@ -4190,6 +4258,9 @@
+@@ -4415,6 +4497,9 @@ async fn send_text_inner(
      if !iterm2_id(&cfg).is_empty() {
          return (false, "iTerm2-backed sessions are not supported by the rust origin yet".into());
      }
@@ -125,7 +140,7 @@ diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/sr
      if backend_of_cfg(&cfg) == "herdr" {
          return herdr_send(name, text).await;
      }
-@@ -5768,6 +5839,15 @@
+@@ -6078,6 +6163,15 @@ async fn stop_session(name: &str) -> (bool, String) {
      let op_lock = session_op_lock(name);
      let _op = op_lock.lock().await;
      let cfg = parse_env(name);
@@ -135,7 +150,7 @@ diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/sr
 +        }
 +        let url = format!("{}/api/sessions/{}/stop", aoe_url(), name);
 +        let client = reqwest::Client::builder().timeout(OP_TIMEOUT).build().unwrap_or_default();
-+        let _ = client.post(&url).send().await;
++        let _ = aoe_req(client.post(&url)).send().await;
 +        return (true, "stopped in aoe".into());
 +    }
      if backend_of_cfg(&cfg) == "herdr" {

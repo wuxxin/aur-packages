@@ -1,6 +1,6 @@
 pkgbase = amux-git
 	pkgdesc = Multi-session agent orchestrator and control plane (Git version)
-	pkgver = 0.1.0.r3533.g8a8eda84
+	pkgver = 0.1.0.r3681.g3ba5e733
 	pkgrel = 1
 	url = https://github.com/mixpeek/amux
 	arch = x86_64
@@ -23,8 +23,8 @@ pkgbase = amux-git
 	source = disable-no-apikey-banner.patch
 	source = aoe-backend.patch
 	sha256sums = SKIP
-	sha256sums = abefbf84076b673c28312b899d001a28396411494872593b39f8867b640ebec9
-	sha256sums = 07e075bcc4914b1a2f143ddb65566273bc31223e5d570d260ccc39f0cd31e29a
-	sha256sums = 0f43614cb31e8d1720b29e091fe5de00fa966e2cc9a8f739fce6953e585e2170
+	sha256sums = f43daf7d46f06e30902a15b98a947330ca54bbe59049bbebe9bb7cf97afdcc30
+	sha256sums = a6fce23d393aeb441f06258d5ca22f1f3176d238df92f416cdd506a7e8885bf8
+	sha256sums = 1a6994ea6c80139baf59a0aad1f622ed2868b0cc03bb624362379b5c43395a94
 
 pkgname = amux-git

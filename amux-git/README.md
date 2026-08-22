@@ -23,7 +23,8 @@ To start `amux-server` in standalone / cognitive-bus mode with the **AoE backend
 | Variable | Recommended Value | Purpose |
 | :--- | :--- | :--- |
 | `AMUX_BACKEND` | `aoe` | Selects AoE as the default process execution and dispatch backend (deactivates `herdr` & local tmux). |
-| `AOE_URL` | `http://127.0.0.1:28080` | URL of the running `aoe` execution cockpit / ACP host. |
+| `AOE_DAEMON_URL` | `http://127.0.0.1:28080` | URL of the running `aoe` execution cockpit / ACP host. |
+| `AOE_DAEMON_TOKEN` | `set-to-long-random` | Bearer token for authenticating requests sent to the AoE daemon REST API. |
 | `AMUX_HOME` | `/path/to/.amux` | Custom base directory for `amux.db`, server config, and auth tokens. |
 | `AMUX_DATA_DIR` | `/path/to/.amux/data` | Working data directory for SQLite storage and session state. |
 | `AMUX_PORT` | `28824` | HTTPS server listening port. |
@@ -38,7 +39,8 @@ set -euo pipefail
 export AMUX_HOME="${HOME}/.amux"
 export AMUX_DATA_DIR="${HOME}/.amux/data"
 export AMUX_BACKEND="aoe"
-export AOE_URL="http://127.0.0.1:28080"
+export AOE_DAEMON_URL="http://127.0.0.1:28080"
+export AOE_DAEMON_TOKEN="set-to-long-random"
 export AMUX_PORT=28824
 export AMUX_ALLOW_AGENT_SESSION_DELETE=1
 
@@ -75,12 +77,13 @@ Adds native **Agent of Empires (`aoe`)** backend execution and REST delegation s
 - **Backend Routing (`CC_BACKEND=aoe` or `AMUX_BACKEND=aoe`)**:
   - Directs `amux-server` to route process status checks, terminal screen captures, prompt deliveries, and worker terminations to the `aoe` REST API instead of local tmux or herdr subprocesses.
 - **REST Dispatch Functions**:
-  - `aoe_agent_running`: Checks `GET ${AOE_URL}/api/sessions?state=live` for active worker status.
-  - `aoe_capture`: Reads `GET ${AOE_URL}/api/sessions/{name}/output?lines={N}&format=text` for remote pane peeking.
-  - `aoe_send`: Issues `POST ${AOE_URL}/api/sessions/{name}/send` with `{"message": text}` to push turn-boundary prompts and scheduled cron sweeps without terminal screen scraping.
-  - `aoe_stop`: Calls `POST ${AOE_URL}/api/sessions/{name}/stop` to cleanly terminate agent workers.
-- **Configurable Endpoint (`AOE_URL` / `AMUX_AOE_URL`)**:
-  - Defaults to upstream standard `http://localhost:8080` (overridden to `http://127.0.0.1:28080` in MyPAI's unified port map).
+  - `aoe_agent_running`: Checks `GET ${AOE_DAEMON_URL}/api/sessions?state=live` for active worker status.
+  - `aoe_capture`: Reads `GET ${AOE_DAEMON_URL}/api/sessions/{name}/output?lines={N}&format=text` for remote pane peeking.
+  - `aoe_send`: Issues `POST ${AOE_DAEMON_URL}/api/sessions/{name}/send` with `{"message": text}` to push turn-boundary prompts and scheduled cron sweeps without terminal screen scraping.
+  - `aoe_stop`: Calls `POST ${AOE_DAEMON_URL}/api/sessions/{name}/stop` to cleanly terminate agent workers.
+- **Configurable Endpoint & Auth (`AOE_DAEMON_URL` / `AOE_DAEMON_TOKEN`)**:
+  - Endpoint defaults to upstream standard `http://localhost:8080` (overridden to `http://127.0.0.1:28080` in MyPAI's unified port map).
+  - Automatically attaches `Authorization: Bearer <AOE_DAEMON_TOKEN>` header to all outgoing requests when `AOE_DAEMON_TOKEN` is configured.
 
 #### Backend Feature Matrix (`tmux` vs `herdr` vs `aoe`)
 

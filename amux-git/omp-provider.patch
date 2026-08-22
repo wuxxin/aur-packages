@@ -1,5 +1,5 @@
 diff --git a/amux b/amux
-index 642e8472..82046400 100755
+index e4784fd2..59e22e26 100755
 --- a/amux
 +++ b/amux
 @@ -32,7 +32,7 @@ if [[ ! -d "$HOME/.amux" ]]; then
@@ -66,10 +66,10 @@ index 642e8472..82046400 100755
      if [[ -f "$HOME/.claude.json" ]] && grep -q '"oauthAccount"' "$HOME/.claude.json" 2>/dev/null; then
        shell_setup="${shell_setup}unset ANTHROPIC_API_KEY; "
 diff --git a/crates/amux-dashboard/static/app.js b/crates/amux-dashboard/static/app.js
-index 936b3fde..e71d0409 100644
+index a899948b..63eca4e9 100644
 --- a/crates/amux-dashboard/static/app.js
 +++ b/crates/amux-dashboard/static/app.js
-@@ -2664,18 +2664,20 @@ function providerLabel(provider) {
+@@ -2705,18 +2705,20 @@ function providerLabel(provider) {
    if (provider === 'gemini') return 'Gemini';
    if (provider === 'ollama') return 'Ollama';
    if (provider === 'iterm2') return 'iTerm2';
@@ -91,7 +91,7 @@ index 936b3fde..e71d0409 100644
    return window._AMUX_DEFAULT_MODEL || 'sonnet';
  }
  
-@@ -4698,37 +4700,45 @@ function editField(session, field, current, provider) {
+@@ -4741,37 +4743,45 @@ function editField(session, field, current, provider) {
        {v:'gemini-2.5-flash',l:'gemini-2.5-flash'},{v:'gemini-2.5-flash-lite',l:'gemini-2.5-flash-lite'},
        {v:'gemini-3-pro-preview',l:'gemini-3-pro-preview'},{v:'gemini-3-flash-preview',l:'gemini-3-flash-preview'}
      ];
@@ -158,7 +158,7 @@ index 936b3fde..e71d0409 100644
      }
      // Reasoning effort — Claude only. Pre-fill from the session's current --effort flag.
      const effortWrap = document.getElementById('edit-effort-wrap');
-@@ -4795,7 +4805,7 @@ function editField(session, field, current, provider) {
+@@ -4838,7 +4848,7 @@ function editField(session, field, current, provider) {
    }
    document.getElementById('edit-overlay').classList.add('active');
    editState = { session, field };
@@ -167,7 +167,7 @@ index 936b3fde..e71d0409 100644
  }
  function closeEdit() {
    document.getElementById('edit-overlay').classList.remove('active');
-@@ -4807,15 +4817,21 @@ function closeEdit() {
+@@ -4850,15 +4860,21 @@ function closeEdit() {
    tagAcItems = []; tagAcSelected = -1;
    editState = null;
  }
@@ -194,10 +194,10 @@ index 936b3fde..e71d0409 100644
      : document.getElementById('edit-input').value.trim();
    if (!val && editState.field !== 'desc' && editState.field !== 'tags' && editState.field !== 'model' && editState.field !== 'task' && editState.field !== 'effort') return;
 diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/src/api/session_verbs.rs
-index 68553f3b..9b28beaf 100644
+index f7ba52a7..81565c5f 100644
 --- a/crates/amux-server/src/api/session_verbs.rs
 +++ b/crates/amux-server/src/api/session_verbs.rs
-@@ -2054,11 +2054,12 @@ fn render_session_transcript(name: &str, max_chars: usize) -> String {
+@@ -2206,11 +2206,12 @@ fn render_session_transcript(name: &str, max_chars: usize) -> String {
  // contract).
  // ---------------------------------------------------------------------------
  
@@ -212,7 +212,7 @@ index 68553f3b..9b28beaf 100644
  ];
  const VALID_EFFORTS: [&str; 5] = ["low", "medium", "high", "xhigh", "max"];
  
-@@ -2402,6 +2403,7 @@ fn default_model_for_provider(provider: &str) -> String {
+@@ -2554,6 +2555,7 @@ fn default_model_for_provider(provider: &str) -> String {
          // Ollama runs via `codex --oss --local-provider ollama --model <model>`.
          // A launchable default is required (this box has qwen3.8:27b pulled).
          "ollama" => "qwen3.8:27b".into(),
@@ -220,7 +220,7 @@ index 68553f3b..9b28beaf 100644
          _ => get_default_model(),
      }
  }
-@@ -2424,6 +2426,7 @@ pub fn launch_base_binary(provider: &str) -> &'static str {
+@@ -2576,6 +2578,7 @@ pub fn launch_base_binary(provider: &str) -> &'static str {
          // ollama runs codex under the hood (`--oss --local-provider ollama`).
          "codex" | "ollama" => "codex",
          "gemini" => "gemini",
@@ -228,7 +228,7 @@ index 68553f3b..9b28beaf 100644
          // claude, iterm2, and anything unknown launch via build_claude_cmd,
          // whose default binary is `claude` (overridable by AMUX_CLAUDE_CMD).
          _ => "claude",
-@@ -5316,6 +5319,25 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
+@@ -5604,6 +5607,25 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
              }
              format!("{base_bin}{opts}")
          }
@@ -254,7 +254,7 @@ index 68553f3b..9b28beaf 100644
          _ => build_claude_cmd(&cfg, &flags, &default_flags, &session_flag, extra_flags),
      };
  
-@@ -5323,7 +5345,7 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
+@@ -5611,7 +5633,7 @@ async fn start_session(state: &AppState, name: &str, extra_flags: &str, skip_con
      // cd, source the global agent credentials.
      let mut has_oauth = false;
      let mut shell_rc = String::new();
@@ -264,10 +264,10 @@ index 68553f3b..9b28beaf 100644
          if let Ok(t) = std::fs::read_to_string(PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".claude.json")) {
              if let Ok(v) = serde_json::from_str::<Value>(&t) {
 diff --git a/crates/amux-server/src/api/sessions_legacy.rs b/crates/amux-server/src/api/sessions_legacy.rs
-index 788c07e3..0a093185 100644
+index 0fb4a6a6..3b771be5 100644
 --- a/crates/amux-server/src/api/sessions_legacy.rs
 +++ b/crates/amux-server/src/api/sessions_legacy.rs
-@@ -398,11 +398,20 @@ impl FleetSignals {
+@@ -473,11 +473,20 @@ impl FleetSignals {
              ])
              .output();
          match &tmux_out {
@@ -293,7 +293,7 @@ index 788c07e3..0a093185 100644
              Err(e) => tracing::warn!(
                  error = %e,
                  "tmux spawn failed — fleet will read as not-running"
-@@ -1479,8 +1488,15 @@ pub(crate) fn worker_model_env(
+@@ -1654,8 +1663,15 @@ pub(crate) fn worker_model_env(
      default_model: &str,
  ) -> (String, String, String) {
      let is_ollama = provider == "ollama";
@@ -309,7 +309,7 @@ index 788c07e3..0a093185 100644
      } else if raw_model.is_empty() {
          default_model.to_string()
      } else {
-@@ -1493,7 +1509,7 @@ pub(crate) fn worker_model_env(
+@@ -1668,7 +1684,7 @@ pub(crate) fn worker_model_env(
      } else {
          String::new()
      };

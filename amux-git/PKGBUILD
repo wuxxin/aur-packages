@@ -1,7 +1,7 @@
 # Maintainer: Wuxxin <wuxxin@gmail.com>
 
 pkgname=amux-git
-pkgver=0.1.0.r3533.g8a8eda84
+pkgver=0.1.0.r3681.g3ba5e733
 pkgrel=1
 pkgdesc="Multi-session agent orchestrator and control plane (Git version)"
 arch=('x86_64' 'aarch64')
@@ -12,14 +12,16 @@ conflicts=('amux' 'amux-server')
 depends=('glibc' 'gcc-libs' 'openssl' 'tmux')
 makedepends=('cargo' 'git')
 options=('!lto' '!debug')
-source=("${pkgname%-git}::git+https://github.com/mixpeek/amux.git"
+source=(
+    "${pkgname%-git}::git+https://github.com/mixpeek/amux.git"
     "omp-provider.patch"
     "disable-no-apikey-banner.patch"
-    "aoe-backend.patch")
+    "aoe-backend.patch"
+)
 sha256sums=('SKIP'
-            'abefbf84076b673c28312b899d001a28396411494872593b39f8867b640ebec9'
-            '07e075bcc4914b1a2f143ddb65566273bc31223e5d570d260ccc39f0cd31e29a'
-            '0f43614cb31e8d1720b29e091fe5de00fa966e2cc9a8f739fce6953e585e2170')
+            'f43daf7d46f06e30902a15b98a947330ca54bbe59049bbebe9bb7cf97afdcc30'
+            'a6fce23d393aeb441f06258d5ca22f1f3176d238df92f416cdd506a7e8885bf8'
+            '1a6994ea6c80139baf59a0aad1f622ed2868b0cc03bb624362379b5c43395a94')
 
 pkgver() {
     cd "${srcdir}/${pkgname%-git}"
