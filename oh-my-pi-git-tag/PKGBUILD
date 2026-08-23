@@ -3,7 +3,7 @@
 
 pkgname=oh-my-pi-git-tag
 _pkgname=oh-my-pi
-pkgver=17.4.0.r0.g72000ac
+pkgver=18.0.3.r0.g160ed43
 pkgrel=1
 pkgdesc="AI coding agent for the terminal — hash-anchored edits, optimized tool harness, LSP, Python SDK, browser extension, subagents, and more (git latest tag)"
 arch=('x86_64')
@@ -46,9 +46,9 @@ source=(
     "skip-native-embed-for-aur.patch"
 )
 sha256sums=('SKIP'
-    '5894ef4a9c7dfe4832466afd734f2342bb112f884dbe00f7a0a0152db472e75e'
-    '05c0e2562f4844c1fe64305f907633e19dd356407c53e0c43c40ce60b4a36835'
-    'a81209715174b5413d5743ec4b461ffd71b1a1fc37bd4a7dcde23c27e35bc62f')
+            '5894ef4a9c7dfe4832466afd734f2342bb112f884dbe00f7a0a0152db472e75e'
+            '05c0e2562f4844c1fe64305f907633e19dd356407c53e0c43c40ce60b4a36835'
+            'a81209715174b5413d5743ec4b461ffd71b1a1fc37bd4a7dcde23c27e35bc62f')
 
 pkgver() {
     cd "${srcdir}/${_pkgname}"
@@ -145,4 +145,11 @@ package() {
     # Install RoboMP Python package into system python site-packages
     cd "${srcdir}/${_pkgname}/python/robomp"
     python -m installer --destdir="${pkgdir}" dist/*.whl
+
+    # Install documentation and examples
+    cd "${srcdir}/${_pkgname}"
+    install -dm755 "${pkgdir}/usr/share/doc/${_pkgname}"
+    cp -r docs/* "${pkgdir}/usr/share/doc/${_pkgname}/"
+    install -dm755 "${pkgdir}/usr/share/doc/${_pkgname}/examples"
+    cp -r packages/coding-agent/examples/* "${pkgdir}/usr/share/doc/${_pkgname}/examples/"
 }

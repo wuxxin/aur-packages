@@ -1,6 +1,6 @@
 pkgbase = oh-my-pi-git-tag
 	pkgdesc = AI coding agent for the terminal — hash-anchored edits, optimized tool harness, LSP, Python SDK, browser extension, subagents, and more (git latest tag)
-	pkgver = 17.4.0.r0.g72000ac
+	pkgver = 18.0.3.r0.g160ed43
 	pkgrel = 1
 	url = https://github.com/can1357/oh-my-pi
 	arch = x86_64
