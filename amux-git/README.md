@@ -43,7 +43,32 @@ mkdir -p "${AMUX_HOME}/sessions" "${AMUX_DATA_DIR}"
 exec amux-server
 ```
 
+### Configuring AoE Lifecycle Hooks for Amux Auto-Discovery
+
+When using AoE (`agent-of-empires`) as the supervisor/cockpit, sessions created directly in AoE (via TUI, ACP, or Web PWA) can automatically register and deregister with `amux-server` using AoE's lifecycle hooks.
+
+Add the following to your global AoE configuration (`~/.config/agent-of-empires/config.toml`) or a specific profile `config.toml`:
+
+```toml
+[hooks]
+# Register newly created sessions in amux
+on_create = [
+    'u="${AMUX_API_URL:-https://localhost:28824}"; u="${u%/}"; curl -sk -X POST "$u/api/sessions" -H "Authorization: Bearer ${AMUX_AUTH_TOKEN:-}" -H "Content-Type: application/json" -d "{\"name\": \"$AOE_SESSION_TITLE\", \"dir\": \"$AOE_PROJECT_PATH\", \"provider\": \"${AOE_TOOL:-omp}\"}" 2>/dev/null || true'
+]
+# Ensure existing or resumed sessions are registered upon start/launch
+on_launch = [
+    'u="${AMUX_API_URL:-https://localhost:28824}"; u="${u%/}"; curl -sk -X POST "$u/api/sessions" -H "Authorization: Bearer ${AMUX_AUTH_TOKEN:-}" -H "Content-Type: application/json" -d "{\"name\": \"$AOE_SESSION_TITLE\", \"dir\": \"$AOE_PROJECT_PATH\", \"provider\": \"${AOE_TOOL:-omp}\"}" 2>/dev/null || true'
+]
+# Clean up session metadata in amux when deleted in AoE
+on_destroy = [
+    'u="${AMUX_API_URL:-https://localhost:28824}"; u="${u%/}"; curl -sk -X DELETE "$u/api/sessions/$AOE_SESSION_TITLE" -H "Authorization: Bearer ${AMUX_AUTH_TOKEN:-}" 2>/dev/null || true'
+]
+```
+
+> **Note:** Ensure `AMUX_ALLOW_AGENT_SESSION_DELETE=1` is set in `~/.amux/server.env` so that `on_destroy` can unregister sessions via the REST API without interactive dashboard prompts.
+
 ---
+
 
 ### Usage with Oh-My-Pi Example
 

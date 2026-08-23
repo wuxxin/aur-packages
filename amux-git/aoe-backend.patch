@@ -1,5 +1,5 @@
 diff --git a/crates/amux-server/src/api/session_verbs.rs b/crates/amux-server/src/api/session_verbs.rs
-index 81565c5f..0525aa24 100644
+index f7ba52a7..693d6f99 100644
 --- a/crates/amux-server/src/api/session_verbs.rs
 +++ b/crates/amux-server/src/api/session_verbs.rs
 @@ -480,6 +480,9 @@ async fn tmux_sessions_set() -> std::collections::BTreeSet<String> {
@@ -37,17 +37,17 @@ index 81565c5f..0525aa24 100644
      } else {
          "tmux".into()
      }
-@@ -547,6 +550,82 @@ fn iterm2_id(cfg: &EnvFile) -> String {
+@@ -547,6 +550,100 @@ fn iterm2_id(cfg: &EnvFile) -> String {
      cfg.get_or("CC_ITERM2_SESSION_ID", "").trim().to_string()
  }
  
 +// ---------------------------------------------------------------------------
-+// aoe ops via REST API (AOE_DAEMON_URL, default "http://localhost:8080").
++// aoe ops via REST API (AOE_DAEMON_URL, default "http://localhost:28080").
 +// ---------------------------------------------------------------------------
 +
 +fn aoe_url() -> String {
 +    let u = std::env::var("AOE_DAEMON_URL")
-+        .unwrap_or_else(|_| "http://localhost:8080".to_string());
++        .unwrap_or_else(|_| "http://localhost:28080".to_string());
 +    u.trim_end_matches('/').to_string()
 +}
 +
@@ -66,30 +66,48 @@ index 81565c5f..0525aa24 100644
 +    }
 +}
 +
-+async fn aoe_agent_running(name: &str) -> bool {
-+    let url = format!("{}/api/sessions?state=live", aoe_url());
++async fn aoe_resolve_id(name: &str) -> Option<String> {
++    let cfg = parse_env(name);
++    let explicit_id = cfg.get_or("AOE_SESSION_ID", "").trim().to_string();
++    if !explicit_id.is_empty() {
++        return Some(explicit_id);
++    }
++    let url = format!("{}/api/sessions", aoe_url());
 +    let client = reqwest::Client::builder()
 +        .timeout(OP_TIMEOUT)
 +        .build()
 +        .unwrap_or_default();
-+    match aoe_req(client.get(&url)).send().await {
-+        Ok(resp) if resp.status().is_success() => {
-+            if let Ok(val) = resp.json::<Value>().await {
-+                if let Some(arr) = val.as_array() {
-+                    return arr.iter().any(|s| {
-+                        s.get("name").and_then(|v| v.as_str()) == Some(name)
-+                            || s.get("id").and_then(|v| v.as_str()) == Some(name)
-+                    });
-+                }
-+            }
-+            false
-+        }
-+        _ => false,
++    let resp = aoe_req(client.get(&url)).send().await.ok()?;
++    if !resp.status().is_success() {
++        return None;
 +    }
++    let val = resp.json::<Value>().await.ok()?;
++    let sessions = val.get("sessions").and_then(|v| v.as_array()).or_else(|| val.as_array())?;
++    for s in sessions {
++        let sid = s.get("id").and_then(|v| v.as_str()).unwrap_or_default();
++        let title = s.get("title").and_then(|v| v.as_str()).unwrap_or_default();
++        let sname = s.get("name").and_then(|v| v.as_str()).unwrap_or_default();
++        let branch = s.get("branch").and_then(|v| v.as_str()).unwrap_or_default();
++        if sid.eq_ignore_ascii_case(name)
++            || title.eq_ignore_ascii_case(name)
++            || sname.eq_ignore_ascii_case(name)
++            || branch.eq_ignore_ascii_case(name)
++        {
++            return Some(sid.to_string());
++        }
++    }
++    None
++}
++
++async fn aoe_agent_running(name: &str) -> bool {
++    aoe_resolve_id(name).await.is_some()
 +}
 +
 +async fn aoe_capture(name: &str, lines: i64) -> String {
-+    let url = format!("{}/api/sessions/{}/output?lines={}&format=text", aoe_url(), name, lines);
++    let Some(id) = aoe_resolve_id(name).await else {
++        return String::new();
++    };
++    let url = format!("{}/api/sessions/{}/output?lines={}&format=text", aoe_url(), id, lines);
 +    let client = reqwest::Client::builder()
 +        .timeout(Duration::from_secs(8))
 +        .build()
@@ -101,10 +119,10 @@ index 81565c5f..0525aa24 100644
 +}
 +
 +async fn aoe_send(name: &str, text: &str) -> (bool, String) {
-+    if !aoe_agent_running(name).await {
++    let Some(id) = aoe_resolve_id(name).await else {
 +        return (false, "not running in aoe".into());
-+    }
-+    let url = format!("{}/api/sessions/{}/send", aoe_url(), name);
++    };
++    let url = format!("{}/api/sessions/{}/send", aoe_url(), id);
 +    let client = reqwest::Client::builder()
 +        .timeout(Duration::from_secs(15))
 +        .build()
@@ -120,7 +138,7 @@ index 81565c5f..0525aa24 100644
  // ---------------------------------------------------------------------------
  // herdr ops via the CLI (py:4700-5150). One named session (AMUX_HERDR_SESSION,
  // default "amux"); agent name from CC_HERDR_AGENT or the lowercase mapping.
-@@ -3317,6 +3396,9 @@ pub(crate) async fn is_running(name: &str) -> bool {
+@@ -3314,6 +3411,9 @@ pub(crate) async fn is_running(name: &str) -> bool {
      if !iterm2_id(&cfg).is_empty() {
          return false;
      }
@@ -130,7 +148,7 @@ index 81565c5f..0525aa24 100644
      if backend_of_cfg(&cfg) == "herdr" {
          return herdr_agent_running(name).await;
      }
-@@ -4415,6 +4497,9 @@ async fn send_text_inner(
+@@ -4412,6 +4512,9 @@ async fn send_text_inner(
      if !iterm2_id(&cfg).is_empty() {
          return (false, "iTerm2-backed sessions are not supported by the rust origin yet".into());
      }
@@ -140,15 +158,15 @@ index 81565c5f..0525aa24 100644
      if backend_of_cfg(&cfg) == "herdr" {
          return herdr_send(name, text).await;
      }
-@@ -6078,6 +6163,15 @@ async fn stop_session(name: &str) -> (bool, String) {
+@@ -6056,6 +6159,15 @@ async fn stop_session(name: &str) -> (bool, String) {
      let op_lock = session_op_lock(name);
      let _op = op_lock.lock().await;
      let cfg = parse_env(name);
 +    if backend_of_cfg(&cfg) == "aoe" {
-+        if !aoe_agent_running(name).await {
++        let Some(id) = aoe_resolve_id(name).await else {
 +            return (true, "not running".into());
-+        }
-+        let url = format!("{}/api/sessions/{}/stop", aoe_url(), name);
++        };
++        let url = format!("{}/api/sessions/{}/stop", aoe_url(), id);
 +        let client = reqwest::Client::builder().timeout(OP_TIMEOUT).build().unwrap_or_default();
 +        let _ = aoe_req(client.post(&url)).send().await;
 +        return (true, "stopped in aoe".into());
@@ -156,3 +174,45 @@ index 81565c5f..0525aa24 100644
      if backend_of_cfg(&cfg) == "herdr" {
          if !herdr_agent_running(name).await {
              return (true, "not running".into());
+diff --git a/crates/amux-server/src/api/sessions_legacy.rs b/crates/amux-server/src/api/sessions_legacy.rs
+index 0fb4a6a6..06665a9a 100644
+--- a/crates/amux-server/src/api/sessions_legacy.rs
++++ b/crates/amux-server/src/api/sessions_legacy.rs
+@@ -1883,18 +1883,30 @@ fn python_fleet_sessions(signals: &FleetSignals) -> Vec<serde_json::Value> {
+         };
+         let env = crate::config::parse_env_file(&path);
+         let tmux = format!("amux-{name}");
+-        let is_running = signals.agent_running(&tmux);
++        let flags = env.get("CC_FLAGS").cloned().unwrap_or_default();
++        let backend = env
++            .get("CC_BACKEND")
++            .map(|b| b.trim().to_lowercase())
++            .filter(|b| b == "aoe" || b == "herdr")
++            .unwrap_or_else(|| {
++                let ab = std::env::var("AMUX_BACKEND").unwrap_or_default().trim().to_lowercase();
++                if ab == "aoe" || ab == "herdr" { ab } else { "tmux".into() }
++            });
++        let is_running = if backend == "aoe" || backend == "herdr" {
++            signals.reports.get(&name).map(|rep| {
++                let st = rep["state"].as_str().unwrap_or("");
++                let ts = rep["ts"].as_i64().unwrap_or(0);
++                let now = crate::config::now_f64() as i64;
++                (st == "active" || st == "waiting" || st == "idle") && ts > 0 && now.saturating_sub(ts) < 300
++            }).unwrap_or(false)
++        } else {
++            signals.agent_running(&tmux)
++        };
+         // CC_ARCHIVED=1 is Python's session-archive marker (amux-server.py
+         // :20346) — blocked-sessions.txt is QUARANTINE, a different thing;
+         // conflating them reported 0 archived against a fleet with dozens.
+         let archived = env.get("CC_ARCHIVED").map(|v| v == "1").unwrap_or(false)
+             || blocked.contains(&name);
+-        let flags = env.get("CC_FLAGS").cloned().unwrap_or_default();
+-        let backend = env
+-            .get("CC_BACKEND")
+-            .map(|b| b.trim().to_lowercase())
+-            .filter(|b| b == "herdr")
+-            .unwrap_or_else(|| "tmux".into());
+         // Python's session_created is the TMUX session's creation time
+         // (tinfo["created"], 0 when not running) — not the env file's mtime.
+         let session_created = signals.created.get(&tmux).copied().unwrap_or(0);
