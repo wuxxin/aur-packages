@@ -3,3 +3,5 @@ src
 .ruff-cache
 .fresh
 scratch/
+__pycache__/
+*.pyc

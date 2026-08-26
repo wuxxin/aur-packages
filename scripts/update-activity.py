@@ -359,7 +359,8 @@ def get_git_installed_ref(repo_cfg: Dict[str, Any], repo_dir: str) -> str:
                     ver_tag = tag_match.group(1)
                     if is_commit_in_repo(repo_dir, ver_tag):
                         return ver_tag
-
+                    if is_commit_in_repo(repo_dir, f"v{ver_tag}"):
+                        return f"v{ver_tag}"
     # Fallback to default_ref if in repo
     if default_ref and is_commit_in_repo(repo_dir, default_ref):
         return default_ref
@@ -488,11 +489,23 @@ def get_repo_tags(repo_dir: str) -> List[str]:
         parts = [p.strip() for p in line.split(",")]
         for p in parts:
             if p.startswith("tag:"):
-                tags.append(p[4:])
-            elif not p.startswith("origin/") and p != "HEAD":
-                tags.append(p)
+                clean_tag = p[4:].strip()
+                if clean_tag:
+                    tags.append(clean_tag)
     return sorted(list(set(tags)))
 
+
+def parse_version_tuple(v: str) -> List[int]:
+    """Parse version string into a list of integers for robust comparison."""
+    clean = v.lstrip("v").split("-")[0]
+    nums = []
+    for part in clean.split("."):
+        m = re.match(r"^(\d+)", part)
+        if m:
+            nums.append(int(m.group(1)))
+        else:
+            nums.append(0)
+    return nums
 
 def sync_repository(repo: Dict[str, Any]) -> str:
     """Ensure repository sources are up-to-date and return the inspectable directory."""
@@ -533,13 +546,8 @@ def sync_repository(repo: Dict[str, Any]) -> str:
                 and run_cmd(["git", "-C", bare_path, "rev-parse", "HEAD"]) != ""
             )
 
-        # Inspect working tree if present and valid, else bare repository
-        if src_valid:
-            run_cmd(["git", "-C", src_path, "fetch", "origin"])
-            run_cmd(["git", "-C", src_path, "checkout", branch])
-            run_cmd(["git", "-C", src_path, "reset", "--hard", f"origin/{branch}"])
-            return src_path
-        elif bare_valid:
+        # Ensure bare repository is always updated from upstream
+        if bare_valid:
             run_cmd(
                 [
                     "git",
@@ -551,8 +559,25 @@ def sync_repository(repo: Dict[str, Any]) -> str:
                     "+refs/tags/*:refs/tags/*",
                 ]
             )
-            return bare_path
 
+        # Inspect working tree if present, else bare repository
+        if src_valid:
+            run_cmd(
+                [
+                    "git",
+                    "-C",
+                    src_path,
+                    "fetch",
+                    "origin",
+                    "+refs/heads/*:refs/heads/*",
+                    "+refs/tags/*:refs/tags/*",
+                ]
+            )
+            run_cmd(["git", "-C", src_path, "checkout", branch])
+            run_cmd(["git", "-C", src_path, "reset", "--hard", f"origin/{branch}"])
+            return src_path
+        elif bare_valid:
+            return bare_path
     # Fallback / tarball / release repos: maintain in scratch/<name>
     os.makedirs("scratch", exist_ok=True)
     scratch_dir = os.path.join("scratch", name)
@@ -567,7 +592,17 @@ def sync_repository(repo: Dict[str, Any]) -> str:
         print(f"Cloning {name} into {scratch_dir}...")
         run_cmd(["git", "clone", "--depth", "2000", target_url, scratch_dir])
 
-    run_cmd(["git", "-C", scratch_dir, "fetch", "origin"])
+    run_cmd(
+        [
+            "git",
+            "-C",
+            scratch_dir,
+            "fetch",
+            "origin",
+            "+refs/heads/*:refs/heads/*",
+            "+refs/tags/*:refs/tags/*",
+        ]
+    )
     run_cmd(["git", "-C", scratch_dir, "checkout", branch])
     run_cmd(["git", "-C", scratch_dir, "reset", "--hard", f"origin/{branch}"])
     return scratch_dir
@@ -608,10 +643,10 @@ def make_recent_focus_block(stats: Dict[str, Any], repo_dir: str) -> str:
         status_flag = "✅ Up to date"
         if latest_rel and latest_rel != "N/A":
             clean_rel = latest_rel.lstrip("v")
-            clean_pkgver = pkgver.lstrip("v")
-            if clean_rel != clean_pkgver and clean_rel > clean_pkgver:
+            rel_tuple = parse_version_tuple(latest_rel)
+            pkg_tuple = parse_version_tuple(pkgver) if pkgver and pkgver != "N/A" else []
+            if rel_tuple and pkg_tuple and rel_tuple > pkg_tuple:
                 status_flag = f"⚠️ **Newer release available: `{latest_rel}`**"
-
         lines = [
             "* **Release Status**:",
             f"  - {status_flag}",
