@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 778309d..bfbd260 100644
+index 6b900f1..073d5ff 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -41,27 +41,31 @@ if(NOT DEFINED GGML_LLAMAFILE)
+@@ -43,27 +43,31 @@ if(NOT DEFINED GGML_LLAMAFILE)
    set(GGML_LLAMAFILE ON CACHE BOOL "ggml: use LLAMAFILE (tinyBLAS SGEMM)" FORCE)
  endif()
  
@@ -26,7 +26,8 @@ index 778309d..bfbd260 100644
 -  endif()
 -endif()
 +option(PARAKEET_USE_SYSTEM_GGML "Use system-installed GGML library" OFF)
-+
+ 
+-add_subdirectory(third_party/ggml)
 +if(PARAKEET_USE_SYSTEM_GGML)
 +    find_package(ggml REQUIRED)
 +    add_library(ggml ALIAS ggml::ggml)
@@ -47,24 +48,17 @@ index 778309d..bfbd260 100644
 +        message(WARNING "apply_ggml_patches.sh returned ${_patch_result}: ${_patch_errors}")
 +      endif()
 +    endif()
- 
--add_subdirectory(third_party/ggml)
++
 +    add_subdirectory(third_party/ggml)
 +endif()
  
- set(PARAKEET_SRC
-     src/parakeet.cpp
-@@ -119,3 +123,5 @@ if(PARAKEET_BUILD_TESTS)
-   enable_testing()
-   add_subdirectory(tests)
- endif()
-+
-+
+ # Single dr_wav implementation for the whole build. src/audio_io.cpp only
+ # declares dr_wav's functions (#include "dr_wav.h", no DR_WAV_IMPLEMENTATION);
 diff --git a/examples/cli/CMakeLists.txt b/examples/cli/CMakeLists.txt
-index 3bb901f..feb52f5 100644
+index 2b16184..2ec3554 100644
 --- a/examples/cli/CMakeLists.txt
 +++ b/examples/cli/CMakeLists.txt
-@@ -1,3 +1,6 @@
+@@ -1,6 +1,7 @@
 -add_executable(parakeet-cli main.cpp)
 -target_link_libraries(parakeet-cli PRIVATE parakeet)
 -target_include_directories(parakeet-cli PRIVATE ${CMAKE_SOURCE_DIR}/src)
@@ -72,13 +66,14 @@ index 3bb901f..feb52f5 100644
 +target_link_libraries(parakeet.cpp-cli PRIVATE parakeet)
 +target_include_directories(parakeet.cpp-cli PRIVATE ${CMAKE_SOURCE_DIR}/src)
 +install(TARGETS parakeet.cpp-cli DESTINATION ${CMAKE_INSTALL_BINDIR})
-+
-+
+ 
+ add_executable(diarize diarize.cpp)
+ target_link_libraries(diarize PRIVATE parakeet)
 diff --git a/examples/server/CMakeLists.txt b/examples/server/CMakeLists.txt
-index 40234e4..10f49fe 100644
+index 40234e4..3f6069e 100644
 --- a/examples/server/CMakeLists.txt
 +++ b/examples/server/CMakeLists.txt
-@@ -1,10 +1,13 @@
+@@ -1,10 +1,11 @@
 -add_executable(parakeet-server
 +add_executable(parakeet.cpp-server
      main.cpp
@@ -94,13 +89,11 @@ index 40234e4..10f49fe 100644
 -target_link_libraries(parakeet-server PRIVATE Threads::Threads)
 +target_link_libraries(parakeet.cpp-server PRIVATE Threads::Threads)
 +install(TARGETS parakeet.cpp-server DESTINATION ${CMAKE_INSTALL_BINDIR})
-+
-+
 diff --git a/src/backend.cpp b/src/backend.cpp
-index 40055f9..42d95d3 100644
+index 1dba6d0..5167930 100644
 --- a/src/backend.cpp
 +++ b/src/backend.cpp
-@@ -68,6 +68,32 @@ struct Backend::Impl {
+@@ -74,6 +74,32 @@ struct Backend::Impl {
  // a single pointer is sufficient.
  static thread_local Backend* t_active = nullptr;
  
@@ -130,10 +123,10 @@ index 40055f9..42d95d3 100644
 +    }
 +}
 +
- Backend::Backend(int n_threads) : impl_(new Impl()) {
+ Backend::Backend(int n_threads, bool cpu_only) : impl_(new Impl()) {
      // Optional override via PARAKEET_DEVICE:
      //   - "cpu"            forces the CPU backend (CPU baseline on a GPU box).
-@@ -124,7 +150,7 @@ Backend::Backend(int n_threads) : impl_(new Impl()) {
+@@ -130,7 +156,7 @@ Backend::Backend(int n_threads, bool cpu_only) : impl_(new Impl()) {
                     want.c_str());
      }
      if (!impl_->backend) {              // CPU fallback (or CPU-only build)
@@ -142,7 +135,7 @@ index 40055f9..42d95d3 100644
          device_name_ = "cpu";
      }
      if (!impl_->backend) {
-@@ -136,7 +162,7 @@ Backend::Backend(int n_threads) : impl_(new Impl()) {
+@@ -142,7 +168,7 @@ Backend::Backend(int n_threads, bool cpu_only) : impl_(new Impl()) {
      // instead of aborting. The CPU/single-backend path keeps using the persistent
      // gallocr below and is untouched.
      if (impl_->use_sched) {
@@ -151,7 +144,7 @@ index 40055f9..42d95d3 100644
          if (!impl_->cpu_backend) {
              PK_LOG("pk::Backend: CPU fallback init failed; disabling sched");
              impl_->use_sched = false;
-@@ -159,11 +185,11 @@ Backend::~Backend() {
+@@ -165,16 +191,16 @@ Backend::~Backend() {
  
  void Backend::set_n_threads(int n_threads) {
      n_threads_ = n_threads > 0 ? n_threads : 1;
@@ -166,12 +159,96 @@ index 40055f9..42d95d3 100644
      }
  }
  
+ bool Backend::is_cpu() const {
+-    return impl_ && impl_->backend && ggml_backend_is_cpu(impl_->backend);
++    return impl_ && impl_->backend && pk_backend_is_cpu(impl_->backend);
+ }
+ 
+ bool active_backend_is_cpu() {
+diff --git a/src/exact_matvec.cpp b/src/exact_matvec.cpp
+index e657ea2..ac2839b 100644
+--- a/src/exact_matvec.cpp
++++ b/src/exact_matvec.cpp
+@@ -1,71 +1,10 @@
+ #include "exact_matvec.hpp"
+-#include "backend.hpp"
+-#include "ggml-cpu.h"
+-
+-#include <algorithm>
+-#include <cstdint>
++#include "ggml.h"
+ 
+ namespace pk {
+-namespace {
+-
+-// Op 1: convert each activation column to the weight's vec_dot_type, the same
+-// per-row from_float call ggml makes before its N = 1 matmul. The conversion is
+-// independent per block, so splitting by column gives the same bytes as ggml's
+-// split by block range.
+-void op_convert(ggml_tensor* dst, int ith, int nth, void*) {
+-    const ggml_tensor* x = dst->src[0];
+-    const ggml_tensor* W = dst->src[1];
+-    const ggml_type vdt = ggml_get_type_traits_cpu(W->type)->vec_dot_type;
+-    const ggml_from_float_t from_float = ggml_get_type_traits_cpu(vdt)->from_float;
+-    const int64_t K = x->ne[0], N = x->ne[1];
+-    const size_t row = ggml_row_size(vdt, K);
+-    for (int64_t c = ith; c < N; c += nth)
+-        from_float(reinterpret_cast<const float*>(static_cast<const char*>(x->data) + c * x->nb[1]),
+-                   static_cast<char*>(dst->data) + c * row, K);
+-}
+-
+-// Op 2: dst[r, c] = vec_dot(W row r, activation column c). Threads split the
+-// weight rows, so each row is read once for all columns.
+-void op_matmul(ggml_tensor* dst, int ith, int nth, void*) {
+-    const ggml_tensor* act = dst->src[0];
+-    const ggml_tensor* W = dst->src[1];
+-    const ggml_type_traits_cpu* tr = ggml_get_type_traits_cpu(W->type);
+-    const int64_t K = W->ne[0], M = W->ne[1], N = dst->ne[1];
+-    const bool converted = W->type != tr->vec_dot_type;
+-    const size_t act_stride = converted ? ggml_row_size(tr->vec_dot_type, K) : act->nb[1];
+-    const int64_t r0 = M * ith / nth, r1 = M * (ith + 1) / nth;
+-    constexpr int64_t kBlock = 16;
+-    for (int64_t rb = r0; rb < r1; rb += kBlock) {
+-        const int64_t re = std::min(rb + kBlock, r1);
+-        for (int64_t c = 0; c < N; ++c) {
+-            const char* a = static_cast<const char*>(act->data) + c * act_stride;
+-            float* out = reinterpret_cast<float*>(static_cast<char*>(dst->data) + c * dst->nb[1]);
+-            for (int64_t r = rb; r < re; ++r)
+-                tr->vec_dot((int)K, out + r, 0, static_cast<const char*>(W->data) + r * W->nb[1], 0, a, 0, 1);
+-        }
+-    }
+-}
+-
+-} // namespace
+ 
+ ggml_tensor* mul_mat_cols_exact(ggml_context* ctx, ggml_tensor* W, ggml_tensor* x) {
+-    const bool plain = x->type == GGML_TYPE_F32 && x->ne[1] > 1 && ggml_n_dims(x) == 2
+-                    && ggml_n_dims(W) == 2 && W->ne[0] == x->ne[0] && ggml_is_contiguous(x)
+-                    && ggml_is_contiguous_rows(W) && W->nb[0] == ggml_type_size(W->type)
+-                    && ggml_get_type_traits_cpu(W->type)->vec_dot != nullptr
+-                    && x->ne[0] % ggml_blck_size(ggml_get_type_traits_cpu(W->type)->vec_dot_type) == 0
+-                    && active_backend_is_cpu();
+-    if (!plain) return ggml_mul_mat(ctx, W, x);
+-    const ggml_type vdt = ggml_get_type_traits_cpu(W->type)->vec_dot_type;
+-    ggml_tensor* act = x;
+-    if (vdt != GGML_TYPE_F32) {
+-        ggml_tensor* args[2] = {x, W};
+-        act = ggml_custom_4d(ctx, GGML_TYPE_I8, (int64_t)ggml_row_size(vdt, x->ne[0]), x->ne[1], 1, 1,
+-                             args, 2, op_convert, GGML_N_TASKS_MAX, nullptr);
+-    }
+-    ggml_tensor* args[2] = {act, W};
+-    return ggml_custom_4d(ctx, GGML_TYPE_F32, W->ne[1], x->ne[1], 1, 1, args, 2, op_matmul,
+-                          GGML_N_TASKS_MAX, nullptr);
++    return ggml_mul_mat(ctx, W, x);
+ }
+ 
+ } // namespace pk
 diff --git a/src/model_loader.cpp b/src/model_loader.cpp
-index 9d3bfe4..9fcce1e 100644
+index f6037b2..287ec74 100644
 --- a/src/model_loader.cpp
 +++ b/src/model_loader.cpp
-@@ -72,18 +72,19 @@ bool ModelLoader::realize_weights(ggml_backend_t backend){
-     if(weights_buf_) return true;                       // idempotent
+@@ -91,18 +91,19 @@ bool ModelLoader::realize_weights(ggml_backend_t backend){
+     if(weights_buf_.load(std::memory_order_acquire)) return true;   // idempotent
      if(!backend || !ctx_){ PK_LOG("realize_weights: null backend/ctx"); return false; }
  
 -    if (ggml_backend_is_cpu(backend)) {
@@ -188,8 +265,8 @@ index 9d3bfe4..9fcce1e 100644
          // reshapes/views resolve at build time). Eliminates per-call recopy.
          void*  base = ggml_get_mem_buffer(ctx_);
          size_t size = ggml_get_mem_size(ctx_);
--        weights_buf_ = ggml_backend_cpu_buffer_from_ptr(base, size);
-+        weights_buf_ = ggml_backend_dev_buffer_from_host_ptr(dev, base, size, 0);
-         if(!weights_buf_){ PK_LOG("realize_weights: buffer_from_ptr failed"); return false; }
-         for(auto& kv : tensors_) kv.second->buffer = weights_buf_;
-         return true;
+-        ggml_backend_buffer_t wb = ggml_backend_cpu_buffer_from_ptr(base, size);
++        ggml_backend_buffer_t wb = ggml_backend_dev_buffer_from_host_ptr(dev, base, size, 0);
+         if(!wb){ PK_LOG("realize_weights: buffer_from_ptr failed"); return false; }
+         for(auto& kv : tensors_) kv.second->buffer = wb;
+         // Publish last: a reader that sees the buffer sees the tensors set up.

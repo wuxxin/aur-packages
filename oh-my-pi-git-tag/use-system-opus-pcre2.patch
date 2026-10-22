@@ -1,32 +1,64 @@
-Link the natives against Arch's system libopus and libpcre2.
-
-audiopus_sys: Arch ships no libopus.a, so switch the crate to its `dynamic`
-feature and hand its build script LIBOPUS_LIB_DIR=/usr. find_installed_opus()
-then short-circuits build_opus(), so the vendored Opus tree is never
-cmake-built; upstream's own OPUS_NO_PKG=1 keeps pkg-config out of the loop.
-The remaining cmake/msvc env keys stay in place, inert.
-
-pcre2-sys: only offers pkg-config discovery, so flip upstream's
-PCRE2_SYS_STATIC from 1 to 0 (0 is an explicit "not static", not merely unset)
-and let it probe libpcre2-8 from /usr.
-
-Hunks are deliberately zero-context: MODULE.bazel's comments and neighbouring
-env keys churn on nearly every upstream release, while each anchor line below
-is unique in its file. patch locates a hunk by its replaced line alone, so
-unrelated edits around them cannot break this patch.
-
---- a/Cargo.toml
-+++ b/Cargo.toml
-@@ -245 +245 @@
--audiopus_sys = { version = "0.2.2", features = ["static"] }
-+audiopus_sys = { version = "0.2.2", features = ["dynamic"] }
 --- a/MODULE.bazel
 +++ b/MODULE.bazel
-@@ -164 +164,3 @@
--        "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
-+        "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
-+        # Link Arch's shared /usr/lib/libopus.so instead of vendored Opus.
-+        "LIBOPUS_LIB_DIR": "/usr",
-@@ -196 +196 @@
+@@ -189,17 +189,20 @@
+     ],
+ )
+ 
+-# opusic-sys builds its bundled Opus via `cmake` and selects Ninja from PATH.
+-# The target-specific toolchain keeps MSVC cross builds on the wrapper
+-# compiler/linker; CFLAGS keeps Zig cross builds free of host UBSan links.
++# opusic-sys: link Arch's shared /usr/lib/libopus.so instead of building the
++# vendored Opus via cmake. The patch short-circuits its bundled build path when
++# LIBOPUS_DYNAMIC is set; the remaining env keys stay for the non-linux targets.
+ crate.annotation(
++    crate = "opusic-sys",
++    patch_args = ["-p1"],
++    patches = ["//bazel/patches:opusic-sys-dynamic.patch"],
+     build_script_env = {
++        "LIBOPUS_DYNAMIC": "1",
+         "CMAKE_TOOLCHAIN_FILE_x86_64_pc_windows_msvc": "$${pwd}/external/+msvc_cc_repository+msvc_cc/toolchain.cmake",
+         "CMAKE_TOOLCHAIN_FILE_aarch64_pc_windows_msvc": "$${pwd}/external/+msvc_cc_repository+msvc_cc_arm64/toolchain.cmake",
+         "CFLAGS": "-fno-sanitize=undefined",
+         "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:/run/current-system/sw/bin",
+     },
+-    crate = "opusic-sys",
+ )
+ 
+ # wasmtime-c-api-impl (tree-sitter's `wasm` feature) runs `cmake -P` to install
+@@ -219,12 +222,13 @@
+     version = "0.28.0",
+ )
+ 
+-# Release addons must never pick up a host libpcre2 (Homebrew paths leaked into
+-# shipped dylibs before); always build the vendored static copy.
++# pcre2-sys: link Arch's shared /usr/lib/libpcre2-8.so (found via pkg-config)
++# instead of building the vendored static copy.
+ crate.annotation(
 -    build_script_env = {"PCRE2_SYS_STATIC": "1"},
 +    build_script_env = {"PCRE2_SYS_STATIC": "0"},
+     crate = "pcre2-sys",
+ )
++
+ use_repo(crate, "crates")
+ 
+ # --- msvc cross toolchain (owned by bazel/toolchains/msvc) ---------------------
+diff --git a/bazel/patches/opusic-sys-dynamic.patch b/bazel/patches/opusic-sys-dynamic.patch
+new file mode 100644
+index 0000000000..4bd8bbafd5
+--- /dev/null
++++ b/bazel/patches/opusic-sys-dynamic.patch
+@@ -0,0 +1,14 @@
++--- a/build.rs
+++++ b/build.rs
++@@ -253,6 +253,11 @@
++ fn run() {
++     generate_lib();
++ 
+++    if std::env::var("LIBOPUS_DYNAMIC").is_ok() || std::env::var("OPUS_DYNAMIC").is_ok() {
+++        println!("cargo:rustc-link-lib=dylib=opus");
+++        return;
+++    }
+++
++     //dont use any dynamic linking if bundling is requested
++     #[cfg(feature = "bundled")]
++     build();

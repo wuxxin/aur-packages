@@ -3,7 +3,7 @@
 
 pkgname=oh-my-pi-git-tag
 _pkgname=oh-my-pi
-pkgver=18.0.7.r0.gd17c270
+pkgver=18.12.3.r23.g2220e58
 pkgrel=1
 pkgdesc="AI coding agent for the terminal — hash-anchored edits, optimized tool harness, LSP, Python SDK, browser extension, subagents, and more (git latest tag)"
 arch=('x86_64')
@@ -31,7 +31,6 @@ makedepends=(
     'bazel'
     'bun'
     'git'
-    'python'
     'python-build'
     'python-installer'
     'python-setuptools'
@@ -44,11 +43,13 @@ source=(
     "tree-sitter-no-strict-aliasing.patch"
     "use-system-opus-pcre2.patch"
     "skip-native-embed-for-aur.patch"
+    "relative-json-asset-paths.patch"
 )
 sha256sums=('SKIP'
-            '5894ef4a9c7dfe4832466afd734f2342bb112f884dbe00f7a0a0152db472e75e'
-            '05c0e2562f4844c1fe64305f907633e19dd356407c53e0c43c40ce60b4a36835'
-            'a81209715174b5413d5743ec4b461ffd71b1a1fc37bd4a7dcde23c27e35bc62f')
+            '77cb8e75c88b94e0f001529dfb4145fffa762acf2fb719e2ae52f617b60701e3'
+            '0bdcc2ee30428eeac189603fbb8579647754c0830b0a1480a10fa5823e532f05'
+            '07c53dcc937479c66a2ab5171f4604a132c8ae93d381331d1f9460e5a9155af4'
+            '1bb90d0eb4485fbd7ca8aea990ecc0477e44d08cdc76153ba5c4bcc612f1ffd9')
 
 pkgver() {
     cd "${srcdir}/${_pkgname}"
@@ -59,6 +60,7 @@ prepare() {
     cd "${srcdir}/${_pkgname}"
 
     patch -p1 -i "${srcdir}/skip-native-embed-for-aur.patch"
+    patch -p1 -i "${srcdir}/relative-json-asset-paths.patch"
     patch -p1 -i "${srcdir}/use-system-opus-pcre2.patch"
     patch -p1 -i "${srcdir}/tree-sitter-no-strict-aliasing.patch"
     # Crate annotations change the Bazel crate graph; Cargo.Bazel.lock needs a repin.
@@ -78,13 +80,15 @@ build() {
     # rules_rust fetches the pinned nightly rustc and cargo; no host rust toolchain.
     bun ./scripts/bazel-natives.ts linux-x64-baseline linux-x64-modern --dest packages/natives/native
 
-    RELEASE_TARGETS='linux-x64' bun run ci:release:build-binaries
+    # The AUR package ships the addons as loose .node files next to the binary
+    # instead of embedding them into the standalone executable.
+    PI_SKIP_NATIVE_EMBED=1 RELEASE_TARGETS='linux-x64' bun run ci:release:build-binaries
 
     # Release the server holding an output base under $srcdir.
     bazel shutdown
 
     # Build Python RPC SDK wheel
-    cd "${srcdir}/${_pkgname}/python/omp-rpc"
+    cd "${srcdir}/${_pkgname}/sdk/python/omp-rpc"
     python -m build --wheel --no-isolation
 
     # Build RoboMP Python package wheel
@@ -123,7 +127,7 @@ package() {
         "${pkgdir}/usr/lib/${_pkgname}/pi_natives.linux-x64-modern.node"
     install -dm755 "${pkgdir}/usr/bin"
     ln -s "../lib/${_pkgname}/omp" "${pkgdir}/usr/bin/omp"
-    _install_completions "${pkgdir}/usr/bin/omp"
+    _install_completions "${pkgdir}/usr/lib/${_pkgname}/omp"
     install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 
     # Install Browser Relay extension
@@ -133,19 +137,20 @@ package() {
         "${pkgdir}/usr/share/${_pkgname}/omp-browser-relay-extension.zip"
 
     # Install Python RPC SDK into system python site-packages
-    cd "${srcdir}/${_pkgname}/python/omp-rpc"
-    python -m installer --destdir="${pkgdir}" dist/*.whl
+    cd "${srcdir}/${_pkgname}/sdk/python/omp-rpc"
+    python -m installer --destdir="${pkgdir}" --prefix=/usr dist/*.whl
 
     # Copy Python RPC SDK source tree & wheel to /usr/share/oh-my-pi/python/omp-rpc
     # so plugin virtual environments can install it offline
     local _py_src_dir="${pkgdir}/usr/share/${_pkgname}/python/omp-rpc"
-    install -dm755 "${_py_src_dir}"
-    cp -r pyproject.toml README.md src dist "${_py_src_dir}/"
+    install -dm755 "${_py_src_dir}/dist"
+    cp dist/*.whl "${_py_src_dir}/dist/"
+    cp -r pyproject.toml README.md src "${_py_src_dir}/"
+    rm -rf "${_py_src_dir}/src/omp_rpc.egg-info"
 
     # Install RoboMP Python package into system python site-packages
     cd "${srcdir}/${_pkgname}/python/robomp"
-    python -m installer --destdir="${pkgdir}" dist/*.whl
-
+    python -m installer --destdir="${pkgdir}" --prefix=/usr dist/*.whl
     # Install documentation and examples
     cd "${srcdir}/${_pkgname}"
     install -dm755 "${pkgdir}/usr/share/doc/${_pkgname}"

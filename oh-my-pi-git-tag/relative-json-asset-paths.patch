@@ -1,0 +1,41 @@
+diff --git a/packages/coding-agent/scripts/json-parse-plugin.ts b/packages/coding-agent/scripts/json-parse-plugin.ts
+index b0551df07a..d64267734a 100644
+--- a/packages/coding-agent/scripts/json-parse-plugin.ts
++++ b/packages/coding-agent/scripts/json-parse-plugin.ts
+@@ -1,4 +1,5 @@
+ import type { BunPlugin } from "bun";
++import * as nodePath from "node:path";
+ 
+ /** Assets below this size stay object literals. */
+ const DEFAULT_MIN_BYTES = 256 * 1024;
+@@ -13,16 +14,24 @@ const DEFAULT_MIN_BYTES = 256 * 1024;
+  * asset fails the build loudly instead of silently reading `undefined`.
+  */
+ export function createJsonParsePlugin(minBytes: number = DEFAULT_MIN_BYTES): BunPlugin {
++	// Virtual asset ids are emitted into the compiled binary; keep them relative
++	// to the build root so the output never embeds the absolute checkout path.
++	const assetRoot = process.cwd();
+ 	return {
+ 		name: "omp-json-parse-asset",
+ 		target: "bun",
+ 		setup(build) {
+-			build.onResolve({ filter: /^omp-json-asset:/ }, ({ path }) => ({
+-				path: `${path.slice("omp-json-asset:".length)}.zst`,
+-				namespace: "omp-json-asset",
+-			}));
+-			build.onLoad({ filter: /.*/, namespace: "omp-json-asset" }, async ({ path }) => ({
+-				contents: Bun.zstdCompressSync(await Bun.file(path.slice(0, -4)).text()),
++			build.onResolve({ filter: /^omp-json-asset:/ }, ({ path: specifier }) => {
++				const absolute = specifier.slice("omp-json-asset:".length);
++				return {
++					path: `${nodePath.relative(assetRoot, absolute)}.zst`,
++					namespace: "omp-json-asset",
++				};
++			});
++			build.onLoad({ filter: /.*/, namespace: "omp-json-asset" }, async ({ path: assetPath }) => ({
++				contents: Bun.zstdCompressSync(
++					await Bun.file(nodePath.resolve(assetRoot, assetPath.slice(0, -4))).text(),
++				),
+ 				loader: "file",
+ 			}));
+ 			build.onLoad({ filter: /\.json$/ }, async ({ path }) => {

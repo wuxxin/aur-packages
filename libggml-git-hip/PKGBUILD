@@ -2,7 +2,7 @@
 
 pkgbase=libggml-git-hip
 pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip' 'parakeet.cpp-git-ggml-hip')
-pkgver=10642.r0.g925e117
+pkgver=11753.r0.gd8d9297
 pkgrel=1
 pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp, parakeet.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
@@ -45,7 +45,6 @@ source=(
     "whisper-version-commit.patch"
     "qwen3-tts-version-commit.patch"
     "jina-reranker-v3.patch"
-    "sd-system-ggml.patch"
 )
 
 sha256sums=('SKIP'
@@ -60,7 +59,7 @@ sha256sums=('SKIP'
             '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
             '8c8d5aae9919b94febf30302daa483c448c5106c0de9f3e6f7052766b26fb068'
             '1204bae0ca0f976ac476b29dc75642b0896cbec74d05e9b79c2592f34e348da4'
-            '934d9e1c26f5f2104d85a071e7af07d7336c292930734b907012ed68ffcc8074'
+            '19a40631c4678d72f97bc72cc40b70a5addf0b0f63c8f14c7cdbe1e047f1064c'
             '17fdfd17833fdd7d2a5f584c1d781c1e5340d47f05555ec1cf89487a341c8bea'
             '3f6b0f1e6111da9866f8cced49bca0e34972171017455700624792a6b749ced0'
             '1e50216d2a837c1aa8537a3acecbe05f8cc147eb54e6a73600de9419678202c4'
@@ -68,10 +67,9 @@ sha256sums=('SKIP'
             'bdfaa2ac8b095b086ca36de39bd37cfd56732ba400688a255d0de7cc005e4e53'
             '30d3fdae3cb7de354ac334b3c13a80268916da1382b93b4c591ed8846dfb147a'
             'd1f2f2a5454b335b7e23c82df22753362446d87a889eabb0fe4d6d38a93386cb'
-            '737a8fc6703473eeca7578c03eab8f9a785ba4280d35e018621441e06205d853'
+            '9dc4504e1ec56abe4a1be5afdd19bd8c7bcdc47816d05912a137955b7afee26d'
             '9d05bdb874ee51604912d8cb5a404755f4606f12f50cd5ea435622ff573a409b'
-            '2be0871f0b9dd31a22d20558aeb19ea5cf32d6aa78a6052f9bcd13494431b86a'
-            'b3bf06a0f3f0b681614e815ecb668d136cb96488ff81575b5aadccb6b266988a')
+            'cb77e030f440a00a614b017e64551afa3043f95045589bb6daba22ac26b46358')
 
 pkgver() {
     cd llama.cpp
@@ -106,11 +104,6 @@ prepare() {
     git config submodule.thirdparty/libwebp.update none
     git config submodule.ggml.update none
     git -c protocol.file.allow=always submodule update
-    patch -p1 <"${srcdir}/sd-system-ggml.patch"
-
-    # Copy internal ggml headers for stable-diffusion.cpp's graph cut module
-    mkdir -p "${srcdir}/stable-diffusion.cpp/ggml/src"
-    cp -r "${srcdir}/llama.cpp/ggml/src/"* "${srcdir}/stable-diffusion.cpp/ggml/src/"
 
     # prepare qwen3-tts
     cd "${srcdir}/qwen3-tts.cpp"
@@ -148,8 +141,8 @@ build() {
 
     # Clear flags that interfere with HIP/device compilation
     unset CFLAGS CXXFLAGS LDFLAGS CPPFLAGS
-    export CFLAGS="-DGGML_MAX_NAME=128"
-    export CXXFLAGS="-DGGML_MAX_NAME=128"
+    export CFLAGS="-DGGML_MAX_NAME=160"
+    export CXXFLAGS="-DGGML_MAX_NAME=160"
     export LDFLAGS=""
     export CPPFLAGS=""
 
@@ -238,6 +231,8 @@ build() {
         -DCMAKE_INSTALL_PREFIX="/usr" \
         -DSD_BUILD_SHARED_LIBS=ON \
         -DSD_USE_SYSTEM_GGML=ON \
+        -DSD_USE_UPSTREAM_GGML=ON \
+        -DSD_GGML_SOURCE_DIR="${srcdir}/llama.cpp/ggml" \
         -DSD_USE_SYSTEM_WEBP=ON \
         -DSD_USE_SYSTEM_WEBM=OFF \
         -DSD_HIPBLAS=ON
@@ -258,6 +253,8 @@ build() {
         -DCMAKE_INSTALL_PREFIX="/usr" \
         -DPARAKEET_SHARED=OFF \
         -DPARAKEET_USE_SYSTEM_GGML=ON \
+        -DPARAKEET_WITH_CED=OFF \
+        -DPARAKEET_WITH_VOICEDETECT=OFF \
         -DPARAKEET_BUILD_CLI=ON \
         -DPARAKEET_BUILD_SERVER=ON
     cmake --build build_parakeet_hip
@@ -272,6 +269,8 @@ package_libggml-git-hip() {
     # Install from ggml build staging
     mkdir -p "${pkgdir}/usr"
     cp -r "${srcdir}/staging_hip/usr/"* "${pkgdir}/usr/"
+    install -Dm644 "${srcdir}/llama.cpp/LICENSE" \
+        -t "${pkgdir}/usr/share/licenses/${pkgname}"
 }
 
 package_llama.cpp-git-ggml-hip() {
@@ -284,6 +283,8 @@ package_llama.cpp-git-ggml-hip() {
 
     # Install Arch-specific README
     install -Dm644 "${srcdir}/README.md" "${pkgdir}/usr/share/doc/${pkgname}/README-arch.md"
+    install -Dm644 "${srcdir}/llama.cpp/LICENSE" \
+        -t "${pkgdir}/usr/share/licenses/${pkgname}"
 }
 
 package_whisper.cpp-git-ggml-hip() {
@@ -292,6 +293,8 @@ package_whisper.cpp-git-ggml-hip() {
     provides=('whisper.cpp' 'whisper.cpp-hip')
 
     DESTDIR="$pkgdir" cmake --install build_whisper_hip
+    install -Dm644 "${srcdir}/whisper.cpp/LICENSE" \
+        -t "${pkgdir}/usr/share/licenses/${pkgname}"
 }
 
 package_python-llama-cpp-git-ggml-hip() {
@@ -301,6 +304,8 @@ package_python-llama-cpp-git-ggml-hip() {
 
     cd llama-cpp-python
     python -m installer --destdir="$pkgdir" "${srcdir}/dist_hip/"*.whl
+    install -Dm644 "${srcdir}/llama-cpp-python/LICENSE.md" \
+        "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 }
 
 package_stable-diffusion.cpp-git-ggml-hip() {
@@ -317,7 +322,7 @@ package_stable-diffusion.cpp-git-ggml-hip() {
 
 package_qwen3-tts.cpp-git-ggml-hip() {
     pkgdesc="C++ inference for Qwen3-TTS using the GGML tensor library (git shared library build)"
-    depends=('libggml-git-hip')
+    depends=('libggml-git-hip' 'ffmpeg')
     provides=('qwen3-tts.cpp')
     conflicts=('qwen3-tts.cpp')
 

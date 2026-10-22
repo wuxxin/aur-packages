@@ -66,14 +66,13 @@ Can be **broken or bitrotten at anytime**.
 
 - [oh-my-pi-git-tag](oh-my-pi-git-tag) - AI coding agent for the terminal
     - Built from git latest tag with dynamically evaluated versioning and system libraries (opus, pcre2).
-- [hermes-agent-git](hermes-agent-git) - Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)
-    - System package adaptations: self-update disabled, runtime npm installs pre-built, PR patching mechanism
 - [libggml-git-hip](libggml-git-hip) - HIP libggml git version shared library
     - builds `libggml`, `llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts`, `parakeet.cpp` with hip/rocm accel from latest git
     - with patches and Python Bindings to support the latest git version,
     - all packages link dynamically against a single system-wide `libggml-git-hip`.
         - This ensures consistent backend behavior / bug compatibility across all tools.
-
+- [hermes-agent-git](hermes-agent-git) - Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)
+    - System package adaptations: self-update disabled, runtime npm installs pre-built, PR patching mechanism
 
 ### experimental packages (not in AUR)
 

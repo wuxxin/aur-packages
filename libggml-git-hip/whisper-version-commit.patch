@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 515b91be1..9962c1c16 100644
+index c8a08468d..9db57f040 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -212,6 +212,7 @@ install(TARGETS whisper LIBRARY PUBLIC_HEADER)
+@@ -213,6 +213,7 @@ install(TARGETS whisper LIBRARY PUBLIC_HEADER)
  
  target_compile_definitions(whisper PRIVATE
      WHISPER_VERSION="${WHISPER_VERSION}"
@@ -11,10 +11,10 @@ index 515b91be1..9962c1c16 100644
  
  set_target_properties(parakeet PROPERTIES PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/include/parakeet.h)
 diff --git a/src/whisper.cpp b/src/whisper.cpp
-index 89146e2e4..23b434d76 100644
+index 6e0fbf4a1..ca3442c74 100644
 --- a/src/whisper.cpp
 +++ b/src/whisper.cpp
-@@ -9170,7 +9170,11 @@ void whisper_log_set(ggml_log_callback log_callback, void * user_data) {
+@@ -9347,7 +9347,11 @@ void whisper_log_set(ggml_log_callback log_callback, void * user_data) {
  }
  
  const char * whisper_version(void) {
