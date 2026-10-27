@@ -119,6 +119,18 @@ TRACKED_REPOS: List[Dict[str, Any]] = [
         "default_ref": "e75de9b",
     },
     {
+        "name": "strata",
+        "display_name": "Strata",
+        "parent_pkg": "libggml-git-hip",
+        "github": "Niko1221/Strata",
+        "pkg": "strata-engine-git-ggml-hip",
+        "branch": "main",
+        "repo_type": "git",
+        "pkg_dir": "libggml-git-hip",
+        "src_name": "Strata",
+        "default_ref": "4b9e05a",
+    },
+    {
         "name": "oh-my-pi",
         "display_name": "oh-my-pi-git-tag",
         "github": "can1357/oh-my-pi",
@@ -339,9 +351,7 @@ def get_git_installed_ref(repo_cfg: Dict[str, Any], repo_dir: str) -> str:
         if cmd_ref:
             return cmd_ref
 
-    pkgs = repo_cfg.get("pkgs") or (
-        [repo_cfg.get("pkg")] if repo_cfg.get("pkg") else []
-    )
+    pkgs = repo_cfg.get("pkgs") or ([repo_cfg.get("pkg")] if repo_cfg.get("pkg") else [])
 
     # Extract git suffix from pacman version and verify it exists in repo_dir
     for pkg in pkgs:
@@ -507,6 +517,7 @@ def parse_version_tuple(v: str) -> List[int]:
             nums.append(0)
     return nums
 
+
 def sync_repository(repo: Dict[str, Any]) -> str:
     """Ensure repository sources are up-to-date and return the inspectable directory."""
     repo_type = repo.get("repo_type", "git")
@@ -524,8 +535,7 @@ def sync_repository(repo: Dict[str, Any]) -> str:
 
         # Check if src_path exists and is healthy
         src_valid = (
-            os.path.exists(src_path)
-            and run_cmd(["git", "-C", src_path, "rev-parse", "HEAD"]) != ""
+            os.path.exists(src_path) and run_cmd(["git", "-C", src_path, "rev-parse", "HEAD"]) != ""
         )
         bare_valid = (
             os.path.exists(bare_path)
@@ -623,12 +633,12 @@ def make_status_line(stats: Dict[str, Any]) -> str:
         and stats["installed_ver"] != "not installed"
         and stats["installed_ver"] != "—"
     ):
-        ref_suffix = (
-            f" (ref `{stats['installed_ref']}`)" if stats["installed_ref"] else ""
-        )
+        ref_suffix = f" (ref `{stats['installed_ref']}`)" if stats["installed_ref"] else ""
         since_val = stats.get("since_commits", "0")
         if since_val != "-":
-            pkg_phrase = f" **{since_val} commits since installed {stats['installed_ver']}{ref_suffix}.**"
+            pkg_phrase = (
+                f" **{since_val} commits since installed {stats['installed_ver']}{ref_suffix}.**"
+            )
 
     return f"* **Status**: {status} ({commits} commits, {tag_phrase}).{pkg_phrase}"
 
@@ -642,7 +652,6 @@ def make_recent_focus_block(stats: Dict[str, Any], repo_dir: str) -> str:
 
         status_flag = "✅ Up to date"
         if latest_rel and latest_rel != "N/A":
-            clean_rel = latest_rel.lstrip("v")
             rel_tuple = parse_version_tuple(latest_rel)
             pkg_tuple = parse_version_tuple(pkgver) if pkgver and pkgver != "N/A" else []
             if rel_tuple and pkg_tuple and rel_tuple > pkg_tuple:
@@ -717,9 +726,7 @@ def make_recent_focus_block(stats: Dict[str, Any], repo_dir: str) -> str:
 def compile_activity(write_to_file: bool = False) -> None:
     """Compile the weekly development activity report."""
     print("Starting development activity report update...")
-    start_date = (datetime.date.today() - datetime.timedelta(days=7)).strftime(
-        "%B %d, %Y"
-    )
+    start_date = (datetime.date.today() - datetime.timedelta(days=7)).strftime("%B %d, %Y")
     end_date = datetime.date.today().strftime("%B %d, %Y")
     print(f"Reporting Period: {start_date} - {end_date}")
 
@@ -767,9 +774,7 @@ def compile_activity(write_to_file: bool = False) -> None:
         )
         merges = len(log_merges.splitlines()) if log_merges else 0
 
-        last_commit = run_cmd(
-            ["git", "-C", repo_dir, "log", "-1", "--format=%ad", "--date=short"]
-        )
+        last_commit = run_cmd(["git", "-C", repo_dir, "log", "-1", "--format=%ad", "--date=short"])
 
         # 4 weeks average
         log_28d = run_cmd(
@@ -816,9 +821,7 @@ def compile_activity(write_to_file: bool = False) -> None:
                         f"{installed_ref}..HEAD",
                     ]
                 )
-                since_commits = (
-                    str(len(log_since.strip().splitlines())) if log_since else "0"
-                )
+                since_commits = str(len(log_since.strip().splitlines())) if log_since else "0"
 
         pkgbuild_ver = get_pkgbuild_version(pkg_dir) if pkg_dir else ""
 
@@ -918,9 +921,7 @@ def compile_activity(write_to_file: bool = False) -> None:
             content = f.read()
 
         # Update date anchor
-        date_pattern = re.compile(
-            r"<!-- START_DATE -->.*?<!-- END_DATE -->", re.DOTALL
-        )
+        date_pattern = re.compile(r"<!-- START_DATE -->.*?<!-- END_DATE -->", re.DOTALL)
         new_date_block = f"<!-- START_DATE -->\n**Last 7 Days Activity ({start_date} – {end_date})**\n<!-- END_DATE -->"
         if date_pattern.search(content):
             content = re.sub(date_pattern, lambda m: new_date_block, content)
@@ -930,16 +931,12 @@ def compile_activity(write_to_file: bool = False) -> None:
             content = re.sub(header_pattern, f"\\1{new_date_block}", content)
 
         # Update table anchor
-        table_pattern = re.compile(
-            r"<!-- START_TABLES -->.*?<!-- END_TABLES -->", re.DOTALL
-        )
+        table_pattern = re.compile(r"<!-- START_TABLES -->.*?<!-- END_TABLES -->", re.DOTALL)
         new_table_block = f"<!-- START_TABLES -->\n{table_str}\n<!-- END_TABLES -->"
         content = re.sub(table_pattern, lambda m: new_table_block, content)
 
         # Update details anchor
-        details_pattern = re.compile(
-            r"<!-- START_DETAILS -->.*?<!-- END_DETAILS -->", re.DOTALL
-        )
+        details_pattern = re.compile(r"<!-- START_DETAILS -->.*?<!-- END_DETAILS -->", re.DOTALL)
         new_details_block = f"<!-- START_DETAILS -->\n{details_str}\n<!-- END_DETAILS -->"
         if details_pattern.search(content):
             content = re.sub(details_pattern, lambda m: new_details_block, content)
@@ -949,9 +946,7 @@ def compile_activity(write_to_file: bool = False) -> None:
                 r"(## 🔍 Repository Focus & Developments Details\n\n).*?(?=\n---|\Z)",
                 re.DOTALL,
             )
-            content = re.sub(
-                focus_sec_pattern, f"\\1{new_details_block}\n", content
-            )
+            content = re.sub(focus_sec_pattern, f"\\1{new_details_block}\n", content)
 
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
