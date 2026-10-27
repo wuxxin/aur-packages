@@ -112,16 +112,14 @@ The built-in voice names for the `Qwen3-TTS-12Hz-0.6B-CustomVoice-Q8_0.gguf` mod
 - `eric`
 - `dylan`
 
+### Strata System GGML & Dynamic CPU Shim (`strata-system-ggml.patch`)
 
-### Git Commit-Hash Versioning for whisper and qwen3-tts
+Adapts upstream Strata to dynamically link against system-shared `libggml.so`, `libllama.so`, and `libmtmd.so`:
+- **Dynamic CPU Traits Shim (`src/platform/ggml_cpu_shim.cpp`)**: When `libggml` is built with dynamic backend plugin loading (`GGML_BACKEND_DL=ON`), CPU arithmetic kernels reside in `/usr/lib/ggml/libggml-cpu-*.so`. The shim discovers and loads the active CPU variant plugin at runtime via `dlopen`/`dlsym` and provides hardware-accelerated CPU feature queries (`ggml_cpu_has_*`) via compiler builtins.
+- **Vision Reader Dynamic Linking**: Builds `strata-vision-hip` linking against system `libmtmd.so` and `libllama.so` with shared HIP runtime execution.
 
-- patches: `whisper-version-commit.patch` and `qwen3-tts-version-commit.patch`
 
-To assist with version identification and debugging of Git-HEAD packages:
-- **Whisper**: Appends the specific Git commit hash of the whisper.cpp repository to the output of `whisper-cli --version` (e.g., `whisper.cpp version: 1.9.1 (commithash)`).
-- **Qwen3-TTS**: Implements the `--version` flag for `qwen3-tts-cli` to output `qwen3-tts version 0.1-main-commithash` where the branch name (`main`) and short commit hash of the qwen3-tts.cpp repository are dynamically resolved at configure time.
-
-### Jina Reranker v3 Cross-Encoder Support (`jina-reranker-v3.patch`)
+### llama.cpp: Jina Reranker v3 Cross-Encoder Support (`jina-reranker-v3.patch`)
 
 Adds upstream support for the [jina-reranker-v3](https://huggingface.co/jinaai/jina-reranker-v3) cross-encoder reranking model to llama.cpp. This model is based on Qwen3 with a dense projector MLP for cosine similarity scoring.
 
@@ -136,24 +134,38 @@ Adds upstream support for the [jina-reranker-v3](https://huggingface.co/jinaai/j
   ```
   Then POST to `/v1/embeddings` to get 512-dim projected embeddings; compute cosine similarity client-side for reranking.
 
-### Strata System GGML & Dynamic CPU Shim (`strata-system-ggml.patch`)
+### Git Commit-Hash Versioning for whisper, qwen3-tts and strata-engine
 
-Adapts upstream Strata to dynamically link against system-shared `libggml.so`, `libllama.so`, and `libmtmd.so`:
-- **Dynamic CPU Traits Shim (`src/platform/ggml_cpu_shim.cpp`)**: When `libggml` is built with dynamic backend plugin loading (`GGML_BACKEND_DL=ON`), CPU arithmetic kernels reside in `/usr/lib/ggml/libggml-cpu-*.so`. The shim discovers and loads the active CPU variant plugin at runtime via `dlopen`/`dlsym` and provides hardware-accelerated CPU feature queries (`ggml_cpu_has_*`) via compiler builtins.
-- **Vision Reader Dynamic Linking**: Builds `strata-vision-hip` linking against system `libmtmd.so` and `libllama.so` with shared HIP runtime execution.
+- patches: `whisper-version-commit.patch`, `qwen3-tts-version-commit.patch` and `strata-version-commit.patch`
+
+To assist with version identification and debugging of Git-HEAD packages:
+- **Whisper**: Appends the specific Git commit hash of the whisper.cpp repository to the output of `whisper-cli --version` (e.g., `whisper.cpp version: 1.9.1 (commithash)`).
+- **Qwen3-TTS**: Implements the `--version` flag for `qwen3-tts-cli` to output `qwen3-tts version 0.1-main-commithash` where the branch name (`main`) and short commit hash of the qwen3-tts.cpp repository are dynamically resolved at configure time.
+- **Strata Engine**: Implements the `--version` flag for `strata` to output its git tag and build commit hash (e.g. `strata version: 0.2.7 (5e8a4cca7)`).
 
 ---
 
 ## Changelog
 
-### `11753.r0.gd8d9297-1` (Current)
+### `11937.r7.g1b4554e-1` (Current)
+- **Strata Documentation & Packaging Fixes**:
+  - Resolved `install` file conflict in `package_strata-engine-git-ggml-hip()` by preserving `docs/*.md` under `/usr/share/doc/strata-engine-git-ggml-hip/docs/` alongside root `README.md` and `SECURITY.md`, maintaining markdown inter-doc relative link structures.
+  - Added `/usr/share/doc/strata` compatibility symlink.
+  - Added `hipblaslt` direct runtime dependency to `strata-engine-git-ggml-hip`.
+  - Added `-DCMAKE_SKIP_RPATH=ON` and `patchelf --remove-rpath` to remove ephemeral staging directory paths from the compiled `strata` binary.
+  - Passed `--no-same-owner` during embedded `llama.cpp` tar extraction for reliable rootless and sandboxed builds.
+- **Strata Git Versioning (`strata-version-commit.patch`)**:
+  - Implemented Git tag and commit identification in `strata --version` (e.g. `strata version: 0.2.7 (5e8a4cca7)`).
+- **Upstream Sync**: Updated all submodules and component repositories to latest git HEAD.
+
+### `11753.r0.gd8d9297-1`
 - **Strata Engine Subpackage (`strata-engine-git-ggml-hip`)**:
   - Integrated Strata inference engine for large MoE models (Qwen 3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen 3.6-35B).
   - Native AMD ROCm/HIP wave32 compilation (`gfx1010`–`gfx1201`).
   - Dynamic linking against system shared `libggml.so`, `libllama.so`, and `libmtmd.so` via CPU traits shim (`strata-system-ggml.patch`).
   - Multimodal vision reader (`strata-vision-hip`) and `/usr/bin/strata` runtime launcher.
 
-### `10524.r8.g70aff25-1` (Current)
+### `10524.r8.g70aff25-1`
 - **Patch Modernization & Cleanup**:
   - Replaced outdated / fuzzy patches with clean diffs matching latest upstream Git HEADs (zero fuzz, zero offsets, zero rejects).
   - Dropped `llama-cmake-include.patch`: upstream `llama.cpp` has integrated `INTERFACE_INCLUDE_DIRECTORIES` into `ggml-config.cmake.in`.

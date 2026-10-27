@@ -2,7 +2,7 @@
 
 pkgbase=libggml-git-hip
 pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip' 'parakeet.cpp-git-ggml-hip' 'strata-engine-git-ggml-hip')
-pkgver=11857.r9.g3f03b17
+pkgver=11937.r7.g1b4554e
 pkgrel=1
 pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp, parakeet.cpp, strata-engine - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
@@ -21,6 +21,7 @@ makedepends=(
     'opusfile' 'opencore-amr' 'lame'
     'python-numpy' 'python-jinja' 'python-regex' 'python-yaml'
     'python-tqdm' 'python-requests' 'python-pillow' 'python-psutil'
+    'hipblaslt' 'patchelf'
 )
 
 source=(
@@ -32,6 +33,7 @@ source=(
     "libwebm::git+https://github.com/webmproject/libwebm.git"
     "qwen3-tts.cpp::git+https://github.com/khimaros/qwen3-tts.cpp.git"
     "parakeet.cpp::git+https://github.com/mudler/parakeet.cpp.git"
+    "Strata::git+https://github.com/Niko1221/Strata.git"
     "README.md"
     "ggml.pc.in"
     "llama-cpp-system.patch"
@@ -47,7 +49,6 @@ source=(
     "whisper-version-commit.patch"
     "qwen3-tts-version-commit.patch"
     "jina-reranker-v3.patch"
-    "Strata::git+https://github.com/Niko1221/Strata.git"
     "strata-system-ggml.patch"
     "strata-version-commit.patch"
 )
@@ -60,7 +61,8 @@ sha256sums=('SKIP'
             'SKIP'
             'SKIP'
             'SKIP'
-            'b9bd3f493a69a06ed4c93f8c8630fcbbbb21966324e502c827ed6400f57d288e'
+            'SKIP'
+            'eaddd84ce96b86f06c6bd5948dfd55f72da3c25fe58bb0e3080de354f83e7761'
             '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
             '8c8d5aae9919b94febf30302daa483c448c5106c0de9f3e6f7052766b26fb068'
             '1204bae0ca0f976ac476b29dc75642b0896cbec74d05e9b79c2592f34e348da4'
@@ -75,7 +77,6 @@ sha256sums=('SKIP'
             '9dc4504e1ec56abe4a1be5afdd19bd8c7bcdc47816d05912a137955b7afee26d'
             '9d05bdb874ee51604912d8cb5a404755f4606f12f50cd5ea435622ff573a409b'
             'cb77e030f440a00a614b017e64551afa3043f95045589bb6daba22ac26b46358'
-            'SKIP'
             '4869dd1ec272352ec4240e3c1a19ce62f9e886997e66fbc6bfca4aa58e44210e'
             '44061f3f6c1db3d3c4266e06558ce57869845c480e35158adc78022ac2d6d7cc')
 
@@ -297,6 +298,7 @@ build() {
         -DSTRATA_ENABLE_CUDA=OFF \
         -DSTRATA_BUILD_TESTS=OFF \
         -DSTRATA_USE_SYSTEM_GGML=ON \
+        -DCMAKE_SKIP_RPATH=ON \
         -DCMAKE_PREFIX_PATH="${srcdir}/staging_hip/usr;${srcdir}/staging_llama_hip/usr;/usr"
     cmake --build build_strata_hip --target strata
 
@@ -402,7 +404,7 @@ package_strata-engine-git-ggml-hip() {
     pkgdesc="Inference engine for Qwen3.8-Flash-Next, DeepSeek-V4.1-Flash and Qwen3.6-35B (HIP/ROCm accelerated, shared libggml build)"
     depends=(
         'libggml-git-hip' 'llama.cpp-git-ggml-hip'
-        'hip-runtime-amd' 'hipblas' 'rocblas' 'openblas' 'gcc-libs'
+        'hip-runtime-amd' 'hipblas' 'hipblaslt' 'rocblas' 'openblas' 'gcc-libs'
         'python' 'python-numpy' 'python-jinja' 'python-regex' 'python-yaml'
         'python-tqdm' 'python-requests' 'python-pillow' 'python-psutil'
     )
@@ -426,7 +428,7 @@ package_strata-engine-git-ggml-hip() {
 
     # llama.cpp at the pinned commit for downstream tools / potential recompile
     install -d "${_share}/third_party/llama.cpp"
-    git -C "${srcdir}/llama.cpp" archive HEAD | tar -x -C "${_share}/third_party/llama.cpp"
+    git -C "${srcdir}/llama.cpp" archive HEAD | tar -x --no-same-owner -C "${_share}/third_party/llama.cpp"
     (
         cd "${_share}/third_party/llama.cpp"
         rm -rf docs media models tests benches pocs examples tools/ui scripts ci skills app
@@ -434,6 +436,7 @@ package_strata-engine-git-ggml-hip() {
 
     # --- Compiled engine and vision binaries ---
     install -Dm755 "${srcdir}/build_strata_hip/strata" "${_engine}/strata"
+    patchelf --remove-rpath "${_engine}/strata"
     install -Dm755 "${srcdir}/build_strata_vision_hip/bin/strata-vision-hip" "${_engine}/strata-vision-hip"
     ln -sf strata-vision-hip "${_engine}/strata-vision"
 
@@ -476,10 +479,10 @@ with open(sys.argv[2], "w", encoding="utf-8") as f:
     json.dump(meta, f, indent=1)
 PYEOF
 
-    echo "${pkgver}-${pkgrel}" > "${_share}/PKG_VERSION"
+    echo "${pkgver}-${pkgrel}" >"${_share}/PKG_VERSION"
 
     # --- Launcher script ---
-    cat > "${pkgdir}/usr/bin/strata" <<'EOF'
+    cat >"${pkgdir}/usr/bin/strata" <<'EOF'
 #!/bin/bash
 # Launcher for the strata-engine-git-ggml-hip package.
 #   strata                 first run: pick a model and install it; later runs: start the server
@@ -543,6 +546,8 @@ EOF
     install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
     install -Dm644 third_party/ggml/LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE.ggml"
     install -Dm644 "${srcdir}/llama.cpp/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE.llama.cpp"
-    install -d "${pkgdir}/usr/share/doc/strata"
-    install -Dm644 -t "${pkgdir}/usr/share/doc/strata" README.md SECURITY.md docs/*.md
+    install -d "${pkgdir}/usr/share/doc/${pkgname}/docs"
+    install -Dm644 -t "${pkgdir}/usr/share/doc/${pkgname}" README.md SECURITY.md
+    install -Dm644 -t "${pkgdir}/usr/share/doc/${pkgname}/docs" docs/*.md
+    ln -s "${pkgname}" "${pkgdir}/usr/share/doc/strata"
 }
