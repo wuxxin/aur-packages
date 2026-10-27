@@ -3,7 +3,7 @@
 
 pkgname=oh-my-pi-git-tag
 _pkgname=oh-my-pi
-pkgver=18.12.3.r23.g2220e58
+pkgver=18.13.1.r289.gc7ffd4f
 pkgrel=1
 pkgdesc="AI coding agent for the terminal — hash-anchored edits, optimized tool harness, LSP, Python SDK, browser extension, subagents, and more (git latest tag)"
 arch=('x86_64')
@@ -31,6 +31,7 @@ makedepends=(
     'bazel'
     'bun'
     'git'
+    'java-environment=21'
     'python-build'
     'python-installer'
     'python-setuptools'
@@ -63,6 +64,12 @@ prepare() {
     patch -p1 -i "${srcdir}/relative-json-asset-paths.patch"
     patch -p1 -i "${srcdir}/use-system-opus-pcre2.patch"
     patch -p1 -i "${srcdir}/tree-sitter-no-strict-aliasing.patch"
+
+    # Bazel 9.x requires JDK <= 25 (JDK 27 removes -Xverify:none). Ensure a compatible JDK is on PATH.
+    if [ -d "/usr/lib/jvm/java-21-openjdk/bin" ]; then
+        export PATH="/usr/lib/jvm/java-21-openjdk/bin:${PATH}"
+    fi
+
     # Crate annotations change the Bazel crate graph; Cargo.Bazel.lock needs a repin.
     CARGO_BAZEL_REPIN=1 bazel fetch @crates//...
 }
@@ -72,8 +79,11 @@ build() {
 
     unset CI CC CXX CFLAGS CXXFLAGS LDFLAGS RUSTFLAGS
 
-    bun install --frozen-lockfile
+    if [ -d "/usr/lib/jvm/java-21-openjdk/bin" ]; then
+        export PATH="/usr/lib/jvm/java-21-openjdk/bin:${PATH}"
+    fi
 
+    bun install --frozen-lockfile
     # Build browser relay extension
     (cd packages/browser-relay && bun run build)
 
@@ -155,6 +165,10 @@ package() {
     cd "${srcdir}/${_pkgname}"
     install -dm755 "${pkgdir}/usr/share/doc/${_pkgname}"
     cp -r docs/* "${pkgdir}/usr/share/doc/${_pkgname}/"
+    find "${pkgdir}/usr/share/doc/${_pkgname}" -type f -exec chmod 644 {} +
+    find "${pkgdir}/usr/share/doc/${_pkgname}" -type d -exec chmod 755 {} +
     install -dm755 "${pkgdir}/usr/share/doc/${_pkgname}/examples"
     cp -r packages/coding-agent/examples/* "${pkgdir}/usr/share/doc/${_pkgname}/examples/"
+    find "${pkgdir}/usr/share/doc/${_pkgname}/examples" -type f -exec chmod 644 {} +
+    find "${pkgdir}/usr/share/doc/${_pkgname}/examples" -type d -exec chmod 755 {} +
 }
