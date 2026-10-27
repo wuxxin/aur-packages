@@ -1,0 +1,67 @@
+name: Daily Upstream Version Check
+
+'on':
+  schedule:
+    # Run once daily at 12:00 UTC
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (check only, do not create PRs)'
+        type: boolean
+        default: false
+      packages:
+        description: 'Space-separated list of packages to check (e.g. coreos-installer salt)'
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-and-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git Author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install AUR packaging tools (makepkg, pacman, libarchive)
+        run: |
+          sudo add-apt-repository -y universe || true
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            makepkg \
+            pacman-package-manager \
+            libarchive-tools
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install nvchecker
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install nvchecker
+
+      - name: Run check and update
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          FLAGS="--pr"
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            FLAGS="--dry-run"
+          fi
+
+          PACKAGES="${{ github.event.inputs.packages }}"
+          ./scripts/check-and-update.sh ${FLAGS} ${PACKAGES}

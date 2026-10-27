@@ -1,0 +1,5 @@
+[torchao]
+source = "git"
+git = "https://github.com/pytorch/ao.git"
+prefix = "v"
+exclude_regex = ".*(pre|rc|alpha|beta|\\-).*"

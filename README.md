@@ -68,6 +68,8 @@ Can be **broken or bitrotten at anytime**.
     - with patches and Python Bindings to support the latest git version,
     - all packages link dynamically against a single system-wide `libggml-git-hip`.
         - This ensures consistent backend behavior / bug compatibility across all tools.
+### stale
+
 - [hermes-agent-git](hermes-agent-git) - Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)
     - System package adaptations: self-update disabled, runtime npm installs pre-built, PR patching mechanism
 

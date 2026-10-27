@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+#
+# updpkgsums - Update source checksums in-place in PKGBUILDs
+#
+# Copyright (C) 2012-2013 Dave Reisner <dreisner@archlinux.org>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+shopt -s extglob
+
+declare -r myname='updpkgsums'
+declare -r myver='1.13.1'
+declare LIBRARY=${LIBRARY:-'/usr/share/makepkg'}
+
+declare -a MAKEPKG_OPTS
+declare -i USE_COLOR=1
+declare buildfile='PKGBUILD'
+
+# Import libmakepkg with safe fallbacks
+if [[ -f "$LIBRARY/util/message.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "$LIBRARY/util/message.sh"
+else
+    colorize() { :; }
+    error() { echo "==> ERROR: $*" >&2; }
+fi
+
+if [[ -f "$LIBRARY/util/schema.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "$LIBRARY/util/schema.sh"
+fi
+
+usage() {
+    cat <<EOF
+${myname} v${myver}
+
+Update checksums of a PKGBUILD file.
+
+Usage: ${myname} [--nocolor] [build file]
+
+Options:
+  -h, --help     display this help message and exit
+  -m, --nocolor  do not colorize output
+  -V, --version  display version information and exit
+EOF
+}
+
+version() {
+    printf "%s %s\n" "$myname" "$myver"
+    echo 'Copyright (C) 2012-2013 Dave Reisner <dreisner@archlinux.org>'
+}
+
+die() {
+    error "$@"
+    exit 1
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+    -h | --help)
+        usage
+        exit
+        ;;
+    -m | --nocolor)
+        MAKEPKG_OPTS+=("$1")
+        USE_COLOR=0
+        shift
+        ;;
+    -V | --version)
+        version
+        exit
+        ;;
+    *)
+        buildfile="$1"
+        break
+        ;;
+    esac
+done
+
+# check if messages are to be printed using color
+if [[ -t 2 ]] && ((USE_COLOR)); then
+    colorize
+else
+    unset ALL_OFF BOLD BLUE GREEN RED YELLOW
+fi
+
+if [[ ! -f $buildfile ]]; then
+    die "$buildfile not found or is not a file"
+fi
+
+# Resolve any symlinks to avoid replacing the symlink with a file. But, we
+# have to do this portably -- readlink's flags are inconsistent across OSes.
+while [[ -L $buildfile ]]; do
+    buildfile=$(readlink "$buildfile")
+    if [[ $buildfile = */* ]]; then
+        cd "${buildfile%/*}" || exit
+        buildfile=${buildfile##*/}
+    fi
+done
+
+# cd into the directory with the build file. This avoids creating random src/
+# directories scattered about the filesystem, and avoids cases where we might
+# not be able to write in the $PWD.
+if [[ $buildfile = */* ]]; then
+    cd "${buildfile%/*}" || exit
+    buildfile=${buildfile##*/}
+fi
+
+# Check $PWD/ for permission to unlink the $buildfile and write a new one
+if [[ ! -w . ]]; then
+    die "No write permission in $PWD"
+fi
+
+# Generate the new sums
+BUILDDIR=$(mktemp -d "${TMPDIR:-/tmp}/updpkgsums.XXXXXX")
+export BUILDDIR
+newbuildfile=$(mktemp "${TMPDIR:-/tmp}/updpkgsums.XXXXXX")
+
+trap 'rm -rf "$BUILDDIR" "$newbuildfile"' EXIT
+# shellcheck disable=SC2154
+sumtypes=$(
+    IFS='|'
+    echo "${known_hash_algos[*]}"
+)
+if [[ -z "${sumtypes}" ]]; then
+    sumtypes="ck|md5|sha1|sha224|sha256|sha384|sha512|b2"
+fi
+newsums=$(makepkg -g -p "$buildfile" "${MAKEPKG_OPTS[@]}") || die 'Failed to generate new checksums'
+
+if [[ -z $newsums ]]; then
+    die "$buildfile does not contain sources to update"
+fi
+
+awk -v sumtypes="$sumtypes" -v newsums="$newsums" '
+    $0 ~"^[[:blank:]]*(" sumtypes ")sums(_[^=]+)?\\+?=", $0 ~ "\\)[[:blank:]]*(#.*)?$" {
+        if (!w) {
+            print newsums
+            w++
+        }
+        next
+    }
+
+    1
+    END { if (!w) print newsums }
+' "$buildfile" >"$newbuildfile" || die 'Failed to write new PKGBUILD'
+
+# Rewrite the original buildfile. Use cat instead of mv/cp to preserve
+# permissions implicitly.
+if ! cat -- "$newbuildfile" >"$buildfile"; then
+    die "Failed to update $buildfile. The file has not been modified."
+fi
