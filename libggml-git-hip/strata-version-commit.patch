@@ -1,0 +1,21 @@
+diff --git a/src/program/generate.cpp b/src/program/generate.cpp
+index 824bd19db..3de1b7c34 100644
+--- a/src/program/generate.cpp
++++ b/src/program/generate.cpp
+@@ -2871,7 +2871,15 @@ int main(int argc, char** argv) {
+     // `strata --version` / `-V` (also `strata generate --version`): the version and nothing else, before any GPU is touched
+     for (int i = 1; i < argc && i < 3; ++i) {
+         if (std::strcmp(argv[i], "--version") == 0 || std::strcmp(argv[i], "-V") == 0) {
+-            std::printf("strata %s\n", STRATA_VERSION);
++#if defined(STRATA_TAG_VERSION) && defined(STRATA_BUILD_COMMIT)
++            std::printf("strata version: %s (%s)\n", STRATA_TAG_VERSION, STRATA_BUILD_COMMIT);
++#elif defined(STRATA_BUILD_COMMIT)
++            std::printf("strata version: %s (%s)\n", STRATA_VERSION, STRATA_BUILD_COMMIT);
++#elif defined(STRATA_TAG_VERSION)
++            std::printf("strata version: %s\n", STRATA_TAG_VERSION);
++#else
++            std::printf("strata version: %s\n", STRATA_VERSION);
++#endif
+             return 0;
+         }
+         // `strata --families`: the GGUF architectures this build runs (setup asks before it installs one)

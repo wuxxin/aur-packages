@@ -1,8 +1,35 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 989f5cd..089a628 100644
+index 369d699c0..a4491d532 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -1693,7 +1693,15 @@ if(STRATA_NATIVE_EXPERTS)
+@@ -21,6 +21,26 @@ if(STRATA_ENABLE_SYCL)
+   return()
+ endif()
+ add_compile_definitions(STRATA_VERSION="${PROJECT_VERSION}")
++if(NOT STRATA_TAG_VERSION)
++  execute_process(COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} describe --tags --abbrev=0 OUTPUT_VARIABLE STRATA_TAG_RAW
++                  OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
++  string(REGEX REPLACE "^v" "" STRATA_TAG_VERSION "${STRATA_TAG_RAW}")
++endif()
++if(NOT STRATA_TAG_VERSION)
++  set(STRATA_TAG_VERSION "${PROJECT_VERSION}")
++endif()
++add_compile_definitions(STRATA_TAG_VERSION="${STRATA_TAG_VERSION}")
++if(NOT STRATA_BUILD_COMMIT AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/BUILD_ID)
++  file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/BUILD_ID STRATA_BUILD_COMMIT LIMIT_COUNT 1)
++endif()
++if(NOT STRATA_BUILD_COMMIT)
++  execute_process(COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} rev-parse --short=9 HEAD OUTPUT_VARIABLE STRATA_BUILD_COMMIT
++                  OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
++endif()
++if(NOT STRATA_BUILD_COMMIT)
++  set(STRATA_BUILD_COMMIT unknown)
++endif()
++add_compile_definitions(STRATA_BUILD_COMMIT="${STRATA_BUILD_COMMIT}")
+ # issue #31: release builds keep a PDB beside the exe (not shipped in it), so a minidump from a stalled engine can
+ # be read back to the exact source line
+ if(MSVC AND CMAKE_BUILD_TYPE STREQUAL "Release")
+@@ -1875,7 +1895,15 @@ if(STRATA_NATIVE_EXPERTS)
    else()
      set(GGML_NATIVE ON CACHE BOOL "" FORCE)
    endif()
@@ -21,7 +48,7 @@ index 989f5cd..089a628 100644
      include(FetchContent)
 diff --git a/src/platform/ggml_cpu_shim.cpp b/src/platform/ggml_cpu_shim.cpp
 new file mode 100644
-index 0000000..73a6c16
+index 000000000..73a6c16a6
 --- /dev/null
 +++ b/src/platform/ggml_cpu_shim.cpp
 @@ -0,0 +1,107 @@
@@ -133,7 +160,7 @@ index 0000000..73a6c16
 +
 +}
 diff --git a/tools/vision/CMakeLists.txt b/tools/vision/CMakeLists.txt
-index 4d16da5..8974a47 100644
+index 4d16da550..8974a473e 100644
 --- a/tools/vision/CMakeLists.txt
 +++ b/tools/vision/CMakeLists.txt
 @@ -91,9 +91,19 @@ if(STRATA_VISION_HIP)

@@ -64,6 +64,7 @@ pkgbase = libggml-git-hip
 	source = jina-reranker-v3.patch
 	source = Strata::git+https://github.com/Niko1221/Strata.git
 	source = strata-system-ggml.patch
+	source = strata-version-commit.patch
 	sha256sums = SKIP
 	sha256sums = SKIP
 	sha256sums = SKIP
@@ -88,7 +89,8 @@ pkgbase = libggml-git-hip
 	sha256sums = 9d05bdb874ee51604912d8cb5a404755f4606f12f50cd5ea435622ff573a409b
 	sha256sums = cb77e030f440a00a614b017e64551afa3043f95045589bb6daba22ac26b46358
 	sha256sums = SKIP
-	sha256sums = 193f15dc2ab1caa3471ee67e65e8f1b4455dd392dae704ff1b13383508f8148e
+	sha256sums = 4869dd1ec272352ec4240e3c1a19ce62f9e886997e66fbc6bfca4aa58e44210e
+	sha256sums = 44061f3f6c1db3d3c4266e06558ce57869845c480e35158adc78022ac2d6d7cc
 
 pkgname = libggml-git-hip
 	pkgdesc = Tensor library for machine learning (Dynamic Backends: CPU, BLAS, HIP/ROCm, Vulkan, GIT HEAD)

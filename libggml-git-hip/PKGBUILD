@@ -49,6 +49,7 @@ source=(
     "jina-reranker-v3.patch"
     "Strata::git+https://github.com/Niko1221/Strata.git"
     "strata-system-ggml.patch"
+    "strata-version-commit.patch"
 )
 
 sha256sums=('SKIP'
@@ -75,7 +76,8 @@ sha256sums=('SKIP'
             '9d05bdb874ee51604912d8cb5a404755f4606f12f50cd5ea435622ff573a409b'
             'cb77e030f440a00a614b017e64551afa3043f95045589bb6daba22ac26b46358'
             'SKIP'
-            '193f15dc2ab1caa3471ee67e65e8f1b4455dd392dae704ff1b13383508f8148e')
+            '4869dd1ec272352ec4240e3c1a19ce62f9e886997e66fbc6bfca4aa58e44210e'
+            '44061f3f6c1db3d3c4266e06558ce57869845c480e35158adc78022ac2d6d7cc')
 
 pkgver() {
     cd llama.cpp
@@ -131,6 +133,7 @@ prepare() {
     # prepare Strata
     cd "${srcdir}/Strata"
     patch -p1 <"${srcdir}/strata-system-ggml.patch"
+    patch -p1 <"${srcdir}/strata-version-commit.patch"
 }
 
 build() {
