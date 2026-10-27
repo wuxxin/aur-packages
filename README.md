@@ -59,15 +59,12 @@ Can be **broken or bitrotten at anytime**.
 - [groonga](groonga) - An open-source fulltext search engine and column store
     - Temporary private fork of AUR package with patch (`fix-blosc2-pkgconfig.patch`) fixing system `blosc2` CMake package detection.
 
-- [python-peft](python-peft)
-    - State-of-the-art Parameter-Efficient Fine-Tuning (v0.20.0, , updated, upstream aur is at 0.17)
-
 ### currently used private forks (different in AUR)
 
 - [oh-my-pi-git-tag](oh-my-pi-git-tag) - AI coding agent for the terminal
     - Built from git latest tag with dynamically evaluated versioning and system libraries (opus, pcre2).
 - [libggml-git-hip](libggml-git-hip) - HIP libggml git version shared library
-    - builds `libggml`, `llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts`, `parakeet.cpp` with hip/rocm accel from latest git
+    - builds `libggml`, `llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts`, `parakeet.cpp`, `strata-engine` with hip/rocm accel from latest git
     - with patches and Python Bindings to support the latest git version,
     - all packages link dynamically against a single system-wide `libggml-git-hip`.
         - This ensures consistent backend behavior / bug compatibility across all tools.
