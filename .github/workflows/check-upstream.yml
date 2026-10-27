@@ -2,8 +2,8 @@ name: Daily Upstream Version Check
 
 'on':
   schedule:
-    # Run once daily at 12:00 UTC
-    - cron: '0 12 * * *'
+    # Run once daily at 14:00 UTC
+    - cron: '0 14 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
