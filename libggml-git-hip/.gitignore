@@ -6,6 +6,7 @@ libwebm/
 qwen3-tts.cpp/
 parakeet.cpp/
 sdcpp-webui/
+Strata/
 libggml-git*.pkg.tar*
 llama.cpp*.pkg.tar*
 python-llama-cpp*.pkg.tar*
@@ -13,5 +14,6 @@ whisper.cpp*.pkg.tar*
 stable-diffusion.cpp*.pkg.tar*
 qwen3-tts.cpp*.pkg.tar*
 parakeet.cpp*.pkg.tar*
+strata-engine*.pkg.tar*
 *.gguf
 

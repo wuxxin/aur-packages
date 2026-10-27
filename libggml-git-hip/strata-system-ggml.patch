@@ -1,0 +1,161 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 989f5cd..089a628 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1693,7 +1693,15 @@ if(STRATA_NATIVE_EXPERTS)
+   else()
+     set(GGML_NATIVE ON CACHE BOOL "" FORCE)
+   endif()
+-  if(STRATA_GGML_DIR)
++  option(STRATA_USE_SYSTEM_GGML "Use system-installed GGML library" OFF)
++  if(STRATA_USE_SYSTEM_GGML)
++    find_package(ggml REQUIRED)
++    add_library(ggml ALIAS ggml::ggml)
++    add_library(ggml-base ALIAS ggml::ggml-base)
++    add_library(ggml-cpu ALIAS ggml::ggml)
++    target_sources(strata_kernels_cpu PRIVATE src/platform/ggml_cpu_shim.cpp)
++    target_link_libraries(strata_kernels_cpu PUBLIC ${CMAKE_DL_LIBS})
++  elseif(STRATA_GGML_DIR)
+     add_subdirectory(${STRATA_GGML_DIR}/ggml ${CMAKE_BINARY_DIR}/ggml EXCLUDE_FROM_ALL)
+   else()
+     include(FetchContent)
+diff --git a/src/platform/ggml_cpu_shim.cpp b/src/platform/ggml_cpu_shim.cpp
+new file mode 100644
+index 0000000..73a6c16
+--- /dev/null
++++ b/src/platform/ggml_cpu_shim.cpp
+@@ -0,0 +1,107 @@
++#include <ggml.h>
++#include <ggml-backend.h>
++#include <ggml-cpu.h>
++#include <dlfcn.h>
++#include <mutex>
++
++extern "C" {
++
++static void * get_cpu_backend_handle() {
++    static void * cpu_handle = nullptr;
++    static std::once_flag flag;
++    std::call_once(flag, []() {
++        void * sym = dlsym(RTLD_DEFAULT, "ggml_get_type_traits_cpu");
++        if (sym && sym != (void*)ggml_get_type_traits_cpu) {
++            cpu_handle = RTLD_DEFAULT;
++            return;
++        }
++        const char * paths[] = {
++            "/usr/lib/ggml/libggml-cpu-zen4.so",
++            "/usr/lib/ggml/libggml-cpu-alderlake.so",
++            "/usr/lib/ggml/libggml-cpu-skylakex.so",
++            "/usr/lib/ggml/libggml-cpu-haswell.so",
++            "/usr/lib/ggml/libggml-cpu-sandybridge.so",
++            "/usr/lib/ggml/libggml-cpu-x64.so",
++            nullptr
++        };
++        for (int i = 0; paths[i]; ++i) {
++            void * h = dlopen(paths[i], RTLD_NOW | RTLD_GLOBAL);
++            if (h) {
++                cpu_handle = h;
++                break;
++            }
++        }
++    });
++    return cpu_handle;
++}
++
++const struct ggml_type_traits_cpu * ggml_get_type_traits_cpu(enum ggml_type type) {
++    void * handle = get_cpu_backend_handle();
++    if (handle) {
++        typedef const struct ggml_type_traits_cpu * (*fn_t)(enum ggml_type);
++        auto fn = (fn_t) dlsym(handle, "ggml_get_type_traits_cpu");
++        if (fn && fn != ggml_get_type_traits_cpu) return fn(type);
++    }
++    return nullptr;
++}
++
++void ggml_cpu_init(void) {
++    void * handle = get_cpu_backend_handle();
++    if (handle) {
++        typedef void (*fn_t)(void);
++        auto fn = (fn_t) dlsym(handle, "ggml_cpu_init");
++        if (fn && fn != ggml_cpu_init) {
++            fn();
++        }
++    }
++}
++
++int ggml_cpu_has_avx(void) {
++    #if defined(__AVX__)
++    return 1;
++    #else
++    return __builtin_cpu_supports("avx");
++    #endif
++}
++
++int ggml_cpu_has_avx2(void) {
++    #if defined(__AVX2__)
++    return 1;
++    #else
++    return __builtin_cpu_supports("avx2");
++    #endif
++}
++
++int ggml_cpu_has_fma(void) {
++    #if defined(__FMA__)
++    return 1;
++    #else
++    return __builtin_cpu_supports("fma");
++    #endif
++}
++
++int ggml_cpu_has_f16c(void) {
++    #if defined(__F16C__)
++    return 1;
++    #else
++    return __builtin_cpu_supports("f16c");
++    #endif
++}
++
++int ggml_cpu_has_avx512(void) {
++    #if defined(__AVX512F__)
++    return 1;
++    #else
++    return __builtin_cpu_supports("avx512f");
++    #endif
++}
++
++int ggml_cpu_has_bmi2(void) {
++    #if defined(__BMI2__)
++    return 1;
++    #else
++    return __builtin_cpu_supports("bmi2");
++    #endif
++}
++
++}
+diff --git a/tools/vision/CMakeLists.txt b/tools/vision/CMakeLists.txt
+index 4d16da5..8974a47 100644
+--- a/tools/vision/CMakeLists.txt
++++ b/tools/vision/CMakeLists.txt
+@@ -91,9 +91,19 @@ if(STRATA_VISION_HIP)
+   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+ endif()
+ 
+-add_subdirectory(${LLAMA_DIR} llama EXCLUDE_FROM_ALL)
+-
+-add_executable(strata-vision strata_vision.cpp)
++option(STRATA_VISION_USE_SYSTEM_LLAMA "Use system-installed llama and mtmd" OFF)
++if(STRATA_VISION_USE_SYSTEM_LLAMA)
++  find_package(llama REQUIRED)
++  find_library(MTMD_LIBRARY mtmd REQUIRED HINTS ${LLAMA_LIB_DIR} /usr/lib)
++  add_library(mtmd UNKNOWN IMPORTED)
++  set_target_properties(mtmd PROPERTIES IMPORTED_LOCATION "${MTMD_LIBRARY}" INTERFACE_INCLUDE_DIRECTORIES "${LLAMA_INCLUDE_DIR}")
++  add_executable(strata-vision strata_vision.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../../src/platform/ggml_cpu_shim.cpp)
++  target_link_libraries(strata-vision PRIVATE mtmd llama ggml::ggml ggml::ggml-base ${CMAKE_DL_LIBS})
++else()
++  add_subdirectory(${LLAMA_DIR} llama EXCLUDE_FROM_ALL)
++  add_executable(strata-vision strata_vision.cpp)
++  target_link_libraries(strata-vision PRIVATE mtmd llama)
++endif()
+ if(MSVC)   # #3202: the ANSI code page of the process is UTF-8, so a Cyrillic model folder reaches the reader intact (see ../../CMakeLists.txt)
+   target_sources(strata-vision PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/strata-utf8.manifest)
+ endif()

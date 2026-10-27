@@ -1,6 +1,6 @@
 # libggml-git-hip
 
-An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts.cpp`, `parakeet.cpp`) for Arch Linux. This package uses **dynamic backends** (`GGML_BACKEND_DL=ON`) to compile and package **CPU** (with auto-selected instruction set variants), **OpenBLAS**, **HIP/ROCm**, and **Vulkan** backends under a unified shared library.
+An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts.cpp`, `parakeet.cpp`, `strata-engine`) for Arch Linux. This package uses **dynamic backends** (`GGML_BACKEND_DL=ON`) to compile and package **CPU** (with auto-selected instruction set variants), **OpenBLAS**, **HIP/ROCm**, and **Vulkan** backends under a unified shared library.
 
 ## Split Packages
 
@@ -11,6 +11,7 @@ An optimized Git HEAD compilation of the GGML tensor library and associated tool
 - **`stable-diffusion.cpp-git-ggml-hip`**: Stable Diffusion Text-to-Image generation tools (`sd-cli`, `sd-server`) dynamically linking to the shared library.
 - **`qwen3-tts.cpp-git-ggml-hip`**: Qwen3-TTS text-to-speech tools (`qwen3-tts-cli`, `qwen3-tts-server`) dynamically linking to the shared library.
 - **`parakeet.cpp-git-ggml-hip`**: FastConformer and TDT ASR tools (`parakeet-cli`, `parakeet-server`) dynamically linking to the shared library.
+- **`strata-engine-git-ggml-hip`**: Strata inference engine for large MoE models (Qwen 3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen 3.6-35B) with dynamic CPU expert offloading, native HIP acceleration, multimodal vision reader (`strata-vision-hip`), dynamically linking to shared `libggml.so`, `libllama.so`, and `libmtmd.so`.
 
 ## Key Features
 
@@ -39,11 +40,12 @@ It adds the following new packages:
 
 - `qwen3-tts.cpp` with HIP/ROCm acceleration.
 - `parakeet.cpp` with HIP/ROCm acceleration.
+- `strata-engine` with HIP/ROCm acceleration.
 
 In contrast to the listed AUR packages above, each of which contains their own static compilation of `libggml`, this package compiles `libggml` as a single system-wide shared library (`libggml-git-hip`) and dynamically links all downstream packages against it, we achieve:
 
 - **Disk, Compute & Memory Savings**: We compile the heavy HIP/ROCm GPU kernels only once.
-- **Unified Backend Upgrades**: A single update to `libggml-git-hip` automatically upgrades GPU kernel performance, RDNA optimizations, and model support across all 5 downstream tools.
+- **Unified Backend Upgrades**: A single update to `libggml-git-hip` automatically upgrades GPU kernel performance, RDNA optimizations, and model support across all 7 downstream tools.
 
 ### Avoiding Namespace Conflicts
 To prevent conflicts with existing standalone AUR packages (such as `llama.cpp-hip`, `stable-diffusion.cpp-git`, or `qwen3-tts.cpp`), this repository uses the naming suffix `-git-ggml-hip` for all downstream split packages (e.g. `stable-diffusion.cpp-git-ggml-hip` or `qwen3-tts-git-ggml-hip`).
@@ -134,9 +136,22 @@ Adds upstream support for the [jina-reranker-v3](https://huggingface.co/jinaai/j
   ```
   Then POST to `/v1/embeddings` to get 512-dim projected embeddings; compute cosine similarity client-side for reranking.
 
+### Strata System GGML & Dynamic CPU Shim (`strata-system-ggml.patch`)
+
+Adapts upstream Strata to dynamically link against system-shared `libggml.so`, `libllama.so`, and `libmtmd.so`:
+- **Dynamic CPU Traits Shim (`src/platform/ggml_cpu_shim.cpp`)**: When `libggml` is built with dynamic backend plugin loading (`GGML_BACKEND_DL=ON`), CPU arithmetic kernels reside in `/usr/lib/ggml/libggml-cpu-*.so`. The shim discovers and loads the active CPU variant plugin at runtime via `dlopen`/`dlsym` and provides hardware-accelerated CPU feature queries (`ggml_cpu_has_*`) via compiler builtins.
+- **Vision Reader Dynamic Linking**: Builds `strata-vision-hip` linking against system `libmtmd.so` and `libllama.so` with shared HIP runtime execution.
+
 ---
 
 ## Changelog
+
+### `11753.r0.gd8d9297-1` (Current)
+- **Strata Engine Subpackage (`strata-engine-git-ggml-hip`)**:
+  - Integrated Strata inference engine for large MoE models (Qwen 3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen 3.6-35B).
+  - Native AMD ROCm/HIP wave32 compilation (`gfx1010`–`gfx1201`).
+  - Dynamic linking against system shared `libggml.so`, `libllama.so`, and `libmtmd.so` via CPU traits shim (`strata-system-ggml.patch`).
+  - Multimodal vision reader (`strata-vision-hip`) and `/usr/bin/strata` runtime launcher.
 
 ### `10524.r8.g70aff25-1` (Current)
 - **Patch Modernization & Cleanup**:

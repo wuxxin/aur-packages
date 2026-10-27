@@ -1,10 +1,10 @@
 # Maintainer: Wuxxin <wuxxin@gmail.com>
 
 pkgbase=libggml-git-hip
-pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip' 'parakeet.cpp-git-ggml-hip')
-pkgver=11753.r0.gd8d9297
+pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip' 'parakeet.cpp-git-ggml-hip' 'strata-engine-git-ggml-hip')
+pkgver=11857.r9.g3f03b17
 pkgrel=1
-pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp, parakeet.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
+pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp, parakeet.cpp, strata-engine - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
 url="https://github.com/ggml-org/llama.cpp"
 license=('MIT' 'Apache-2.0' 'GPL-3.0-or-later')
@@ -19,6 +19,8 @@ makedepends=(
     'pnpm'
     'vulkan-headers' 'vulkan-icd-loader' 'shaderc' 'spirv-headers'
     'opusfile' 'opencore-amr' 'lame'
+    'python-numpy' 'python-jinja' 'python-regex' 'python-yaml'
+    'python-tqdm' 'python-requests' 'python-pillow' 'python-psutil'
 )
 
 source=(
@@ -45,6 +47,8 @@ source=(
     "whisper-version-commit.patch"
     "qwen3-tts-version-commit.patch"
     "jina-reranker-v3.patch"
+    "Strata::git+https://github.com/Niko1221/Strata.git"
+    "strata-system-ggml.patch"
 )
 
 sha256sums=('SKIP'
@@ -55,7 +59,7 @@ sha256sums=('SKIP'
             'SKIP'
             'SKIP'
             'SKIP'
-            '6e5d007bec363870ee2f7040da08ead18f8f091d0bece8457f9c0b3b584f2d18'
+            'b9bd3f493a69a06ed4c93f8c8630fcbbbb21966324e502c827ed6400f57d288e'
             '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
             '8c8d5aae9919b94febf30302daa483c448c5106c0de9f3e6f7052766b26fb068'
             '1204bae0ca0f976ac476b29dc75642b0896cbec74d05e9b79c2592f34e348da4'
@@ -69,7 +73,9 @@ sha256sums=('SKIP'
             'd1f2f2a5454b335b7e23c82df22753362446d87a889eabb0fe4d6d38a93386cb'
             '9dc4504e1ec56abe4a1be5afdd19bd8c7bcdc47816d05912a137955b7afee26d'
             '9d05bdb874ee51604912d8cb5a404755f4606f12f50cd5ea435622ff573a409b'
-            'cb77e030f440a00a614b017e64551afa3043f95045589bb6daba22ac26b46358')
+            'cb77e030f440a00a614b017e64551afa3043f95045589bb6daba22ac26b46358'
+            'SKIP'
+            '193f15dc2ab1caa3471ee67e65e8f1b4455dd392dae704ff1b13383508f8148e')
 
 pkgver() {
     cd llama.cpp
@@ -121,6 +127,10 @@ prepare() {
     # prepare parakeet.cpp
     cd "${srcdir}/parakeet.cpp"
     patch -p1 <"${srcdir}/parakeet-system-ggml.patch"
+
+    # prepare Strata
+    cd "${srcdir}/Strata"
+    patch -p1 <"${srcdir}/strata-system-ggml.patch"
 }
 
 build() {
@@ -258,6 +268,47 @@ build() {
         -DPARAKEET_BUILD_CLI=ON \
         -DPARAKEET_BUILD_SERVER=ON
     cmake --build build_parakeet_hip
+
+    # --- Architecture resolution for Strata ---
+    # Strata HIP kernels target AMD RDNA wave32 GPUs (gfx1010-gfx1034, gfx1100-gfx1152, gfx1200-gfx1201)
+    local _STRATA_WHITELIST="gfx1100;gfx1101;gfx1102;gfx1103;gfx1150;gfx1151;gfx1152;gfx1200;gfx1201;gfx1010;gfx1011;gfx1012;gfx1030;gfx1031;gfx1032;gfx1034"
+    local _STRATA_HIP_ARCHS=""
+    local _a
+    for _a in ${GPU_TARGETS//;/ }; do
+        if [[ ";${_STRATA_WHITELIST};" == *";${_a};"* ]]; then
+            _STRATA_HIP_ARCHS="${_STRATA_HIP_ARCHS:+${_STRATA_HIP_ARCHS};}${_a}"
+        fi
+    done
+    if [[ -z "$_STRATA_HIP_ARCHS" ]]; then
+        _STRATA_HIP_ARCHS="gfx1100;gfx1201"
+    fi
+
+    # --- Build Strata Engine (HIP) using system ggml ---
+    echo "--- Building Strata Engine (HIP) with system ggml ---"
+    cmake -B build_strata_hip -S Strata -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="/usr" \
+        -DCMAKE_HIP_COMPILER=/opt/rocm/bin/amdclang++ \
+        -DCMAKE_HIP_ARCHITECTURES="${_STRATA_HIP_ARCHS}" \
+        -DSTRATA_ENABLE_HIP=ON \
+        -DSTRATA_ENABLE_CUDA=OFF \
+        -DSTRATA_BUILD_TESTS=OFF \
+        -DSTRATA_USE_SYSTEM_GGML=ON \
+        -DCMAKE_PREFIX_PATH="${srcdir}/staging_hip/usr;${srcdir}/staging_llama_hip/usr;/usr"
+    cmake --build build_strata_hip --target strata
+
+    # --- Build Strata Vision (HIP) using system llama & mtmd ---
+    echo "--- Building Strata Vision (HIP) with system llama/mtmd ---"
+    cmake -B build_strata_vision_hip -S Strata/tools/vision -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="/usr" \
+        -DCMAKE_HIP_COMPILER=/opt/rocm/bin/amdclang++ \
+        -DSTRATA_VISION_HIP=ON \
+        -DSTRATA_VISION_HIP_ARCHS="${_STRATA_HIP_ARCHS}" \
+        -DSTRATA_PORTABLE=OFF \
+        -DSTRATA_VISION_USE_SYSTEM_LLAMA=ON \
+        -DCMAKE_PREFIX_PATH="${srcdir}/staging_hip/usr;${srcdir}/staging_llama_hip/usr;/usr"
+    cmake --build build_strata_vision_hip --target strata-vision
 }
 
 package_libggml-git-hip() {
@@ -342,4 +393,153 @@ package_parakeet.cpp-git-ggml-hip() {
 
     install -Dm644 "${srcdir}/parakeet.cpp/LICENSE" \
         -t "${pkgdir}/usr/share/licenses/${pkgname}"
+}
+
+package_strata-engine-git-ggml-hip() {
+    pkgdesc="Inference engine for Qwen3.8-Flash-Next, DeepSeek-V4.1-Flash and Qwen3.6-35B (HIP/ROCm accelerated, shared libggml build)"
+    depends=(
+        'libggml-git-hip' 'llama.cpp-git-ggml-hip'
+        'hip-runtime-amd' 'hipblas' 'rocblas' 'openblas' 'gcc-libs'
+        'python' 'python-numpy' 'python-jinja' 'python-regex' 'python-yaml'
+        'python-tqdm' 'python-requests' 'python-pillow' 'python-psutil'
+    )
+    optdepends=(
+        'cmake: recompile the engine when your GPU is outside the architectures built here'
+        'ninja: recompile the engine when your GPU is outside the architectures built here'
+        'gcc: recompile the engine when your GPU is outside the architectures built here'
+        'nodejs: run npx-based MCP servers from the web chat'
+    )
+    provides=('strata-engine' 'strata-engine-git' 'strata-engine-hip')
+    conflicts=('strata-engine' 'strata-engine-git' 'strata-engine-hip')
+
+    local _share="${pkgdir}/usr/share/strata"
+    local _engine="${pkgdir}/usr/lib/strata/engine"
+    install -d "${_share}" "${_engine}" "${pkgdir}/usr/bin"
+
+    # --- Read-only application tree ---
+    cd "${srcdir}/Strata"
+    cp -r serve tools data include src third_party strata_control "${_share}/"
+    install -Dm644 -t "${_share}" CMakeLists.txt setup.py chat.py requirements.txt
+
+    # llama.cpp at the pinned commit for downstream tools / potential recompile
+    install -d "${_share}/third_party/llama.cpp"
+    git -C "${srcdir}/llama.cpp" archive HEAD | tar -x -C "${_share}/third_party/llama.cpp"
+    (
+        cd "${_share}/third_party/llama.cpp"
+        rm -rf docs media models tests benches pocs examples tools/ui scripts ci skills app
+    )
+
+    # --- Compiled engine and vision binaries ---
+    install -Dm755 "${srcdir}/build_strata_hip/strata" "${_engine}/strata"
+    install -Dm755 "${srcdir}/build_strata_vision_hip/bin/strata-vision-hip" "${_engine}/strata-vision-hip"
+    ln -sf strata-vision-hip "${_engine}/strata-vision"
+
+    # --- Generate BUILD.json metadata ---
+    local _STRATA_WHITELIST="gfx1100;gfx1101;gfx1102;gfx1103;gfx1150;gfx1151;gfx1152;gfx1200;gfx1201;gfx1010;gfx1011;gfx1012;gfx1030;gfx1031;gfx1032;gfx1034"
+    local _STRATA_HIP_ARCHS=""
+    local _tgt="${GPU_TARGETS:-}"
+    if [[ -z "$_tgt" ]]; then
+        _tgt=$(rocm-supported-gfx 2>/dev/null || echo "gfx1100;gfx1201")
+    fi
+    local _a
+    for _a in ${_tgt//;/ }; do
+        if [[ ";${_STRATA_WHITELIST};" == *";${_a};"* ]]; then
+            _STRATA_HIP_ARCHS="${_STRATA_HIP_ARCHS:+${_STRATA_HIP_ARCHS};}${_a}"
+        fi
+    done
+    if [[ -z "$_STRATA_HIP_ARCHS" ]]; then
+        _STRATA_HIP_ARCHS="gfx1100;gfx1201"
+    fi
+
+    cd "${_share}"
+    PYTHONDONTWRITEBYTECODE=1 python - "${_STRATA_HIP_ARCHS}" "${_engine}/BUILD.json" <<'PYEOF'
+import json, sys
+sys.path.insert(0, ".")
+import setup
+
+archs = [a.strip() for a in sys.argv[1].replace(",", ";").split(";") if a.strip()]
+meta = {
+    "source": "local-hip",
+    "backend": "hip",
+    "version": setup.source_version(),
+    "archs": archs,
+    "vision": "gpu",
+    "vision_archs": archs,
+    "lib_dirs": ["/opt/rocm/lib"],
+    "src": setup.source_hash(setup.ENGINE_SOURCES),
+    "vision_src": setup.source_hash(setup.VISION_SOURCES),
+}
+with open(sys.argv[2], "w", encoding="utf-8") as f:
+    json.dump(meta, f, indent=1)
+PYEOF
+
+    echo "${pkgver}-${pkgrel}" > "${_share}/PKG_VERSION"
+
+    # --- Launcher script ---
+    cat > "${pkgdir}/usr/bin/strata" <<'EOF'
+#!/bin/bash
+# Launcher for the strata-engine-git-ggml-hip package.
+#   strata                 first run: pick a model and install it; later runs: start the server
+#   strata --setup         install another model or change settings
+#   strata --help          every option (the same ones as upstream's ./setup.sh)
+#   strata chat            terminal chat with a running server
+# Files live in ${STRATA_HOME:-~/.local/share/strata}; model files go to Strata-data next to app/
+# (about 70-120 GB, change it with --data-dir).
+set -e
+
+share=/usr/share/strata
+lib=/usr/lib/strata
+home="${STRATA_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/strata}"
+app="$home/app"
+stamp="$(cat "$share/PKG_VERSION")"
+
+if [ "$(cat "$app/.pkg-version" 2>/dev/null)" != "$stamp" ]; then
+  mkdir -p "$app/engine"
+  for f in setup.py chat.py requirements.txt; do
+    cp -f "$share/$f" "$app/$f"
+  done
+  for d in CMakeLists.txt serve tools data include src third_party strata_control; do
+    ln -sfn "$share/$d" "$app/$d"
+  done
+  cp -f "$lib/engine/BUILD.json" "$app/engine/BUILD.json"
+  for b in strata strata-vision strata-vision-hip; do
+    if [ -e "$lib/engine/$b" ]; then ln -sf "$lib/engine/$b" "$app/engine/$b"; fi
+  done
+  echo "$stamp" > "$app/.pkg-version"
+  echo "strata: set up $app" >&2
+  echo "strata: model files go to $home/Strata-data (use --data-dir to put them elsewhere)" >&2
+fi
+
+cd "$app"
+
+export ROCM_PATH="${ROCM_PATH:-/opt/rocm}"
+export HIP_PATH="${HIP_PATH:-/opt/rocm}"
+
+if [ "${1:-}" = chat ]; then
+  shift
+  exec python3 chat.py "$@"
+fi
+
+exec python3 -c '
+import sys
+sys.path.insert(0, ".")
+import setup
+setup.pip_install = lambda *args, **kwargs: None   # Python packages come from pacman
+sys.argv[0] = "strata"
+try:
+    sys.exit(setup.main())
+except KeyboardInterrupt:
+    setup.say("\nstopped.")
+    sys.exit(1)
+' "$@"
+EOF
+    chmod 755 "${pkgdir}/usr/bin/strata"
+
+    # --- Licenses and docs ---
+    cd "${srcdir}/Strata"
+    install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+    install -Dm644 third_party/ggml/LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE.ggml"
+    install -Dm644 "${srcdir}/llama.cpp/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE.llama.cpp"
+    install -d "${pkgdir}/usr/share/doc/strata"
+    install -Dm644 -t "${pkgdir}/usr/share/doc/strata" README.md SECURITY.md docs/*.md
 }
