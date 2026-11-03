@@ -3,7 +3,7 @@
 
 pkgname=oh-my-pi-git-tag
 _pkgname=oh-my-pi
-pkgver=18.13.1.r289.gc7ffd4f
+pkgver=18.16.0.r51.gf3410da
 pkgrel=1
 pkgdesc="AI coding agent for the terminal — hash-anchored edits, optimized tool harness, LSP, Python SDK, browser extension, subagents, and more (git latest tag)"
 arch=('x86_64')
@@ -29,7 +29,7 @@ optdepends=(
 )
 makedepends=(
     'bazel'
-    'bun'
+    'bun>=1.4.4'
     'git'
     'java-environment=21'
     'python-build'
@@ -69,6 +69,8 @@ prepare() {
     if [ -d "/usr/lib/jvm/java-21-openjdk/bin" ]; then
         export PATH="/usr/lib/jvm/java-21-openjdk/bin:${PATH}"
     fi
+    # Arch's /usr/bin/bazel wrapper checks .bazelversion unless USE_BAZEL_VERSION is set.
+    export USE_BAZEL_VERSION="${USE_BAZEL_VERSION:-latest}"
 
     # Crate annotations change the Bazel crate graph; Cargo.Bazel.lock needs a repin.
     CARGO_BAZEL_REPIN=1 bazel fetch @crates//...
@@ -82,6 +84,7 @@ build() {
     if [ -d "/usr/lib/jvm/java-21-openjdk/bin" ]; then
         export PATH="/usr/lib/jvm/java-21-openjdk/bin:${PATH}"
     fi
+    export USE_BAZEL_VERSION="${USE_BAZEL_VERSION:-latest}"
 
     bun install --frozen-lockfile
     # Build browser relay extension

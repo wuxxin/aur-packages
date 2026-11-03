@@ -1,12 +1,12 @@
 pkgbase = oh-my-pi-git-tag
 	pkgdesc = AI coding agent for the terminal — hash-anchored edits, optimized tool harness, LSP, Python SDK, browser extension, subagents, and more (git latest tag)
-	pkgver = 18.13.1.r289.gc7ffd4f
+	pkgver = 18.16.0.r51.gf3410da
 	pkgrel = 1
 	url = https://github.com/can1357/oh-my-pi
 	arch = x86_64
 	license = MIT
 	makedepends = bazel
-	makedepends = bun
+	makedepends = bun>=1.4.4
 	makedepends = git
 	makedepends = java-environment=21
 	makedepends = python-build
