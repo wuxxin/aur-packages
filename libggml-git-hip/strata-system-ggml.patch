@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 369d699c0..a4491d532 100644
+index 8659bf89c..719580b62 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -21,6 +21,26 @@ if(STRATA_ENABLE_SYCL)
@@ -29,7 +29,7 @@ index 369d699c0..a4491d532 100644
  # issue #31: release builds keep a PDB beside the exe (not shipped in it), so a minidump from a stalled engine can
  # be read back to the exact source line
  if(MSVC AND CMAKE_BUILD_TYPE STREQUAL "Release")
-@@ -1875,7 +1895,15 @@ if(STRATA_NATIVE_EXPERTS)
+@@ -2101,7 +2121,15 @@ if(STRATA_NATIVE_EXPERTS)
    else()
      set(GGML_NATIVE ON CACHE BOOL "" FORCE)
    endif()
@@ -48,15 +48,16 @@ index 369d699c0..a4491d532 100644
      include(FetchContent)
 diff --git a/src/platform/ggml_cpu_shim.cpp b/src/platform/ggml_cpu_shim.cpp
 new file mode 100644
-index 000000000..73a6c16a6
+index 000000000..201999eb3
 --- /dev/null
 +++ b/src/platform/ggml_cpu_shim.cpp
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,159 @@
 +#include <ggml.h>
 +#include <ggml-backend.h>
 +#include <ggml-cpu.h>
 +#include <dlfcn.h>
 +#include <mutex>
++#include <cstdlib>
 +
 +extern "C" {
 +
@@ -69,20 +70,71 @@ index 000000000..73a6c16a6
 +            cpu_handle = RTLD_DEFAULT;
 +            return;
 +        }
++
++        // Allow explicit user override via environment variable
++        const char * override_variant = std::getenv("GGML_CPU_VARIANT");
++        if (override_variant && override_variant[0] != '\0') {
++            char custom_path[256];
++            snprintf(custom_path, sizeof(custom_path), "/usr/lib/ggml/libggml-cpu-%s.so", override_variant);
++            void * h = dlopen(custom_path, RTLD_NOW | RTLD_GLOBAL);
++            if (h) {
++                cpu_handle = h;
++                return;
++            }
++        }
++
 +        const char * paths[] = {
 +            "/usr/lib/ggml/libggml-cpu-zen4.so",
-+            "/usr/lib/ggml/libggml-cpu-alderlake.so",
++            "/usr/lib/ggml/libggml-cpu-sapphirerapids.so",
++            "/usr/lib/ggml/libggml-cpu-cooperlake.so",
++            "/usr/lib/ggml/libggml-cpu-icelake.so",
++            "/usr/lib/ggml/libggml-cpu-cascadelake.so",
++            "/usr/lib/ggml/libggml-cpu-cannonlake.so",
 +            "/usr/lib/ggml/libggml-cpu-skylakex.so",
++            "/usr/lib/ggml/libggml-cpu-alderlake.so",
 +            "/usr/lib/ggml/libggml-cpu-haswell.so",
++            "/usr/lib/ggml/libggml-cpu-piledriver.so",
++            "/usr/lib/ggml/libggml-cpu-ivybridge.so",
 +            "/usr/lib/ggml/libggml-cpu-sandybridge.so",
++            "/usr/lib/ggml/libggml-cpu-sse42.so",
 +            "/usr/lib/ggml/libggml-cpu-x64.so",
 +            nullptr
 +        };
++
++        int best_score = 0;
++        const char * best_path = nullptr;
++
 +        for (int i = 0; paths[i]; ++i) {
-+            void * h = dlopen(paths[i], RTLD_NOW | RTLD_GLOBAL);
++            // Load locally to inspect score
++            void * h = dlopen(paths[i], RTLD_NOW | RTLD_LOCAL);
 +            if (h) {
-+                cpu_handle = h;
-+                break;
++                typedef int (*score_fn_t)(void);
++                auto score_fn = (score_fn_t) dlsym(h, "ggml_backend_score");
++                int score = score_fn ? score_fn() : 0;
++                if (score > best_score) {
++                    best_score = score;
++                    best_path = paths[i];
++                }
++                dlclose(h);
++            }
++        }
++
++        if (best_path) {
++            cpu_handle = dlopen(best_path, RTLD_NOW | RTLD_GLOBAL);
++        }
++
++        if (!cpu_handle) {
++            const char * fallbacks[] = {
++                "/usr/lib/ggml/libggml-cpu-x64.so",
++                "/usr/lib/ggml/libggml-cpu.so",
++                nullptr
++            };
++            for (int i = 0; fallbacks[i]; ++i) {
++                void * h = dlopen(fallbacks[i], RTLD_NOW | RTLD_GLOBAL);
++                if (h) {
++                    cpu_handle = h;
++                    break;
++                }
 +            }
 +        }
 +    });

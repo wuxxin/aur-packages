@@ -1,0 +1,25 @@
+diff --git a/src/core/ggml_compat.cpp b/src/core/ggml_compat.cpp
+index 061b3370..b7f8e1ff 100644
+--- a/src/core/ggml_compat.cpp
++++ b/src/core/ggml_compat.cpp
+@@ -159,7 +159,19 @@ ggml_status ggml_backend_graph_compute_async_range(ggml_backend_t backend, ggml_
+     if (first == last) {
+         return GGML_STATUS_SUCCESS;
+     }
+-    auto view = ggml_graph_view(graph, first, last);
++    struct ggml_cgraph view = {
++        /*.size             =*/ 0,
++        /*.n_nodes          =*/ last - first,
++        /*.n_leafs          =*/ 0,
++        /*.nodes            =*/ graph->nodes + first,
++        /*.grads            =*/ NULL,
++        /*.grad_accs        =*/ NULL,
++        /*.leafs            =*/ NULL,
++        /*.use_counts       =*/ graph->use_counts,
++        /*.visited_hash_set =*/ graph->visited_hash_set,
++        /*.order            =*/ graph->order,
++        /*.uid              =*/ 0,
++    };
+     return ggml_backend_graph_compute_async(backend, &view);
+ }
+ #endif

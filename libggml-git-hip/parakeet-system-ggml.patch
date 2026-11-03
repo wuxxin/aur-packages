@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 6b900f1..073d5ff 100644
+index 060e3c9..dc07108 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -43,27 +43,31 @@ if(NOT DEFINED GGML_LLAMAFILE)
@@ -244,10 +244,10 @@ index e657ea2..ac2839b 100644
  
  } // namespace pk
 diff --git a/src/model_loader.cpp b/src/model_loader.cpp
-index f6037b2..287ec74 100644
+index d9932e0..e964e41 100644
 --- a/src/model_loader.cpp
 +++ b/src/model_loader.cpp
-@@ -91,18 +91,19 @@ bool ModelLoader::realize_weights(ggml_backend_t backend){
+@@ -96,18 +96,19 @@ bool ModelLoader::realize_weights(ggml_backend_t backend){
      if(weights_buf_.load(std::memory_order_acquire)) return true;   // idempotent
      if(!backend || !ctx_){ PK_LOG("realize_weights: null backend/ctx"); return false; }
  

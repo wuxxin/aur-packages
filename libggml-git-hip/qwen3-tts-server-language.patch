@@ -1,6 +1,8 @@
+diff --git a/src/server.cpp b/src/server.cpp
+index c20c7f2..6d0858a 100644
 --- a/src/server.cpp
 +++ b/src/server.cpp
-@@ -263,6 +263,7 @@
+@@ -263,6 +263,7 @@ struct server_params {
      int         top_k              = 50;
      float       repetition_penalty = 1.05f;
      int64_t     seed               = -1;
@@ -8,7 +10,7 @@
  };
  
  // download a file from a huggingface repo, returns local cache path
-@@ -348,6 +349,7 @@
+@@ -348,6 +349,7 @@ static void print_usage(const char * program) {
      fprintf(stderr, "       --top-k <n>                 top-k sampling default (default: 50)\n");
      fprintf(stderr, "       --repetition-penalty <f>    repetition penalty default (default: 1.05)\n");
      fprintf(stderr, "       --seed <n>                  default sampling seed (default: -1 = random)\n");
@@ -16,7 +18,7 @@
      fprintf(stderr, "  -h,  --help                     show this help\n");
  }
  
-@@ -405,6 +407,13 @@
+@@ -405,6 +407,13 @@ static bool parse_args(int argc, char ** argv, server_params & sp) {
          } else if (arg == "--seed") {
              if (++i >= argc) { fprintf(stderr, "error: missing seed\n"); return false; }
              sp.seed = std::stoll(argv[i]);
@@ -30,7 +32,7 @@
          } else {
              fprintf(stderr, "error: unknown argument: %s\n", arg.c_str());
              return false;
-@@ -715,7 +724,7 @@
+@@ -715,7 +724,7 @@ int main(int argc, char ** argv) {
          std::string stream_format   = body.value("stream_format", "");
          std::string voice           = body.value("voice", "");
          std::string instructions    = body.value("instructions", "");

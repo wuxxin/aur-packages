@@ -11,10 +11,10 @@ index c8a08468d..9db57f040 100644
  
  set_target_properties(parakeet PROPERTIES PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/include/parakeet.h)
 diff --git a/src/whisper.cpp b/src/whisper.cpp
-index 6e0fbf4a1..ca3442c74 100644
+index be0b865d7..be8572c2a 100644
 --- a/src/whisper.cpp
 +++ b/src/whisper.cpp
-@@ -9347,7 +9347,11 @@ void whisper_log_set(ggml_log_callback log_callback, void * user_data) {
+@@ -9356,7 +9356,11 @@ void whisper_log_set(ggml_log_callback log_callback, void * user_data) {
  }
  
  const char * whisper_version(void) {

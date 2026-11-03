@@ -2,7 +2,7 @@
 
 pkgbase=libggml-git-hip
 pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip' 'parakeet.cpp-git-ggml-hip' 'strata-engine-git-ggml-hip')
-pkgver=11937.r7.g1b4554e
+pkgver=12070.r17.g28b812d
 pkgrel=1
 pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp, parakeet.cpp, strata-engine - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
@@ -51,6 +51,7 @@ source=(
     "jina-reranker-v3.patch"
     "strata-system-ggml.patch"
     "strata-version-commit.patch"
+    "stable-diffusion-system-ggml.patch"
 )
 
 sha256sums=('SKIP'
@@ -66,19 +67,20 @@ sha256sums=('SKIP'
             '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
             '8c8d5aae9919b94febf30302daa483c448c5106c0de9f3e6f7052766b26fb068'
             '1204bae0ca0f976ac476b29dc75642b0896cbec74d05e9b79c2592f34e348da4'
-            '19a40631c4678d72f97bc72cc40b70a5addf0b0f63c8f14c7cdbe1e047f1064c'
+            '991fe43e84531c9c7449e0e132c237df1cf497c295928045a93273f12ffb694f'
             '17fdfd17833fdd7d2a5f584c1d781c1e5340d47f05555ec1cf89487a341c8bea'
             '3f6b0f1e6111da9866f8cced49bca0e34972171017455700624792a6b749ced0'
             '1e50216d2a837c1aa8537a3acecbe05f8cc147eb54e6a73600de9419678202c4'
             'dbaf6c498a0d0a1086daecce51025a0fd30521089735dbd74c95973dab300e58'
             'bdfaa2ac8b095b086ca36de39bd37cfd56732ba400688a255d0de7cc005e4e53'
-            '30d3fdae3cb7de354ac334b3c13a80268916da1382b93b4c591ed8846dfb147a'
-            'd1f2f2a5454b335b7e23c82df22753362446d87a889eabb0fe4d6d38a93386cb'
-            '9dc4504e1ec56abe4a1be5afdd19bd8c7bcdc47816d05912a137955b7afee26d'
+            'cc552b3a2051901acee7dfa4dc01b404bdd8f204adb9c112a2830b35ca86b333'
+            '3a81d8f39ef6459c1ab58c8b3b1e126daed4eb2458d6dc7d59530fbc8d7d2bcc'
+            'b836a9927e3a1dc3c93f8d4b3b25109954f0b65acf087c45b29c094e9c917a06'
             '9d05bdb874ee51604912d8cb5a404755f4606f12f50cd5ea435622ff573a409b'
-            'cb77e030f440a00a614b017e64551afa3043f95045589bb6daba22ac26b46358'
-            '4869dd1ec272352ec4240e3c1a19ce62f9e886997e66fbc6bfca4aa58e44210e'
-            '44061f3f6c1db3d3c4266e06558ce57869845c480e35158adc78022ac2d6d7cc')
+            '71a64ea73488b37df3d60f9e63658694f9e4441b5dae39a44369e3236ed038b5'
+            '0feeebfed6609214049e4e259a2b52dfc35ae5cb2fe7aa20055d9a8e9abba61e'
+            'ad8229bad5326e1d1cf04a70a37060578e281d88fc831bd3f2aadae666c699c1'
+            '65cd71a40e2c3c7864a0563bae3061ce16af2c6ced6cba55e30fc92c46880d59')
 
 pkgver() {
     cd llama.cpp
@@ -107,6 +109,7 @@ prepare() {
 
     # Prepare stable-diffusion.cpp submodules
     cd "${srcdir}/stable-diffusion.cpp"
+    patch -p1 <"${srcdir}/stable-diffusion-system-ggml.patch"
     git submodule init
     git config submodule.examples/server/frontend.url "${srcdir}/sdcpp-webui"
     git config submodule.thirdparty/libwebm.url "${srcdir}/libwebm"
