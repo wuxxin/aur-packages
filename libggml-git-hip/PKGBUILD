@@ -1,7 +1,11 @@
 # Maintainer: Wuxxin <wuxxin@gmail.com>
 
 pkgbase=libggml-git-hip
-pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip' 'parakeet.cpp-git-ggml-hip' 'strata-engine-git-ggml-hip')
+if [[ -n "${PKGNAMES_FILTER:-}" ]]; then
+    pkgname=(${PKGNAMES_FILTER})
+else
+    pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip' 'parakeet.cpp-git-ggml-hip' 'strata-engine-git-ggml-hip')
+fi
 pkgver=12070.r17.g28b812d
 pkgrel=1
 pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp, parakeet.cpp, strata-engine - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
