@@ -3,7 +3,7 @@
 
 pkgname=oh-my-pi-git-tag
 _pkgname=oh-my-pi
-pkgver=18.18.0.r17.gf2b795b
+pkgver=18.18.8.r212.g9369103
 pkgrel=1
 pkgdesc="AI coding agent for the terminal — hash-anchored edits, optimized tool harness, LSP, Python SDK, browser extension, subagents, and more (git latest tag)"
 arch=('x86_64')
@@ -30,6 +30,7 @@ optdepends=(
 makedepends=(
     'bazel'
     'bun>=1.4.4'
+    'cmake'
     'git'
     'java-environment=21'
     'python-build'
@@ -47,10 +48,10 @@ source=(
     "relative-json-asset-paths.patch"
 )
 sha256sums=('SKIP'
-            '77cb8e75c88b94e0f001529dfb4145fffa762acf2fb719e2ae52f617b60701e3'
-            '0bdcc2ee30428eeac189603fbb8579647754c0830b0a1480a10fa5823e532f05'
-            '07c53dcc937479c66a2ab5171f4604a132c8ae93d381331d1f9460e5a9155af4'
-            '1bb90d0eb4485fbd7ca8aea990ecc0477e44d08cdc76153ba5c4bcc612f1ffd9')
+            'bb28e64651c71739d1920e2710f7937770e65ae5e6ea3e2f4e303daf6622d05f'
+            '8a0ed6a622859366f906375143fa59b7830c73d0c90c10483628f2f42e118083'
+            'b1ac2e50d47c08dd874e6cbc6f5be43e5c2660d86183319e9abf3e33b2cfe2f8'
+            '776521387270139bab83e49392ea6dfa58623fc6f762c4ae8ada3f3dd65bcc0a')
 
 pkgver() {
     cd "${srcdir}/${_pkgname}"
@@ -89,6 +90,8 @@ build() {
     bun install --frozen-lockfile
     # Build browser relay extension
     (cd packages/browser-relay && bun run build)
+    # Build RoboMP web dashboard into python/robomp/src/static
+    (cd python/robomp/web && bun run build)
 
     # rules_rust fetches the pinned nightly rustc and cargo; no host rust toolchain.
     bun ./scripts/bazel-natives.ts linux-x64-baseline linux-x64-modern --dest packages/natives/native

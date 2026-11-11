@@ -1,23 +1,33 @@
+diff --git a/MODULE.bazel b/MODULE.bazel
+index aeb78a3661e..f47d012f864 100644
 --- a/MODULE.bazel
 +++ b/MODULE.bazel
-@@ -229,6 +229,38 @@
+@@ -225,6 +225,7 @@ crate.annotation(
+ # imports, which is incompatible with the static archive tree-sitter links.
+ crate.annotation(
+     build_script_env = {
++        "CFLAGS": "-fno-strict-aliasing",
+         "CFLAGS_x86_64_pc_windows_msvc": "/DLIBWASM_STATIC",
+         "CFLAGS_aarch64_pc_windows_msvc": "/DLIBWASM_STATIC",
+     },
+@@ -253,6 +254,38 @@ crate.annotation(
+     build_script_env = {"PCRE2_SYS_STATIC": "0"},
      crate = "pcre2-sys",
  )
- 
++
 +# tree-sitter 0.25's `array.h` type-puns every `Array(T) *` through
 +# `Array(void) *`; under -fstrict-aliasing (implied by -O2 and up) that
 +# miscompiles, e.g. the tree-sitter-haskell scanner segfaulted:
 +# https://github.com/tree-sitter/tree-sitter-haskell/issues/144
 +# Fixed upstream in tree-sitter 0.26.4, but the runtime pinned here is 0.25.10
 +# and every linked grammar ships its own copy of the header. Annotate the
-+# runtime and the grammars pi-ast links (the rest load as WebAssembly).
++# runtime (above) and the grammars pi-ast links (the rest load as WebAssembly).
 +[
 +    crate.annotation(
 +        crate = crate_name,
 +        build_script_env = {"CFLAGS": "-fno-strict-aliasing"},
 +    )
 +    for crate_name in [
-+        "tree-sitter",
 +        "tree-sitter-bash",
 +        "tree-sitter-c",
 +        "tree-sitter-cpp",

@@ -1,8 +1,8 @@
 diff --git a/packages/coding-agent/scripts/compile-binary.ts b/packages/coding-agent/scripts/compile-binary.ts
-index 6ed1a84e75..de18df1fc2 100644
+index 05d9d70b789..b4f05504048 100644
 --- a/packages/coding-agent/scripts/compile-binary.ts
 +++ b/packages/coding-agent/scripts/compile-binary.ts
-@@ -48,7 +48,12 @@ export async function compileCodingAgent(options: CodingAgentCompileOptions): Pr
+@@ -50,7 +50,12 @@ export async function compileCodingAgent(options: CodingAgentCompileOptions): Pr
  			entrypoints: [options.entrypoint],
  			root: options.repoRoot,
  			external: [...COMPILED_EXTERNAL_DEPENDENCIES],
@@ -15,4 +15,4 @@ index 6ed1a84e75..de18df1fc2 100644
 +					: {},
  			define: {
  				"process.env.PI_COMPILED": JSON.stringify("true"),
- 				"process.env.PI_TINY_TRANSFORMERS_VERSION": JSON.stringify(options.transformersVersion),
+ 				"process.env.PI_DOCS_EMBED": JSON.stringify((await buildDocsIndexPayload()).payload),

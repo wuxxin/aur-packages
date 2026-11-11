@@ -1,6 +1,8 @@
+diff --git a/MODULE.bazel b/MODULE.bazel
+index 89489f52565..aeb78a3661e 100644
 --- a/MODULE.bazel
 +++ b/MODULE.bazel
-@@ -189,17 +189,20 @@
+@@ -192,11 +192,12 @@ crate.from_cargo(
      ],
  )
  
@@ -11,22 +13,27 @@
 +# vendored Opus via cmake. The patch short-circuits its bundled build path when
 +# LIBOPUS_DYNAMIC is set; the remaining env keys stay for the non-linux targets.
  crate.annotation(
-+    crate = "opusic-sys",
-+    patch_args = ["-p1"],
-+    patches = ["//bazel/patches:opusic-sys-dynamic.patch"],
      build_script_env = {
 +        "LIBOPUS_DYNAMIC": "1",
          "CMAKE_TOOLCHAIN_FILE_x86_64_pc_windows_msvc": "$${pwd}/external/+msvc_cc_repository+msvc_cc/toolchain.cmake",
          "CMAKE_TOOLCHAIN_FILE_aarch64_pc_windows_msvc": "$${pwd}/external/+msvc_cc_repository+msvc_cc_arm64/toolchain.cmake",
          "CFLAGS": "-fno-sanitize=undefined",
-         "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:/run/current-system/sw/bin",
+@@ -204,9 +205,10 @@ crate.annotation(
      },
--    crate = "opusic-sys",
+     crate = "opusic-sys",
+     patch_args = ["-p1"],
+-    # CMake explicitly installs to lib; the upstream host-Linux lib64 search
+-    # points at a nonexistent directory even when cross-compiling for macOS.
+-    patches = ["//bazel/patches:opusic-sys-install-libdir.patch"],
++    patches = [
++        "//bazel/patches:opusic-sys-dynamic.patch",
++        "//bazel/patches:opusic-sys-install-libdir.patch",
++    ],
+     version = "0.7.5",
  )
  
- # wasmtime-c-api-impl (tree-sitter's `wasm` feature) runs `cmake -P` to install
-@@ -219,12 +222,13 @@
-     version = "0.28.0",
+@@ -245,10 +247,10 @@ crate.annotation(
+     deps = ["@@//crates/vendor/grep-searcher:grep-searcher"],
  )
  
 -# Release addons must never pick up a host libpcre2 (Homebrew paths leaked into
@@ -38,13 +45,10 @@
 +    build_script_env = {"PCRE2_SYS_STATIC": "0"},
      crate = "pcre2-sys",
  )
-+
  use_repo(crate, "crates")
- 
- # --- msvc cross toolchain (owned by bazel/toolchains/msvc) ---------------------
 diff --git a/bazel/patches/opusic-sys-dynamic.patch b/bazel/patches/opusic-sys-dynamic.patch
 new file mode 100644
-index 0000000000..4bd8bbafd5
+index 00000000000..4bd8bbafd52
 --- /dev/null
 +++ b/bazel/patches/opusic-sys-dynamic.patch
 @@ -0,0 +1,14 @@
