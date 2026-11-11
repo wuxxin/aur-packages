@@ -1,0 +1,63 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 6798adf..e408888 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -50,15 +50,26 @@ if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+     endif()
+ endif()
+ 
+-# ggml from GGML_SOURCE_DIR (the submodule by default), inherits GGML_CUDA, GGML_METAL, etc. from cmake flags
+-# CUDA graphs default on: standalone ggml ships them off. Overridable with
+-# -DGGML_CUDA_GRAPHS=OFF or at runtime with GGML_CUDA_DISABLE_GRAPHS=1.
+-if(NOT DEFINED GGML_CUDA_GRAPHS)
+-    set(GGML_CUDA_GRAPHS_DEFAULT ON)
+-endif()
+-set(GGML_SOURCE_DIR "${CMAKE_SOURCE_DIR}/ggml" CACHE PATH "ggml source tree")
+-add_subdirectory(${GGML_SOURCE_DIR} ggml)
++option(ACESTEP_USE_SYSTEM_GGML "Use system-installed GGML library" OFF)
+ 
++if(ACESTEP_USE_SYSTEM_GGML)
++    find_package(ggml REQUIRED)
++    add_library(ggml ALIAS ggml::ggml)
++    if(TARGET ggml::ggml-base)
++        add_library(ggml-base ALIAS ggml::ggml-base)
++    endif()
++    set(GGML_INCLUDE_DIRS ${GGML_INCLUDE_DIR})
++else()
++    # ggml from GGML_SOURCE_DIR (the submodule by default), inherits GGML_CUDA, GGML_METAL, etc. from cmake flags
++    # CUDA graphs default on: standalone ggml ships them off. Overridable with
++    # -DGGML_CUDA_GRAPHS=OFF or at runtime with GGML_CUDA_DISABLE_GRAPHS=1.
++    if(NOT DEFINED GGML_CUDA_GRAPHS)
++        set(GGML_CUDA_GRAPHS_DEFAULT ON)
++    endif()
++    set(GGML_SOURCE_DIR "${CMAKE_SOURCE_DIR}/ggml" CACHE PATH "ggml source tree")
++    add_subdirectory(${GGML_SOURCE_DIR} ggml)
++    set(GGML_INCLUDE_DIRS ${GGML_SOURCE_DIR}/include)
++endif()
+ # cpp-httplib (HTTP server library, used by ace-server)
+ add_subdirectory(vendor/cpp-httplib)
+ 
+@@ -70,7 +81,7 @@ macro(link_ggml_backends target)
+         ${CMAKE_BINARY_DIR}
+     )
+     target_include_directories(${target} SYSTEM PRIVATE
+-        ${GGML_SOURCE_DIR}/include
++        ${GGML_INCLUDE_DIRS}
+     )
+     if(MSVC)
+         target_compile_options(${target} PRIVATE /W4 /wd4100 /wd4505)
+@@ -181,4 +192,14 @@ else()
+ endif()
+ target_link_libraries(mp3-codec PRIVATE Threads::Threads)
+ 
++install(TARGETS
++    ace-synth
++    ace-lm
++    ace-server
++    ace-understand
++    quantize
++    neural-codec
++    mp3-codec
++    DESTINATION bin
++)
+ add_subdirectory(tests)

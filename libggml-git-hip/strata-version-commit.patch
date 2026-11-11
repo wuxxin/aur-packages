@@ -1,8 +1,8 @@
 diff --git a/src/program/generate.cpp b/src/program/generate.cpp
-index e2657ae23..067d60c9e 100644
+index ddf6bd2a9..95a74e285 100644
 --- a/src/program/generate.cpp
 +++ b/src/program/generate.cpp
-@@ -3207,7 +3207,15 @@ int main(int argc, char** argv) {
+@@ -3314,7 +3314,15 @@ int main(int argc, char** argv) {
      // `strata --version` / `-V` (also `strata generate --version`): the version and nothing else, before any GPU is touched
      for (int i = 1; i < argc && i < 3; ++i) {
          if (std::strcmp(argv[i], "--version") == 0 || std::strcmp(argv[i], "-V") == 0) {

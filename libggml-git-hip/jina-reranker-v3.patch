@@ -1,8 +1,8 @@
 diff --git a/conversion/qwen.py b/conversion/qwen.py
-index e6456e5a54..ff7e907307 100644
+index 83c844ce64..1dfc3438d5 100644
 --- a/conversion/qwen.py
 +++ b/conversion/qwen.py
-@@ -274,6 +274,19 @@ class Qwen3Model(Qwen2Model):
+@@ -275,6 +275,19 @@ class Qwen3Model(Qwen2Model):
          yield from super().modify_tensors(data_torch, name, bid)
  
  
@@ -23,10 +23,10 @@ index e6456e5a54..ff7e907307 100644
  @ModelBase.example("Qwen/Qwen3-30B-A3B")
  class Qwen3MoeModel(Qwen2MoeModel):
 diff --git a/gguf-py/gguf/constants.py b/gguf-py/gguf/constants.py
-index ad4e675f69..622da43319 100644
+index 30185f02cc..2a438ec0e5 100644
 --- a/gguf-py/gguf/constants.py
 +++ b/gguf-py/gguf/constants.py
-@@ -2801,6 +2801,8 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
+@@ -2899,6 +2899,8 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
          MODEL_TENSOR.FFN_GATE,
          MODEL_TENSOR.FFN_DOWN,
          MODEL_TENSOR.FFN_UP,
@@ -35,7 +35,7 @@ index ad4e675f69..622da43319 100644
      ],
      MODEL_ARCH.STARCODER: [
          MODEL_TENSOR.TOKEN_EMBD,
-@@ -3158,6 +3160,8 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
+@@ -3256,6 +3258,8 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
          MODEL_TENSOR.FFN_GATE_EXP,
          MODEL_TENSOR.FFN_DOWN_EXP,
          MODEL_TENSOR.FFN_UP_EXP,
@@ -44,7 +44,7 @@ index ad4e675f69..622da43319 100644
      ],
  
      MODEL_ARCH.FLINT: [
-@@ -3222,6 +3226,8 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
+@@ -3320,6 +3324,8 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
          MODEL_TENSOR.NEXTN_HNORM,
          MODEL_TENSOR.NEXTN_SHARED_HEAD_HEAD,
          MODEL_TENSOR.NEXTN_SHARED_HEAD_NORM,
@@ -53,7 +53,7 @@ index ad4e675f69..622da43319 100644
      ],
      MODEL_ARCH.BEAM: [
          MODEL_TENSOR.TOKEN_EMBD,
-@@ -3277,6 +3283,8 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
+@@ -3375,6 +3381,8 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
          MODEL_TENSOR.FFN_GATE,
          MODEL_TENSOR.FFN_DOWN,
          MODEL_TENSOR.FFN_UP,
@@ -62,7 +62,7 @@ index ad4e675f69..622da43319 100644
      ],
      MODEL_ARCH.QWEN3VLMOE: [
          MODEL_TENSOR.TOKEN_EMBD,
-@@ -3295,6 +3303,8 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
+@@ -3393,6 +3401,8 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
          MODEL_TENSOR.FFN_GATE_EXP,
          MODEL_TENSOR.FFN_DOWN_EXP,
          MODEL_TENSOR.FFN_UP_EXP,
@@ -72,10 +72,10 @@ index ad4e675f69..622da43319 100644
      MODEL_ARCH.QWEN35: [
          MODEL_TENSOR.TOKEN_EMBD,
 diff --git a/gguf-py/gguf/tensor_mapping.py b/gguf-py/gguf/tensor_mapping.py
-index 2602bfb61b..4bd6265eec 100644
+index bb7d6dcaee..01cda97f86 100644
 --- a/gguf-py/gguf/tensor_mapping.py
 +++ b/gguf-py/gguf/tensor_mapping.py
-@@ -92,9 +92,11 @@ class TensorNameMap:
+@@ -93,9 +93,11 @@ class TensorNameMap:
          ),
          MODEL_TENSOR.DENSE_2_OUT: (
              "dense_2_out",  # embeddinggemma
@@ -88,10 +88,10 @@ index 2602bfb61b..4bd6265eec 100644
          # Output norm
          MODEL_TENSOR.OUTPUT_NORM: (
 diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp
-index edf1ca71f9..f6d5e2eb46 100644
+index 847a3e1ec9..c93a2fc3a0 100644
 --- a/src/llama-graph.cpp
 +++ b/src/llama-graph.cpp
-@@ -4114,7 +4114,9 @@ llm_graph_input_mem_hybrid_iswa * llm_graph_context::build_inp_mem_hybrid_iswa()
+@@ -4289,7 +4289,9 @@ llm_graph_input_mem_hybrid_iswa * llm_graph_context::build_inp_mem_hybrid_iswa()
  void llm_graph_context::build_dense_out(
      ggml_tensor * dense_2,
      ggml_tensor * dense_2_b,
@@ -102,7 +102,7 @@ index edf1ca71f9..f6d5e2eb46 100644
      if (!cparams.embeddings || !(dense_2 || dense_2_b || dense_3)) {
          return;
      }
-@@ -4127,9 +4129,15 @@ void llm_graph_context::build_dense_out(
+@@ -4302,9 +4304,15 @@ void llm_graph_context::build_dense_out(
      if (dense_2_b) {
          cur = ggml_add(ctx0, cur, dense_2_b);
      }
@@ -119,10 +119,10 @@ index edf1ca71f9..f6d5e2eb46 100644
      res->t_embd_pooled = cur;
      ggml_build_forward_expand(gf, cur);
 diff --git a/src/llama-graph.h b/src/llama-graph.h
-index e1804fb3de..e1eab3e79f 100644
+index 636a1c54b7..c3e92a404a 100644
 --- a/src/llama-graph.h
 +++ b/src/llama-graph.h
-@@ -1487,7 +1487,9 @@ struct llm_graph_context {
+@@ -1531,7 +1531,9 @@ struct llm_graph_context {
      void build_dense_out(
              ggml_tensor * dense_2,
              ggml_tensor * dense_2_b,
@@ -134,10 +134,10 @@ index e1804fb3de..e1eab3e79f 100644
  
  // TODO: better name
 diff --git a/src/llama-model.cpp b/src/llama-model.cpp
-index 87893bf671..11f726c7a5 100644
+index cd49ccdd0a..2816b142e0 100644
 --- a/src/llama-model.cpp
 +++ b/src/llama-model.cpp
-@@ -3459,7 +3459,11 @@ ggml_cgraph * llama_model::build_graph(const llm_graph_params & params) const {
+@@ -3522,7 +3522,11 @@ ggml_cgraph * llama_model::build_graph(const llm_graph_params & params) const {
      // there will be two additional dense projection layers
      // dense linear projections are applied after pooling
      // TODO: move reranking logic here and generalize
@@ -151,7 +151,7 @@ index 87893bf671..11f726c7a5 100644
      llm->build_layer_inp_dev();
  
 diff --git a/src/models/qwen3.cpp b/src/models/qwen3.cpp
-index c01f838292..bb6ded797a 100644
+index 7a6052970d..18bbad26f5 100644
 --- a/src/models/qwen3.cpp
 +++ b/src/models/qwen3.cpp
 @@ -32,6 +32,10 @@ void llama_model_qwen3::load_arch_tensors(llama_model_loader &) {

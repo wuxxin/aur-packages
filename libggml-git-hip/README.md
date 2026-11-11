@@ -1,6 +1,6 @@
 # libggml-git-hip
 
-An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts.cpp`, `parakeet.cpp`, `strata-engine`) for Arch Linux. This package uses **dynamic backends** (`GGML_BACKEND_DL=ON`) to compile and package **CPU** (with auto-selected instruction set variants), **OpenBLAS**, **HIP/ROCm**, and **Vulkan** backends under a unified shared library.
+An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts.cpp`, `parakeet.cpp`, `strata-engine`, `acestep.cpp`) for Arch Linux. This package uses **dynamic backends** (`GGML_BACKEND_DL=ON`) to compile and package **CPU** (with auto-selected instruction set variants), **OpenBLAS**, **HIP/ROCm**, and **Vulkan** backends under a unified shared library.
 
 ## Split Packages
 
@@ -12,6 +12,7 @@ An optimized Git HEAD compilation of the GGML tensor library and associated tool
 - **`qwen3-tts.cpp-git-ggml-hip`**: Qwen3-TTS text-to-speech tools (`qwen3-tts-cli`, `qwen3-tts-server`) dynamically linking to the shared library.
 - **`parakeet.cpp-git-ggml-hip`**: FastConformer and TDT ASR tools (`parakeet-cli`, `parakeet-server`) dynamically linking to the shared library.
 - **`strata-engine-git-ggml-hip`**: Strata inference engine for large MoE models (Qwen 3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen 3.6-35B) with dynamic CPU expert offloading, native HIP acceleration, multimodal vision reader (`strata-vision-hip`), dynamically linking to shared `libggml.so`, `libllama.so`, and `libmtmd.so`.
+- **`acestep.cpp-git-ggml-hip`**: ACE-Step 1.5 music generation tools (`ace-lm`, `ace-synth`, `ace-server`, `ace-understand`, `neural-codec`, `mp3-codec`, `quantize`) dynamically linking to the shared library.
 
 ## Key Features
 
@@ -41,11 +42,12 @@ It adds the following new packages:
 - `qwen3-tts.cpp` with HIP/ROCm acceleration.
 - `parakeet.cpp` with HIP/ROCm acceleration.
 - `strata-engine` with HIP/ROCm acceleration.
+- `acestep.cpp` with HIP/ROCm and Vulkan acceleration.
 
 In contrast to the listed AUR packages above, each of which contains their own static compilation of `libggml`, this package compiles `libggml` as a single system-wide shared library (`libggml-git-hip`) and dynamically links all downstream packages against it, we achieve:
 
 - **Disk, Compute & Memory Savings**: We compile the heavy HIP/ROCm GPU kernels only once.
-- **Unified Backend Upgrades**: A single update to `libggml-git-hip` automatically upgrades GPU kernel performance, RDNA optimizations, and model support across all 7 downstream tools.
+- **Unified Backend Upgrades**: A single update to `libggml-git-hip` automatically upgrades GPU kernel performance, RDNA optimizations, and model support across all 8 downstream tools.
 
 ### Avoiding Namespace Conflicts
 To prevent conflicts with existing standalone AUR packages (such as `llama.cpp-hip`, `stable-diffusion.cpp-git`, or `qwen3-tts.cpp`), this repository uses the naming suffix `-git-ggml-hip` for all downstream split packages (e.g. `stable-diffusion.cpp-git-ggml-hip` or `qwen3-tts-git-ggml-hip`).
@@ -119,6 +121,11 @@ Adapts upstream Strata to dynamically link against system-shared `libggml.so`, `
 - **Vision Reader Dynamic Linking**: Builds `strata-vision-hip` linking against system `libmtmd.so` and `libllama.so` with shared HIP runtime execution.
 
 
+### acestep.cpp System GGML Integration (`acestep-system-ggml.patch`)
+
+Adapts `acestep.cpp` to dynamically link against system-shared `libggml.so` and `libggml-base.so` via `ACESTEP_USE_SYSTEM_GGML=ON`.
+Binaries (`ace-lm`, `ace-synth`, `ace-server`, `ace-understand`, `neural-codec`, `mp3-codec`, `quantize`) link against the system tensor library and utilize dynamic backend loading (ROCm/HIP, Vulkan, CPU) from `/usr/lib/ggml/`, with device selection via `--device <name>`.
+
 ### llama.cpp: Jina Reranker v3 Cross-Encoder Support (`jina-reranker-v3.patch`)
 
 Adds upstream support for the [jina-reranker-v3](https://huggingface.co/jinaai/jina-reranker-v3) cross-encoder reranking model to llama.cpp. This model is based on Qwen3 with a dense projector MLP for cosine similarity scoring.
@@ -147,7 +154,17 @@ To assist with version identification and debugging of Git-HEAD packages:
 
 ## Changelog
 
-### `11937.r7.g1b4554e-1` (Current)
+### `12284.r12.g1648d64-1` (Current)
+- **acestep.cpp Subpackage (`acestep.cpp-git-ggml-hip`)**:
+  - Added subpackage for ACE-Step 1.5 text-and-lyrics music generation (`ace-lm`, `ace-synth`, `ace-server`, `ace-understand`, `neural-codec`, `mp3-codec`, `quantize`).
+  - Dynamic linking against system shared `libggml.so` via `acestep-system-ggml.patch`.
+  - Runtime device offloading (HIP/ROCm, Vulkan, CPU) through GGML dynamic backend plugin discovery.
+- **Patch Refresh & Upstream Sync**:
+  - Refreshed `strata-system-ggml.patch` to support upstream Strata CMake reorganization (`cmake/strata_ggml.cmake`, including `src/platform/ggml_cpu_shim.cpp` and system `mtmd`/`llama` vision linking) and updated Strata packaging for `cmake/`, `strata_cli/`, `strata.py`, and `tools/chat.py`.
+  - Refreshed `strata-version-commit.patch`, `jina-reranker-v3.patch`, and `whisper-version-commit.patch` with zero offsets.
+  - Updated all components to latest git HEAD.
+
+### `11937.r7.g1b4554e-1`
 - **Strata Documentation & Packaging Fixes**:
   - Resolved `install` file conflict in `package_strata-engine-git-ggml-hip()` by preserving `docs/*.md` under `/usr/share/doc/strata-engine-git-ggml-hip/docs/` alongside root `README.md` and `SECURITY.md`, maintaining markdown inter-doc relative link structures.
   - Added `/usr/share/doc/strata` compatibility symlink.

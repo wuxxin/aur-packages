@@ -7,6 +7,7 @@ qwen3-tts.cpp/
 parakeet.cpp/
 sdcpp-webui/
 Strata/
+acestep.cpp/
 libggml-git*.pkg.tar*
 llama.cpp*.pkg.tar*
 python-llama-cpp*.pkg.tar*
@@ -15,5 +16,6 @@ stable-diffusion.cpp*.pkg.tar*
 qwen3-tts.cpp*.pkg.tar*
 parakeet.cpp*.pkg.tar*
 strata-engine*.pkg.tar*
+acestep.cpp*.pkg.tar*
 *.gguf
 

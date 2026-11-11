@@ -4,11 +4,11 @@ pkgbase=libggml-git-hip
 if [[ -n "${PKGNAMES_FILTER:-}" ]]; then
     pkgname=(${PKGNAMES_FILTER})
 else
-    pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip' 'parakeet.cpp-git-ggml-hip' 'strata-engine-git-ggml-hip')
+    pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip' 'parakeet.cpp-git-ggml-hip' 'strata-engine-git-ggml-hip' 'acestep.cpp-git-ggml-hip')
 fi
-pkgver=12070.r17.g28b812d
+pkgver=12284.r16.gccd360f
 pkgrel=1
-pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp, parakeet.cpp, strata-engine - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
+pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp, parakeet.cpp, strata-engine, acestep.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
 url="https://github.com/ggml-org/llama.cpp"
 license=('MIT' 'Apache-2.0' 'GPL-3.0-or-later')
@@ -38,6 +38,7 @@ source=(
     "qwen3-tts.cpp::git+https://github.com/khimaros/qwen3-tts.cpp.git"
     "parakeet.cpp::git+https://github.com/mudler/parakeet.cpp.git"
     "Strata::git+https://github.com/Niko1221/Strata.git"
+    "acestep.cpp::git+https://github.com/ServeurpersoCom/acestep.cpp.git"
     "README.md"
     "ggml.pc.in"
     "llama-cpp-system.patch"
@@ -56,6 +57,7 @@ source=(
     "strata-system-ggml.patch"
     "strata-version-commit.patch"
     "stable-diffusion-system-ggml.patch"
+    "acestep-system-ggml.patch"
 )
 
 sha256sums=('SKIP'
@@ -67,7 +69,8 @@ sha256sums=('SKIP'
             'SKIP'
             'SKIP'
             'SKIP'
-            'eaddd84ce96b86f06c6bd5948dfd55f72da3c25fe58bb0e3080de354f83e7761'
+            'SKIP'
+            '251490eb149a4f384751b604d8e8ece49d41d01f8ee558b711b1c2ad5e08508d'
             '2470799a540d596c9639b2dd832cf2e327200f0277fe727480f1e7949d15dfb8'
             '8c8d5aae9919b94febf30302daa483c448c5106c0de9f3e6f7052766b26fb068'
             '1204bae0ca0f976ac476b29dc75642b0896cbec74d05e9b79c2592f34e348da4'
@@ -79,12 +82,13 @@ sha256sums=('SKIP'
             'bdfaa2ac8b095b086ca36de39bd37cfd56732ba400688a255d0de7cc005e4e53'
             'cc552b3a2051901acee7dfa4dc01b404bdd8f204adb9c112a2830b35ca86b333'
             '3a81d8f39ef6459c1ab58c8b3b1e126daed4eb2458d6dc7d59530fbc8d7d2bcc'
-            'b836a9927e3a1dc3c93f8d4b3b25109954f0b65acf087c45b29c094e9c917a06'
+            '1dfce2a4816e78a47f912cb1d8b351fcc8a7a19e3df42d2340f560026a963e43'
             '9d05bdb874ee51604912d8cb5a404755f4606f12f50cd5ea435622ff573a409b'
-            '71a64ea73488b37df3d60f9e63658694f9e4441b5dae39a44369e3236ed038b5'
-            '0feeebfed6609214049e4e259a2b52dfc35ae5cb2fe7aa20055d9a8e9abba61e'
-            'ad8229bad5326e1d1cf04a70a37060578e281d88fc831bd3f2aadae666c699c1'
-            '65cd71a40e2c3c7864a0563bae3061ce16af2c6ced6cba55e30fc92c46880d59')
+            'b8b1db868d99be037805bc971f614b765d8d0b705eb76ea577ccff1a918fd2fc'
+            '08ef46a740a79de0915506625233a21df64fcf8ec45de656e6d4617637950bbf'
+            'f3726c3dda7987057247ad6c89e619d669a847760f91550c3ac72d2933b2f417'
+            '65cd71a40e2c3c7864a0563bae3061ce16af2c6ced6cba55e30fc92c46880d59'
+            '7dfb6f6f96c5e31661884093e77a3a3193aa4f12bde761bcfba66c337cb1b19e')
 
 pkgver() {
     cd llama.cpp
@@ -142,6 +146,10 @@ prepare() {
     cd "${srcdir}/Strata"
     patch -p1 <"${srcdir}/strata-system-ggml.patch"
     patch -p1 <"${srcdir}/strata-version-commit.patch"
+
+    # prepare acestep.cpp
+    cd "${srcdir}/acestep.cpp"
+    patch -p1 <"${srcdir}/acestep-system-ggml.patch"
 }
 
 build() {
@@ -153,6 +161,7 @@ build() {
     if [[ -z "$_GPU_TARGETS" ]]; then _GPU_TARGETS="gfx1030"; fi
 
     export GPU_TARGETS="${_GPU_TARGETS}"
+    export PATH="/usr/bin:$PATH"
     export ROCM_HOME="${ROCM_HOME:-/opt/rocm}"
     export ROCM_PATH="$ROCM_HOME"
     export HIP_ROOT_DIR="$ROCM_HOME"
@@ -207,6 +216,7 @@ build() {
         -DBUILD_SHARED_LIBS=ON \
         -DLLAMA_USE_SYSTEM_GGML=ON \
         -DLLAMA_BUILD_SERVER=ON \
+        -DLLAMA_BUILD_TESTS=OFF \
         -DGGML_HIP=ON \
         -DGGML_HIPBLAS=ON \
         -DHIP_PLATFORM=amd \
@@ -227,6 +237,7 @@ build() {
         -DWHISPER_SDL2=1 \
         -DWHISPER_USE_SYSTEM_GGML=1 \
         -DWHISPER_USE_SYSTEM_LLAMA=1 \
+        -DWHISPER_BUILD_TESTS=OFF \
         -Dllama_DIR="${srcdir}/staging_llama_hip/usr/lib/cmake/llama" \
         -DCMAKE_PREFIX_PATH="${srcdir}/staging_hip/usr;${srcdir}/staging_llama_hip/usr" \
         -DGGML_HIP=ON \
@@ -302,6 +313,7 @@ build() {
         -DCMAKE_HIP_COMPILER=/opt/rocm/bin/amdclang++ \
         -DCMAKE_HIP_ARCHITECTURES="${_STRATA_HIP_ARCHS}" \
         -DSTRATA_ENABLE_HIP=ON \
+        -DSTRATA_PREFILL_MMQ=ON \
         -DSTRATA_ENABLE_CUDA=OFF \
         -DSTRATA_BUILD_TESTS=OFF \
         -DSTRATA_USE_SYSTEM_GGML=ON \
@@ -321,6 +333,15 @@ build() {
         -DSTRATA_VISION_USE_SYSTEM_LLAMA=ON \
         -DCMAKE_PREFIX_PATH="${srcdir}/staging_hip/usr;${srcdir}/staging_llama_hip/usr;/usr"
     cmake --build build_strata_vision_hip --target strata-vision
+
+    # --- Build acestep.cpp using system ggml ---
+    echo "--- Building acestep.cpp (HIP) ---"
+    cmake -B build_acestep_hip -S acestep.cpp -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="/usr" \
+        -DACESTEP_USE_SYSTEM_GGML=ON \
+        -DCMAKE_PREFIX_PATH="${srcdir}/staging_hip/usr"
+    cmake --build build_acestep_hip
 }
 
 package_libggml-git-hip() {
@@ -366,7 +387,7 @@ package_python-llama-cpp-git-ggml-hip() {
     provides=('python-llama-cpp' 'python-llama-cpp-hip')
 
     cd llama-cpp-python
-    python -m installer --destdir="$pkgdir" "${srcdir}/dist_hip/"*.whl
+    /usr/bin/python -m installer --destdir="$pkgdir" "${srcdir}/dist_hip/"*.whl
     install -Dm644 "${srcdir}/llama-cpp-python/LICENSE.md" \
         "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 }
@@ -430,8 +451,8 @@ package_strata-engine-git-ggml-hip() {
 
     # --- Read-only application tree ---
     cd "${srcdir}/Strata"
-    cp -r serve tools data include src third_party strata_control "${_share}/"
-    install -Dm644 -t "${_share}" CMakeLists.txt setup.py chat.py requirements.txt
+    cp -r cmake serve tools data include src third_party strata_control strata_cli "${_share}/"
+    install -Dm644 -t "${_share}" CMakeLists.txt setup.py strata.py requirements.txt
 
     # llama.cpp at the pinned commit for downstream tools / potential recompile
     install -d "${_share}/third_party/llama.cpp"
@@ -465,7 +486,7 @@ package_strata-engine-git-ggml-hip() {
     fi
 
     cd "${_share}"
-    PYTHONDONTWRITEBYTECODE=1 python - "${_STRATA_HIP_ARCHS}" "${_engine}/BUILD.json" <<'PYEOF'
+    PYTHONDONTWRITEBYTECODE=1 /usr/bin/python - "${_STRATA_HIP_ARCHS}" "${_engine}/BUILD.json" <<'PYEOF'
 import json, sys
 sys.path.insert(0, ".")
 import setup
@@ -508,10 +529,11 @@ stamp="$(cat "$share/PKG_VERSION")"
 
 if [ "$(cat "$app/.pkg-version" 2>/dev/null)" != "$stamp" ]; then
   mkdir -p "$app/engine"
-  for f in setup.py chat.py requirements.txt; do
+  for f in setup.py strata.py requirements.txt; do
     cp -f "$share/$f" "$app/$f"
   done
-  for d in CMakeLists.txt serve tools data include src third_party strata_control; do
+  ln -sf tools/chat.py "$app/chat.py"
+  for d in CMakeLists.txt cmake serve tools data include src third_party strata_control strata_cli; do
     ln -sfn "$share/$d" "$app/$d"
   done
   cp -f "$lib/engine/BUILD.json" "$app/engine/BUILD.json"
@@ -530,7 +552,7 @@ export HIP_PATH="${HIP_PATH:-/opt/rocm}"
 
 if [ "${1:-}" = chat ]; then
   shift
-  exec python3 chat.py "$@"
+  exec python3 tools/chat.py "$@"
 fi
 
 exec python3 -c '
@@ -557,4 +579,16 @@ EOF
     install -Dm644 -t "${pkgdir}/usr/share/doc/${pkgname}" README.md SECURITY.md
     install -Dm644 -t "${pkgdir}/usr/share/doc/${pkgname}/docs" docs/*.md
     ln -s "${pkgname}" "${pkgdir}/usr/share/doc/strata"
+}
+
+package_acestep.cpp-git-ggml-hip() {
+    pkgdesc="Portable C++17 music generation using GGML (ACE-Step 1.5). Text + lyrics in, stereo 48kHz audio out (git shared library build)"
+    depends=('libggml-git-hip')
+    provides=('acestep.cpp')
+    conflicts=('acestep.cpp')
+
+    DESTDIR="$pkgdir" cmake --install build_acestep_hip
+
+    install -Dm644 "${srcdir}/acestep.cpp/LICENSE" \
+        -t "${pkgdir}/usr/share/licenses/${pkgname}"
 }

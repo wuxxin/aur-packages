@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 8659bf89c..719580b62 100644
+index 65f86a864..414c6b890 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -21,6 +21,26 @@ if(STRATA_ENABLE_SYCL)
+@@ -31,6 +31,26 @@ if(STRATA_ENABLE_SYCL)
    return()
  endif()
  add_compile_definitions(STRATA_VERSION="${PROJECT_VERSION}")
@@ -29,11 +29,15 @@ index 8659bf89c..719580b62 100644
  # issue #31: release builds keep a PDB beside the exe (not shipped in it), so a minidump from a stalled engine can
  # be read back to the exact source line
  if(MSVC AND CMAKE_BUILD_TYPE STREQUAL "Release")
-@@ -2101,7 +2121,15 @@ if(STRATA_NATIVE_EXPERTS)
-   else()
-     set(GGML_NATIVE ON CACHE BOOL "" FORCE)
-   endif()
--  if(STRATA_GGML_DIR)
+diff --git a/cmake/strata_ggml.cmake b/cmake/strata_ggml.cmake
+index a106da983..0471ca4ee 100644
+--- a/cmake/strata_ggml.cmake
++++ b/cmake/strata_ggml.cmake
+@@ -15,7 +15,16 @@ endmacro()
+ 
+ # the root project's ggml-base / ggml-cpu: the forced GGML_* options per build kind (portable, ISA floor, native) and the subproject
+ macro(strata_ggml_configure_root)
+-  set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 +  option(STRATA_USE_SYSTEM_GGML "Use system-installed GGML library" OFF)
 +  if(STRATA_USE_SYSTEM_GGML)
 +    find_package(ggml REQUIRED)
@@ -42,10 +46,19 @@ index 8659bf89c..719580b62 100644
 +    add_library(ggml-cpu ALIAS ggml::ggml)
 +    target_sources(strata_kernels_cpu PRIVATE src/platform/ggml_cpu_shim.cpp)
 +    target_link_libraries(strata_kernels_cpu PUBLIC ${CMAKE_DL_LIBS})
-+  elseif(STRATA_GGML_DIR)
-     add_subdirectory(${STRATA_GGML_DIR}/ggml ${CMAKE_BINARY_DIR}/ggml EXCLUDE_FROM_ALL)
-   else()
-     include(FetchContent)
++  else()
++    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+   set(GGML_STATIC ON CACHE BOOL "" FORCE)
+   set(GGML_CUDA OFF CACHE BOOL "" FORCE)
+   set(GGML_OPENMP OFF CACHE BOOL "" FORCE)
+@@ -61,6 +70,7 @@ macro(strata_ggml_configure_root)
+     set(GGML_NATIVE ON CACHE BOOL "" FORCE)
+   endif()
+   add_subdirectory(${_strata_ggml_root}/ggml ${CMAKE_BINARY_DIR}/ggml EXCLUDE_FROM_ALL)
++  endif()
+ endmacro()
+ 
+ # the MMQ instances to build and where the trellis (Gyro) variants come from: the vendored ggml-cuda-tq folder, a fork's ggml, or the overlay of a STRATA_GGML_DIR llama.cpp
 diff --git a/src/platform/ggml_cpu_shim.cpp b/src/platform/ggml_cpu_shim.cpp
 new file mode 100644
 index 000000000..201999eb3
@@ -212,10 +225,10 @@ index 000000000..201999eb3
 +
 +}
 diff --git a/tools/vision/CMakeLists.txt b/tools/vision/CMakeLists.txt
-index 4d16da550..8974a473e 100644
+index 4d16da550..ab66996c9 100644
 --- a/tools/vision/CMakeLists.txt
 +++ b/tools/vision/CMakeLists.txt
-@@ -91,9 +91,19 @@ if(STRATA_VISION_HIP)
+@@ -91,13 +91,22 @@ if(STRATA_VISION_HIP)
    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
  endif()
  
@@ -238,3 +251,7 @@ index 4d16da550..8974a473e 100644
  if(MSVC)   # #3202: the ANSI code page of the process is UTF-8, so a Cyrillic model folder reaches the reader intact (see ../../CMakeLists.txt)
    target_sources(strata-vision PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/strata-utf8.manifest)
  endif()
+-target_link_libraries(strata-vision PRIVATE mtmd llama)
+ target_compile_features(strata-vision PRIVATE cxx_std_17)
+ set_target_properties(strata-vision PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+ if(STRATA_VISION_HIP)
