@@ -53,13 +53,7 @@ Packages i currently maintain on AUR:
 
 Can be **broken or bitrotten at anytime**.
 
-
-### temporary forks of pkgs
-
-- [groonga](groonga) - An open-source fulltext search engine and column store
-    - Temporary private fork of AUR package with patch (`fix-blosc2-pkgconfig.patch`) fixing system `blosc2` CMake package detection.
-
-### currently used private forks (different in AUR)
+### currently used private forks
 
 - [oh-my-pi-git-tag](oh-my-pi-git-tag) - AI coding agent for the terminal
     - Built from git latest tag with dynamically evaluated versioning and system libraries (opus, pcre2).
@@ -68,12 +62,19 @@ Can be **broken or bitrotten at anytime**.
     - with patches and Python Bindings to support the latest git version,
     - all packages link dynamically against a single system-wide `libggml-git-hip`.
         - This ensures consistent backend behavior / bug compatibility across all tools.
+
+- - [crane-git](crane-git) - Pure Rust LLM, VLM, VLA, TTS, OCR Inference Engine powered by Candle
+    - Custom build from latest git with OpenAI-compatible API server (`crane`), `onnx` features, and demo CLI tools (`crane-chat-simple`, `crane-chat-cli`, `crane-ornith-tools`).
+
+### temporary forks of pkgs
+
+- [groonga](groonga) - An open-source fulltext search engine and column store
+    - Temporary private fork of AUR package with patch (`fix-blosc2-pkgconfig.patch`) fixing system `blosc2` CMake package detection.
+
 ### stale
 
 - [hermes-agent-git](hermes-agent-git) - Locally-run AI agent with tool use, web browsing, and automation (Git Main Branch)
     - System package adaptations: self-update disabled, runtime npm installs pre-built, PR patching mechanism
-
-### experimental packages (not in AUR)
 
 - [amux-git](amux-git) - Multi-session agent orchestrator and control plane
     - Includes custom enhancements to support **Oh-My-Pi (`omp`)** as a first-class agent provider alongside Claude Code, Codex, and Gemini.
@@ -99,9 +100,6 @@ Can be **broken or bitrotten at anytime**.
 - [mlc-llm](mlc-llm)
     - Universal LLM deployment engine via ML compilation (ROCm & Vulkan). Fork of [alansrobotlab2/mlc-llm](https://github.com/alansrobotlab2/mlc-llm) (qwen3_5 branch) adding Qwen3.5/Qwen3.6 (GatedDeltaNet + MoE) model support, with patches for ROCm 7.2 hipblas API compatibility.
 
-- [crane-git](crane-git) - Pure Rust LLM, VLM, VLA, TTS, OCR Inference Engine powered by Candle
-    - Custom build from latest git with OpenAI-compatible API server (`crane`), `onnx` features, and demo CLI tools (`crane-chat-simple`, `crane-chat-cli`, `crane-ornith-tools`).
-
 - [tei-rocm](tei-rocm)
     - Hugging Face Text Embeddings Inference (TEI) A blazing fast inference solution for text embeddings models. (with ROCm/HIP support)
     - [python-grpc-interceptor](python-grpc-interceptor)
@@ -112,10 +110,8 @@ Can be **broken or bitrotten at anytime**.
 - [smg](smg)
     - High-performance model-routing gateway for large-scale LLM deployments
 
-
 - [pocket-tts.cpp-git](pocket-tts.cpp-git) - Single-file C++ TTS runtime for Pocket TTS with ONNX Runtime
     - builds `pocket-tts` C++ executable and shared library `libpocket_tts.so` with support for voice cloning, streaming, HTTP server, and FFI C API.
     - [python-pocket-tts](python-pocket-tts) - A TTS that fits in your CPU (and pocket)
         - builds `pocket-tts` python package by Kyutai Labs.
-
 
