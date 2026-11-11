@@ -1,18 +1,30 @@
 # Maintainer: Wuxxin <wuxxin@gmail.com>
 pkgname=crane-git
-pkgver=0.1.0.r467.gb1ebf87
+pkgver=0.1.0.r990.ge736a21
 pkgrel=1
-pkgdesc="Pure Rust LLM, VLM, VLA, TTS, OCR Inference Engine powered by Candle (Git version)"
-arch=('x86_64' 'aarch64')
+pkgdesc="Pure Rust LLM, VLM, VLA, TTS, OCR Inference Engine powered by Candle (Git version with ROCm support)"
+arch=('x86_64')
 url="https://github.com/lucasjinreal/Crane"
 license=('MIT')
-depends=('gcc-libs' 'glibc' 'openssl')
+depends=(
+    'gcc-libs'
+    'glibc'
+    'hip-runtime-amd'
+    'rocblas'
+    'rocrand'
+)
 optdepends=(
     'intel-mkl: Intel Math Kernel Library CPU acceleration'
 )
-makedepends=('cargo' 'git' 'clang')
+makedepends=(
+    'cargo'
+    'git'
+    'clang'
+    'rocm-hip-sdk'
+)
 provides=('crane' 'crane-serve')
 conflicts=('crane' 'crane-serve')
+options=('!lto' '!debug')
 source=("crane::git+https://github.com/lucasjinreal/Crane.git")
 sha256sums=('SKIP')
 
@@ -40,21 +52,45 @@ prepare() {
 build() {
     cd "$srcdir/crane"
     export CARGO_HOME="$srcdir/.cargo-home"
+    export ROCM_PATH="${ROCM_PATH:-/opt/rocm}"
+    export HIP_PATH="${HIP_PATH:-/opt/rocm}"
+    export LD_LIBRARY_PATH="${ROCM_PATH}/lib:${LD_LIBRARY_PATH:-}"
+    export PATH="${ROCM_PATH}/bin:${PATH}"
+
     # Prevent Arch CFLAGS/LDFLAGS from breaking nested C/Assembly static lib builds (e.g. onig-sys, ring)
     unset CFLAGS CXXFLAGS LDFLAGS
 
-    # Default build features: ONNX support included
-    local cargo_features="onnx"
+    # Default build features: ROCm backend with ONNX support
+    local cargo_features="rocm,onnx"
     if [[ -n "${_FEATURES:-}" ]]; then
         cargo_features="$_FEATURES"
     fi
 
-    cargo build --release --features "$cargo_features" -p crane-serve -p crane-examples --bin crane-serve --bin chat_simple --bin chat_cli --bin ornith_tools
+    cargo build --release --no-default-features --features "$cargo_features" \
+        -p crane-serve -p crane-examples \
+        --bin crane-serve --bin chat_simple --bin chat_cli --bin ornith_tools
 }
 
+check() {
+    cd "$srcdir/crane"
+    export CARGO_HOME="$srcdir/.cargo-home"
+    export ROCM_PATH="${ROCM_PATH:-/opt/rocm}"
+    export HIP_PATH="${HIP_PATH:-/opt/rocm}"
+    export LD_LIBRARY_PATH="${ROCM_PATH}/lib:${LD_LIBRARY_PATH:-}"
+    export PATH="${ROCM_PATH}/bin:${PATH}"
+
+    # Optional test for rocm_kernels: runs when check is enabled and not opted out via _TEST_ROCM_KERNELS=0
+    if [[ "${_TEST_ROCM_KERNELS:-1}" != "0" ]]; then
+        echo "==> Running optional ROCm kernel tests (--test rocm_kernels)..."
+        cargo test -p crane-core --release --no-default-features --features rocm --test rocm_kernels
+    else
+        echo "==> Skipping optional rocm_kernels test (_TEST_ROCM_KERNELS=0)"
+    fi
+}
 package() {
     cd "$srcdir/crane"
-    install -Dm755 "target/release/crane-serve" "$pkgdir/usr/bin/crane"
+    install -Dm755 "target/release/crane-serve" "$pkgdir/usr/bin/crane-serve"
+    ln -sf crane-serve "$pkgdir/usr/bin/crane"
     install -Dm755 "target/release/chat_simple" "$pkgdir/usr/bin/crane-chat-simple"
     install -Dm755 "target/release/chat_cli" "$pkgdir/usr/bin/crane-chat-cli"
     install -Dm755 "target/release/ornith_tools" "$pkgdir/usr/bin/crane-ornith-tools"
