@@ -6,7 +6,7 @@ if [[ -n "${PKGNAMES_FILTER:-}" ]]; then
 else
     pkgname=('libggml-git-hip' 'llama.cpp-git-ggml-hip' 'whisper.cpp-git-ggml-hip' 'python-llama-cpp-git-ggml-hip' 'stable-diffusion.cpp-git-ggml-hip' 'qwen3-tts.cpp-git-ggml-hip' 'parakeet.cpp-git-ggml-hip' 'strata-engine-git-ggml-hip' 'acestep.cpp-git-ggml-hip')
 fi
-pkgver=12284.r16.gccd360f
+pkgver=12377.r0.g32bdc3a
 pkgrel=1
 pkgdesc="libggml, llama.cpp, whisper.cpp, python-llama-cpp, stable-diffusion.cpp, qwen3-tts.cpp, parakeet.cpp, strata-engine, acestep.cpp - HIP accelerated, shared library, git version (pls see README.md ### Package Rationale)"
 arch=('x86_64')
@@ -24,7 +24,7 @@ makedepends=(
     'vulkan-headers' 'vulkan-icd-loader' 'shaderc' 'spirv-headers'
     'opusfile' 'opencore-amr' 'lame'
     'python-numpy' 'python-jinja' 'python-regex' 'python-yaml'
-    'python-tqdm' 'python-requests' 'python-pillow' 'python-psutil'
+    'python-tqdm' 'python-requests' 'python-pillow' 'python-psutil' 'python-rich' 'python-jsonschema'
     'hipblaslt' 'patchelf'
 )
 
@@ -58,6 +58,7 @@ source=(
     "strata-version-commit.patch"
     "stable-diffusion-system-ggml.patch"
     "acestep-system-ggml.patch"
+    "ggml-diag-mask.patch"
 )
 
 sha256sums=('SKIP'
@@ -82,13 +83,14 @@ sha256sums=('SKIP'
             'bdfaa2ac8b095b086ca36de39bd37cfd56732ba400688a255d0de7cc005e4e53'
             'cc552b3a2051901acee7dfa4dc01b404bdd8f204adb9c112a2830b35ca86b333'
             '3a81d8f39ef6459c1ab58c8b3b1e126daed4eb2458d6dc7d59530fbc8d7d2bcc'
-            '1dfce2a4816e78a47f912cb1d8b351fcc8a7a19e3df42d2340f560026a963e43'
+            '382bc96ddca2333b8b798a7a2ec0e23ce054380d83999c135bf470b9b86f1d03'
             '9d05bdb874ee51604912d8cb5a404755f4606f12f50cd5ea435622ff573a409b'
-            'b8b1db868d99be037805bc971f614b765d8d0b705eb76ea577ccff1a918fd2fc'
+            'd4e86960b9e669fd03dedd6e1b474c40460a0f463cf6d4d947f90a1f98cd2213'
             '08ef46a740a79de0915506625233a21df64fcf8ec45de656e6d4617637950bbf'
-            'f3726c3dda7987057247ad6c89e619d669a847760f91550c3ac72d2933b2f417'
+            '1ba479d600798f16be826b4530286acf42720656814f88e8ad2f30a00566efc5'
             '65cd71a40e2c3c7864a0563bae3061ce16af2c6ced6cba55e30fc92c46880d59'
-            '7dfb6f6f96c5e31661884093e77a3a3193aa4f12bde761bcfba66c337cb1b19e')
+            '7dfb6f6f96c5e31661884093e77a3a3193aa4f12bde761bcfba66c337cb1b19e'
+            'b73f9c17f4967e502a413cd87844777572c9d97fcdeffc7a3ee1e0fd98a9f0b7')
 
 pkgver() {
     cd llama.cpp
@@ -100,6 +102,7 @@ prepare() {
     cd "${srcdir}/llama.cpp"
     git submodule update --init --recursive
     patch -p1 <"${srcdir}/jina-reranker-v3.patch"
+    patch -p1 <"${srcdir}/ggml-diag-mask.patch"
 
     # Manually create ggml.pc.in if it's missing (needed for shared library build)
     if [ ! -f "ggml/ggml.pc.in" ]; then
@@ -434,7 +437,7 @@ package_strata-engine-git-ggml-hip() {
         'libggml-git-hip' 'llama.cpp-git-ggml-hip'
         'hip-runtime-amd' 'hipblas' 'hipblaslt' 'rocblas' 'openblas' 'gcc-libs'
         'python' 'python-numpy' 'python-jinja' 'python-regex' 'python-yaml'
-        'python-tqdm' 'python-requests' 'python-pillow' 'python-psutil'
+        'python-tqdm' 'python-requests' 'python-pillow' 'python-psutil' 'python-rich' 'python-jsonschema'
     )
     optdepends=(
         'cmake: recompile the engine when your GPU is outside the architectures built here'
@@ -451,17 +454,8 @@ package_strata-engine-git-ggml-hip() {
 
     # --- Read-only application tree ---
     cd "${srcdir}/Strata"
-    cp -r cmake serve tools data include src third_party strata_control strata_cli "${_share}/"
+    cp -r cmake serve tools data include src strata_control strata_cli "${_share}/"
     install -Dm644 -t "${_share}" CMakeLists.txt setup.py strata.py requirements.txt
-
-    # llama.cpp at the pinned commit for downstream tools / potential recompile
-    install -d "${_share}/third_party/llama.cpp"
-    git -C "${srcdir}/llama.cpp" archive HEAD | tar -x --no-same-owner -C "${_share}/third_party/llama.cpp"
-    (
-        cd "${_share}/third_party/llama.cpp"
-        rm -rf docs media models tests benches pocs examples tools/ui scripts ci skills app
-    )
-
     # --- Compiled engine and vision binaries ---
     install -Dm755 "${srcdir}/build_strata_hip/strata" "${_engine}/strata"
     patchelf --remove-rpath "${_engine}/strata"
@@ -533,8 +527,8 @@ if [ "$(cat "$app/.pkg-version" 2>/dev/null)" != "$stamp" ]; then
     cp -f "$share/$f" "$app/$f"
   done
   ln -sf tools/chat.py "$app/chat.py"
-  for d in CMakeLists.txt cmake serve tools data include src third_party strata_control strata_cli; do
-    ln -sfn "$share/$d" "$app/$d"
+  for d in CMakeLists.txt cmake serve tools data include src strata_control strata_cli; do
+    if [ -e "$share/$d" ]; then ln -sfn "$share/$d" "$app/$d"; fi
   done
   cp -f "$lib/engine/BUILD.json" "$app/engine/BUILD.json"
   for b in strata strata-vision strata-vision-hip; do

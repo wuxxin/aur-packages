@@ -1,0 +1,393 @@
+diff --git a/ggml/src/ggml-cuda/diagmask.cu b/ggml/src/ggml-cuda/diagmask.cu
+new file mode 100644
+index 0000000..4b713ba
+--- /dev/null
++++ b/ggml/src/ggml-cuda/diagmask.cu
+@@ -0,0 +1,40 @@
++#include "diagmask.cuh"
++
++static __global__ void diag_mask_inf_f32(const float * x, float * dst, const int ncols, const int rows_per_channel, const int n_past) {
++    const int col = blockDim.y*blockIdx.y + threadIdx.y;
++    const int row = blockDim.x*blockIdx.x + threadIdx.x;
++
++    if (col >= ncols) {
++        return;
++    }
++
++    const int i = row*ncols + col;
++    //dst[i] = col > (n_past + row % rows_per_channel) ? -INFINITY : x[i];
++    //dst[i] = x[i] - (col > n_past + row % rows_per_channel) * INT_MAX; // equivalent within rounding error but slightly faster on GPU
++    dst[i] = x[i] - (col > n_past + row % rows_per_channel) * FLT_MAX;
++}
++
++static void diag_mask_inf_f32_cuda(const float * x, float * dst, const int ncols_x, const int nrows_x, const int rows_per_channel, const int n_past, cudaStream_t stream) {
++    const dim3 block_dims(1, CUDA_DIAG_MASK_INF_BLOCK_SIZE, 1);
++    const int block_num_x = (ncols_x + CUDA_DIAG_MASK_INF_BLOCK_SIZE - 1) / CUDA_DIAG_MASK_INF_BLOCK_SIZE;
++    const dim3 block_nums(nrows_x, block_num_x, 1);
++    diag_mask_inf_f32<<<block_nums, block_dims, 0, stream>>>(x, dst, ncols_x, rows_per_channel, n_past);
++}
++
++void ggml_cuda_op_diag_mask_inf(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
++    const ggml_tensor * src0 = dst->src[0];
++    const float * src0_d = (const float *)src0->data;
++    float * dst_d = (float *)dst->data;
++    cudaStream_t stream = ctx.stream();
++
++    GGML_ASSERT(src0->type == GGML_TYPE_F32);
++    GGML_ASSERT( dst->type == GGML_TYPE_F32);
++
++    const int64_t ne00 = src0->ne[0];
++    const int64_t ne01 = src0->ne[1];
++    const int nrows0 = ggml_nrows(src0);
++
++    const int n_past = ((int32_t *) dst->op_params)[0];
++
++    diag_mask_inf_f32_cuda(src0_d, dst_d, ne00, nrows0, ne01, n_past, stream);
++}
+diff --git a/ggml/src/ggml-cuda/diagmask.cuh b/ggml/src/ggml-cuda/diagmask.cuh
+new file mode 100644
+index 0000000..6cdbef1
+--- /dev/null
++++ b/ggml/src/ggml-cuda/diagmask.cuh
+@@ -0,0 +1,5 @@
++#include "common.cuh"
++
++#define CUDA_DIAG_MASK_INF_BLOCK_SIZE 32
++
++void ggml_cuda_op_diag_mask_inf(ggml_backend_cuda_context & ctx, ggml_tensor * dst);
+diff --git a/ggml/include/ggml.h b/ggml/include/ggml.h
+index 2341fa6..1da2308 100644
+--- a/ggml/include/ggml.h
++++ b/ggml/include/ggml.h
+@@ -429,6 +429,9 @@ extern "C" {
+ 
+         GGML_OP_GLU,
+ 
++        GGML_OP_DIAG_MASK_INF,
++        GGML_OP_DIAG_MASK_ZERO,
++
+         GGML_OP_COUNT,
+     };
+ 
+@@ -1578,6 +1581,31 @@ extern "C" {
+         struct ggml_context     * ctx,
+         struct ggml_tensor      * a);
+ 
++
++    // set elements above the diagonal to -INF
++    GGML_API struct ggml_tensor * ggml_diag_mask_inf(
++            struct ggml_context * ctx,
++            struct ggml_tensor  * a,
++            int                   n_past);
++
++    // in-place, returns view(a)
++    GGML_API struct ggml_tensor * ggml_diag_mask_inf_inplace(
++            struct ggml_context * ctx,
++            struct ggml_tensor  * a,
++            int                   n_past);
++
++    // set elements above the diagonal to 0
++    GGML_API struct ggml_tensor * ggml_diag_mask_zero(
++            struct ggml_context * ctx,
++            struct ggml_tensor  * a,
++            int                   n_past);
++
++    // in-place, returns view(a)
++    GGML_API struct ggml_tensor * ggml_diag_mask_zero_inplace(
++            struct ggml_context * ctx,
++            struct ggml_tensor  * a,
++            int                   n_past);
++
+     GGML_API struct ggml_tensor * ggml_clamp(
+             struct ggml_context * ctx,
+             struct ggml_tensor  * a,
+diff --git a/ggml/src/ggml-cpu/ggml-cpu.c b/ggml/src/ggml-cpu/ggml-cpu.c
+index a76af84..707d314 100644
+--- a/ggml/src/ggml-cpu/ggml-cpu.c
++++ b/ggml/src/ggml-cpu/ggml-cpu.c
+@@ -1922,6 +1922,14 @@ static void ggml_compute_forward(struct ggml_compute_params * params, struct ggm
+             {
+                 ggml_compute_forward_diag(params, tensor);
+             } break;
++        case GGML_OP_DIAG_MASK_INF:
++            {
++                ggml_compute_forward_diag_mask_inf(params, tensor);
++            } break;
++        case GGML_OP_DIAG_MASK_ZERO:
++            {
++                ggml_compute_forward_diag_mask_zero(params, tensor);
++            } break;
+         case GGML_OP_SOFT_MAX:
+             {
+                 ggml_compute_forward_soft_max(params, tensor);
+@@ -2394,6 +2402,8 @@ static int ggml_get_n_tasks(struct ggml_tensor * node, int n_threads) {
+             {
+                 n_tasks = 1;
+             } break;
++        case GGML_OP_DIAG_MASK_INF:
++        case GGML_OP_DIAG_MASK_ZERO:
+         case GGML_OP_SOFT_MAX_BACK:
+         case GGML_OP_ROPE:
+         case GGML_OP_ROPE_BACK:
+diff --git a/ggml/src/ggml-cpu/ops.cpp b/ggml/src/ggml-cpu/ops.cpp
+index 7c25427..6e72dee 100644
+--- a/ggml/src/ggml-cpu/ops.cpp
++++ b/ggml/src/ggml-cpu/ops.cpp
+@@ -5752,6 +5752,90 @@ void ggml_compute_forward_diag(
+     }
+ }
+ 
++// ggml_compute_forward_diag_mask_inf
++
++static void ggml_compute_forward_diag_mask_f32(
++        const ggml_compute_params * params,
++        ggml_tensor * dst,
++        const float value) {
++
++    const ggml_tensor * src0 = dst->src[0];
++
++    const int ith = params->ith;
++    const int nth = params->nth;
++
++    const int  n_past  = ((int32_t *) dst->op_params)[0];
++    const bool inplace = src0->data == dst->data;
++
++    GGML_ASSERT(n_past >= 0);
++
++    if (!inplace) {
++        if (ith == 0) {
++            GGML_ASSERT(ggml_nelements(dst) == ggml_nelements(src0));
++            GGML_ASSERT(ggml_is_contiguous(dst) && ggml_is_contiguous(src0));
++            memcpy(
++                ((char *)  dst->data),
++                ((char *) src0->data),
++                ggml_nbytes(dst));
++        }
++        ggml_barrier(params->threadpool);
++    }
++
++    const int n  = ggml_nrows(src0);
++    const int nc = src0->ne[0];
++    const int nr = src0->ne[1];
++    const int nz = n/nr;
++
++    GGML_ASSERT( dst->nb[0] == sizeof(float));
++    GGML_ASSERT(src0->nb[0] == sizeof(float));
++
++    for (int k = 0; k < nz; k++) {
++        for (int j = ith; j < nr; j += nth) {
++            for (int i = n_past; i < nc; i++) {
++                if (i > n_past + j) {
++                    *(float *)((char *) dst->data + k*dst->nb[2] + j*dst->nb[1] + i*dst->nb[0]) = value;
++                }
++            }
++        }
++    }
++}
++
++void ggml_compute_forward_diag_mask_inf(
++        const ggml_compute_params * params,
++        ggml_tensor * dst) {
++
++    const ggml_tensor * src0 = dst->src[0];
++
++    switch (src0->type) {
++        case GGML_TYPE_F32:
++            {
++                ggml_compute_forward_diag_mask_f32(params, dst, -INFINITY);
++            } break;
++        default:
++            {
++                GGML_ABORT("fatal error");
++            }
++    }
++}
++
++void ggml_compute_forward_diag_mask_zero(
++        const ggml_compute_params * params,
++        ggml_tensor * dst) {
++
++    const ggml_tensor * src0 = dst->src[0];
++
++    switch (src0->type) {
++        case GGML_TYPE_F32:
++            {
++                ggml_compute_forward_diag_mask_f32(params, dst, 0);
++            } break;
++        default:
++            {
++                GGML_ABORT("fatal error");
++            }
++    }
++}
++
+ // ggml_compute_forward_soft_max
+ 
+ static void ggml_compute_forward_soft_max_f32(
+diff --git a/ggml/src/ggml-cpu/ops.h b/ggml/src/ggml-cpu/ops.h
+index aac527a..00a2ea7 100644
+--- a/ggml/src/ggml-cpu/ops.h
++++ b/ggml/src/ggml-cpu/ops.h
+@@ -56,6 +56,8 @@ void ggml_compute_forward_get_rows(const struct ggml_compute_params * params, st
+ void ggml_compute_forward_get_rows_back(const struct ggml_compute_params * params, struct ggml_tensor * dst);
+ void ggml_compute_forward_set_rows(const struct ggml_compute_params * params, struct ggml_tensor * dst);
+ void ggml_compute_forward_diag(const struct ggml_compute_params * params, struct ggml_tensor * dst);
++void ggml_compute_forward_diag_mask_inf(const struct ggml_compute_params * params, struct ggml_tensor * dst);
++void ggml_compute_forward_diag_mask_zero(const struct ggml_compute_params * params, struct ggml_tensor * dst);
+ void ggml_compute_forward_soft_max(const struct ggml_compute_params * params, struct ggml_tensor * dst);
+ void ggml_compute_forward_soft_max_ext_back(const struct ggml_compute_params * params, struct ggml_tensor * dst);
+ void ggml_compute_forward_rope(const struct ggml_compute_params * params, struct ggml_tensor * dst);
+diff --git a/ggml/src/ggml-cuda/ggml-cuda.cu b/ggml/src/ggml-cuda/ggml-cuda.cu
+index 540c536..21277fe 100644
+--- a/ggml/src/ggml-cuda/ggml-cuda.cu
++++ b/ggml/src/ggml-cuda/ggml-cuda.cu
+@@ -26,6 +26,7 @@
+ #include "ggml-cuda/cross-entropy-loss.cuh"
+ #include "ggml-cuda/cumsum.cuh"
+ #include "ggml-cuda/diag.cuh"
++#include "ggml-cuda/diagmask.cuh"
+ #include "ggml-cuda/fattn.cuh"
+ #include "ggml-cuda/fp8.cuh"
+ #include "ggml-cuda/fwht.cuh"
+@@ -2935,6 +2936,9 @@ static bool ggml_cuda_compute_forward(ggml_backend_cuda_context & ctx, struct gg
+         case GGML_OP_DIAG:
+             ggml_cuda_op_diag(ctx, dst);
+             break;
++        case GGML_OP_DIAG_MASK_INF:
++            ggml_cuda_op_diag_mask_inf(ctx, dst);
++            break;
+         case GGML_OP_SOFT_MAX:
+             ggml_cuda_op_soft_max(ctx, dst);
+             break;
+@@ -6587,6 +6591,8 @@ static bool ggml_backend_cuda_device_supports_op(ggml_backend_dev_t dev, const g
+         }
+         case GGML_OP_CONT:
+             return true;
++        case GGML_OP_DIAG_MASK_INF:
++            return true;
+         case GGML_OP_SOFT_MAX:
+             return true;
+         case GGML_OP_SOFT_MAX_BACK: {
+diff --git a/ggml/src/ggml.c b/ggml/src/ggml.c
+index 1fca258..d98ad9c 100644
+--- a/ggml/src/ggml.c
++++ b/ggml/src/ggml.c
+@@ -1112,9 +1112,12 @@ static const char * GGML_OP_NAME[GGML_OP_COUNT] = {
+     "OPT_STEP_SGD",
+ 
+     "GLU",
++
++    "DIAG_MASK_INF",
++    "DIAG_MASK_ZERO",
+ };
+ 
+-static_assert(GGML_OP_COUNT == 99, "GGML_OP_COUNT != 99");
++static_assert(GGML_OP_COUNT == 101, "GGML_OP_COUNT != 101");
+ 
+ static const char * GGML_OP_SYMBOL[GGML_OP_COUNT] = {
+     "none",
+@@ -1225,9 +1228,12 @@ static const char * GGML_OP_SYMBOL[GGML_OP_COUNT] = {
+     "sgd(x)",
+ 
+     "glu(x)",
++
++    "diag_mask_inf(x)",
++    "diag_mask_zero(x)",
+ };
+ 
+-static_assert(GGML_OP_COUNT == 99, "GGML_OP_COUNT != 99");
++static_assert(GGML_OP_COUNT == 101, "GGML_OP_COUNT != 101");
+ 
+ static_assert(GGML_OP_POOL_COUNT == 2, "GGML_OP_POOL_COUNT != 2");
+ 
+@@ -4047,6 +4053,71 @@ struct ggml_tensor * ggml_diag(
+     return result;
+ }
+ 
++
++// ggml_diag_mask_inf
++
++static struct ggml_tensor * ggml_diag_mask_inf_impl(
++        struct ggml_context * ctx,
++        struct ggml_tensor  * a,
++        int                   n_past,
++        bool                  inplace) {
++    struct ggml_tensor * result = inplace ? ggml_view_tensor(ctx, a) : ggml_dup_tensor(ctx, a);
++
++    int32_t params[] = { n_past };
++    ggml_set_op_params(result, params, sizeof(params));
++
++    result->op     = GGML_OP_DIAG_MASK_INF;
++    result->src[0] = a;
++
++    return result;
++}
++
++struct ggml_tensor * ggml_diag_mask_inf(
++        struct ggml_context * ctx,
++        struct ggml_tensor  * a,
++        int                   n_past) {
++    return ggml_diag_mask_inf_impl(ctx, a, n_past, false);
++}
++
++struct ggml_tensor * ggml_diag_mask_inf_inplace(
++        struct ggml_context * ctx,
++        struct ggml_tensor  * a,
++        int                   n_past) {
++    return ggml_diag_mask_inf_impl(ctx, a, n_past, true);
++}
++
++// ggml_diag_mask_zero
++
++static struct ggml_tensor * ggml_diag_mask_zero_impl(
++        struct ggml_context * ctx,
++        struct ggml_tensor  * a,
++        int                   n_past,
++        bool                  inplace) {
++    struct ggml_tensor * result = inplace ? ggml_view_tensor(ctx, a) : ggml_dup_tensor(ctx, a);
++
++    int32_t params[] = { n_past };
++    ggml_set_op_params(result, params, sizeof(params));
++
++    result->op     = GGML_OP_DIAG_MASK_ZERO;
++    result->src[0] = a;
++
++    return result;
++}
++
++struct ggml_tensor * ggml_diag_mask_zero(
++        struct ggml_context * ctx,
++        struct ggml_tensor  * a,
++        int                   n_past) {
++    return ggml_diag_mask_zero_impl(ctx, a, n_past, false);
++}
++
++struct ggml_tensor * ggml_diag_mask_zero_inplace(
++        struct ggml_context * ctx,
++        struct ggml_tensor  * a,
++        int                   n_past) {
++    return ggml_diag_mask_zero_impl(ctx, a, n_past, true);
++}
++
+ // ggml_clamp
+ 
+ static struct ggml_tensor * ggml_clamp_impl(
+@@ -7149,6 +7220,18 @@ static void ggml_compute_backward(
+             }
+             GGML_ASSERT(!src1_needs_grads && "backward pass for labels not implemented");
+         } break;
++        case GGML_OP_DIAG_MASK_INF: {
++            if (src0_needs_grads) {
++                const int n_past = ((const int32_t *) tensor->op_params)[0];
++                ggml_add_or_set(ctx, cgraph, isrc0, ggml_diag_mask_zero_impl(ctx, grad, n_past, false));
++            }
++        } break;
++        case GGML_OP_DIAG_MASK_ZERO: {
++            if (src0_needs_grads) {
++                const int n_past = ((const int32_t *) tensor->op_params)[0];
++                ggml_add_or_set(ctx, cgraph, isrc0, ggml_diag_mask_zero_impl(ctx, grad, n_past, false));
++            }
++        } break;
+         case GGML_OP_GLU: {
+             switch (ggml_get_glu_op(tensor)) {
+                 case GGML_GLU_OP_SWIGLU: {

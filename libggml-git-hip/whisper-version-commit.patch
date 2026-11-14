@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index c8a08468d..9db57f040 100644
+index 93192e7..d74630b 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -213,6 +213,7 @@ install(TARGETS whisper LIBRARY PUBLIC_HEADER)
+@@ -214,6 +214,7 @@ install(TARGETS whisper LIBRARY PUBLIC_HEADER)
  
  target_compile_definitions(whisper PRIVATE
      WHISPER_VERSION="${WHISPER_VERSION}"
@@ -11,7 +11,7 @@ index c8a08468d..9db57f040 100644
  
  set_target_properties(parakeet PROPERTIES PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/include/parakeet.h)
 diff --git a/src/whisper.cpp b/src/whisper.cpp
-index 1c7771fc5..25c2da2dd 100644
+index 1c7771f..25c2da2 100644
 --- a/src/whisper.cpp
 +++ b/src/whisper.cpp
 @@ -9358,7 +9358,11 @@ void whisper_log_set(ggml_log_callback log_callback, void * user_data) {
@@ -26,3 +26,16 @@ index 1c7771fc5..25c2da2dd 100644
  }
  
  GGML_ATTRIBUTE_FORMAT(2, 3)
+diff --git a/examples/talk-llama/CMakeLists.txt b/examples/talk-llama/CMakeLists.txt
+index 3fcf586..10359f1 100644
+--- a/examples/talk-llama/CMakeLists.txt
++++ b/examples/talk-llama/CMakeLists.txt
+@@ -4,7 +4,7 @@ if (WHISPER_SDL2)
+ 
+     if (WHISPER_USE_SYSTEM_LLAMA)
+         message(STATUS "Using system-provided llama.cpp, skipping llama.cpp fetch")
+-        find_package(llama 0.6.0 REQUIRED)
++        find_package(llama REQUIRED)
+     else()
+         include(FetchContent)
+ 
