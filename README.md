@@ -66,6 +66,9 @@ Can be **broken or bitrotten at anytime**.
 - - [crane-git](crane-git) - Pure Rust LLM, VLM, VLA, TTS, OCR Inference Engine powered by Candle
     - Custom build from latest git with OpenAI-compatible API server (`crane`), `onnx` features, and demo CLI tools (`crane-chat-simple`, `crane-chat-cli`, `crane-ornith-tools`).
 
+- [artex-git](artex-git) - Global edition of ARTEX autonomous multi-agent penetration testing framework
+    - Go backend with embedded Next.js static UI, PostgreSQL store, local LLM support (e.g. local-router), and systemd service.
+
 ### temporary forks of pkgs
 
 - [groonga](groonga) - An open-source fulltext search engine and column store

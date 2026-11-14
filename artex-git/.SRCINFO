@@ -1,0 +1,41 @@
+pkgbase = artex-git
+	pkgdesc = Autonomous multi-agent penetration testing framework (Go backend, embedded Next.js UI, PostgreSQL store)
+	pkgver = 0.3.15.global.1.r15.g133f3cf
+	pkgrel = 1
+	url = https://github.com/jiwoochris/artex-global
+	arch = x86_64
+	arch = aarch64
+	license = AGPL-3.0-only
+	makedepends = go>=1.22
+	makedepends = nodejs>=20
+	makedepends = npm
+	makedepends = git
+	makedepends = rsync
+	depends = glibc
+	depends = ca-certificates
+	optdepends = postgresql: persistent database backend (required for full functionality)
+	optdepends = ripgrep: fast regex/code searching during codebase exploration
+	optdepends = nmap: network port and service scanning
+	optdepends = bind: DNS enumeration tools (dig, host, nslookup)
+	optdepends = whois: domain registration and network whois lookups
+	optdepends = iputils: ICMP reachability checks (ping)
+	optdepends = openbsd-netcat: arbitrary TCP/UDP connections and port listening
+	optdepends = curl: HTTP requests and API exploration
+	optdepends = wget: file retrieval and spidering
+	optdepends = jq: JSON filtering and command output transformation
+	optdepends = playwright: headless browser automation via Playwright MCP
+	provides = artex
+	conflicts = artex
+	backup = etc/artex/config.json
+	source = artex-global::git+https://github.com/jiwoochris/artex-global.git#branch=main
+	source = artex.service
+	source = artex.sysusers
+	source = artex.tmpfiles
+	source = config.json
+	sha256sums = SKIP
+	sha256sums = 8de3ceef9241697b145a99497316af152fe244faf6a15bb6923989b22783bc45
+	sha256sums = 11d74151cec2da1c34a60a50adab7f1ce7839acda36df607b22d248d9aa563dc
+	sha256sums = 2b3304cc8f9eb9d8edb6d5817a4fad14b7ddbbc52a815040a0fbc1e672742aef
+	sha256sums = 042e21632f4443a1f84ceaec183f4a12a5633e09ed3b93f357e3c54fc74ff121
+
+pkgname = artex-git

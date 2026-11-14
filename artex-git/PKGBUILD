@@ -1,0 +1,115 @@
+# Maintainer: Wuxxin <wuxxin@gmail.com>
+
+pkgname=artex-git
+_pkgname=artex
+pkgver=0.3.15.global.1.r15.g133f3cf
+pkgrel=1
+pkgdesc="Autonomous multi-agent penetration testing framework (Go backend, embedded Next.js UI, PostgreSQL store)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/jiwoochris/artex-global"
+license=('AGPL-3.0-only')
+depends=('glibc' 'ca-certificates')
+optdepends=(
+    'postgresql: persistent database backend (required for full functionality)'
+    'ripgrep: fast regex/code searching during codebase exploration'
+    'nmap: network port and service scanning'
+    'bind: DNS enumeration tools (dig, host, nslookup)'
+    'whois: domain registration and network whois lookups'
+    'iputils: ICMP reachability checks (ping)'
+    'openbsd-netcat: arbitrary TCP/UDP connections and port listening'
+    'curl: HTTP requests and API exploration'
+    'wget: file retrieval and spidering'
+    'jq: JSON filtering and command output transformation'
+    'playwright: headless browser automation via Playwright MCP'
+)
+makedepends=('go>=1.22' 'nodejs>=20' 'npm' 'git' 'rsync')
+provides=('artex')
+conflicts=('artex')
+backup=('etc/artex/config.json')
+source=(
+    "artex-global::git+https://github.com/jiwoochris/artex-global.git#branch=main"
+    "artex.service"
+    "artex.sysusers"
+    "artex.tmpfiles"
+    "config.json"
+)
+sha256sums=(
+    'SKIP'
+    '8de3ceef9241697b145a99497316af152fe244faf6a15bb6923989b22783bc45'
+    '11d74151cec2da1c34a60a50adab7f1ce7839acda36df607b22d248d9aa563dc'
+    '2b3304cc8f9eb9d8edb6d5817a4fad14b7ddbbc52a815040a0fbc1e672742aef'
+    '042e21632f4443a1f84ceaec183f4a12a5633e09ed3b93f357e3c54fc74ff121'
+)
+
+pkgver() {
+    cd "${srcdir}/artex-global"
+    if git describe --long --tags >/dev/null 2>&1; then
+        git describe --long --tags | sed 's/^v//;s/-\([0-9][0-9]*\)-g/.r\1.g/;s/-/./g'
+    else
+        printf "0.0.0.r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+    fi
+}
+
+prepare() {
+    cd "${srcdir}/artex-global"
+
+    export GOPATH="${srcdir}/gopath"
+    go mod download -modcacherw
+
+    cd web
+    export npm_config_cache="${srcdir}/npm-cache"
+    npm ci
+}
+
+build() {
+    cd "${srcdir}/artex-global"
+
+    # Build Next.js frontend static assets (exports to web/out)
+    cd web
+    export npm_config_cache="${srcdir}/npm-cache"
+    npm run build:static
+    cd ..
+
+    # Sync static export to server/webui/dist for Go embedding
+    mkdir -p server/webui/dist
+    rsync -a --delete web/out/ server/webui/dist/
+
+    # Compile Go backend binary with embedded UI
+    export GOPATH="${srcdir}/gopath"
+    export CGO_ENABLED=0
+    export GOFLAGS="-trimpath -mod=readonly -modcacherw"
+
+    go build -tags embedui -trimpath -buildmode=pie \
+        -ldflags "-s -w -buildid= -X main.version=${pkgver}" \
+        -o "${srcdir}/artex" ./cmd/artex
+}
+
+check() {
+    cd "${srcdir}/artex-global"
+    export GOPATH="${srcdir}/gopath"
+    go test ./config/...
+}
+
+package() {
+    # Install binary
+    install -Dm755 "${srcdir}/artex" "${pkgdir}/usr/bin/artex"
+
+    cd "${srcdir}/artex-global"
+
+    # Install license and documentation
+    install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+    install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+    install -Dm644 SECURITY.md "${pkgdir}/usr/share/doc/${pkgname}/SECURITY.md"
+
+    # Install skills catalog
+    mkdir -p "${pkgdir}/usr/share/artex"
+    cp -r skills "${pkgdir}/usr/share/artex/"
+    find "${pkgdir}/usr/share/artex/skills" -type d -exec chmod 755 {} +
+    find "${pkgdir}/usr/share/artex/skills" -type f -exec chmod 644 {} +
+
+    # Install configuration and systemd assets
+    install -Dm644 "${srcdir}/config.json" "${pkgdir}/etc/artex/config.json"
+    install -Dm644 "${srcdir}/artex.service" "${pkgdir}/usr/lib/systemd/system/artex.service"
+    install -Dm644 "${srcdir}/artex.sysusers" "${pkgdir}/usr/lib/sysusers.d/artex.conf"
+    install -Dm644 "${srcdir}/artex.tmpfiles" "${pkgdir}/usr/lib/tmpfiles.d/artex.conf"
+}

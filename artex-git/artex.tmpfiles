@@ -1,0 +1,4 @@
+#Type Path                Mode User  Group Age Argument
+d     /var/lib/artex      0750 artex artex -   -
+d     /var/lib/artex/data 0750 artex artex -   -
+d     /etc/artex          0755 root  root  -   -

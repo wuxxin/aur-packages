@@ -1,0 +1,12 @@
+{
+  "database": {
+    "host": "127.0.0.1",
+    "port": 5432,
+    "user": "artex",
+    "password": "",
+    "dbname": "artex",
+    "sslmode": "disable"
+  },
+  "skill_dir": "/usr/share/artex/skills",
+  "language": "en"
+}

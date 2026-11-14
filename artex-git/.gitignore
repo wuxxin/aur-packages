@@ -1,0 +1,8 @@
+artex-global/
+*.pkg.tar.*
+*.pkg.tar.zst
+*.pkg.tar.xz
+*.src.tar.gz
+src/
+pkg/
+.SRCINFO.temp

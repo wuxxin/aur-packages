@@ -1,0 +1,2 @@
+#Type Name   ID GECOS                               Home            Shell
+u     artex  -  "ARTEX penetration testing daemon" /var/lib/artex  /usr/bin/nologin
