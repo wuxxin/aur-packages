@@ -120,6 +120,15 @@ Adapts upstream Strata to dynamically link against system-shared `libggml.so`, `
 - **Dynamic CPU Traits Shim (`src/platform/ggml_cpu_shim.cpp`)**: When `libggml` is built with dynamic backend plugin loading (`GGML_BACKEND_DL=ON`), CPU arithmetic kernels reside in `/usr/lib/ggml/libggml-cpu-*.so`. The shim discovers and loads the active CPU variant plugin at runtime via `dlopen`/`dlsym` and provides hardware-accelerated CPU feature queries (`ggml_cpu_has_*`) via compiler builtins.
 - **Vision Reader Dynamic Linking**: Builds `strata-vision-hip` linking against system `libmtmd.so` and `libllama.so` with shared HIP runtime execution.
 
+### Strata NVMe Conversation Cache Spillover & S3 Memory Reclaim (`strata-nvme-spill.patch`)
+
+Implements S3 suspend memory safety and lazy multi-agent session offload:
+- **`CLEAR_CACHE` Command**: Adds a stdin protocol command to `src/program/generate.cpp`. When received (e.g. triggered via `SIGUSR1` pre-suspend hook), drops all parked conversation slots via `conversations.clear()` and invokes `strata::core::release_free_heap()` (`malloc_trim(0)`). This reclaims ~16.0 GiB of host RAM without unloading the 24.0 GiB model weights in VRAM, enabling AMDGPU's S3 deep sleep VRAM-to-RAM eviction to complete safely without kernel page allocator deadlocks.
+- **Opt-In Lazy NVMe Spillover (`--disk-spill`)**: In `include/strata/core/conversation_cache.hpp`, when `ConversationCache::drop_oldest()` evicts a conversation slot containing at least `--disk-spill-min-tokens` (default: 4096 tokens), the slot is persisted to NVMe storage under `--disk-spill-dir` (`~/.cache/user-cache` on `rpool/data/user-cache`) before RAM eviction. Short queries (< 4096 tokens, e.g. quick tool hooks) are erased with zero disk writes, preventing multi-agent tool loops from evicting deep parent project contexts.
+- **CLI Flags**:
+  - `--disk-spill`: Enables lazy NVMe KV cache spillover on slot eviction.
+  - `--disk-spill-min-tokens <N>`: Minimum token length required to write evicted slot to disk (default: 4096).
+  - `--disk-spill-dir <path>`: Target cache directory for spilled sessions (default: `~/.cache/user-cache`).
 
 ### acestep.cpp System GGML Integration (`acestep-system-ggml.patch`)
 
@@ -162,8 +171,8 @@ To assist with version identification and debugging of Git-HEAD packages:
 - **Patch Refresh & Upstream Sync**:
   - Refreshed `strata-system-ggml.patch` to support upstream Strata CMake reorganization (`cmake/strata_ggml.cmake`, including `src/platform/ggml_cpu_shim.cpp` and system `mtmd`/`llama` vision linking) and updated Strata packaging for `cmake/`, `strata_cli/`, `strata.py`, and `tools/chat.py`.
   - Refreshed `strata-version-commit.patch`, `jina-reranker-v3.patch`, and `whisper-version-commit.patch` with zero offsets.
+  - Added `strata-nvme-spill.patch`: engine `CLEAR_CACHE` stdin protocol command for zero-turnaround S3 suspend memory reclamation and opt-in `--disk-spill` lazy NVMe KV offload for long conversations.
   - Updated all components to latest git HEAD.
-
 ### `11937.r7.g1b4554e-1`
 - **Strata Documentation & Packaging Fixes**:
   - Resolved `install` file conflict in `package_strata-engine-git-ggml-hip()` by preserving `docs/*.md` under `/usr/share/doc/strata-engine-git-ggml-hip/docs/` alongside root `README.md` and `SECURITY.md`, maintaining markdown inter-doc relative link structures.
