@@ -3,7 +3,7 @@
 
 pkgname=oh-my-pi-git-tag
 _pkgname=oh-my-pi
-pkgver=18.18.8.r212.g9369103
+pkgver=18.20.0.r528.gaf8e4c1
 pkgrel=1
 pkgdesc="AI coding agent for the terminal — hash-anchored edits, optimized tool harness, LSP, Python SDK, browser extension, subagents, and more (git latest tag)"
 arch=('x86_64')
