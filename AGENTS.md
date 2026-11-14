@@ -19,6 +19,7 @@ use Skill `archlinux-pkgbuild` when working with this repository.
 ### Rules & Workflow
 
 - **Workspace Isolation:** Use `scratch/` for temporary files, research, and git checkouts (`scratch/*-sources`). Always use the top-level repository root `scratch/`: if checked out independently, use its own root `scratch/`; if checked out as a git submodule, use the parent repository's root `scratch/`.
+- **Submodule Agent Spawning & Boundaries:** When spawning agents for submodule tasks, they MUST be spawned with `cwd` set at the submodule repository border (`submodules/aur-packages`), keeping sessions, command histories, and file paths clean, isolated, and readable. Real major work splits with complex tasks must use the `orchestrator` role instead of `task`.
 - **PKGBUILD Verification:** Run `makepkg --nobuild` first. Verify dependencies and ask user to install missing build deps.
 - **Incremental Builds:** Avoid clean rebuilds (`makepkg -Cf`) on large packages.
   - Use `makepkg -e` (`--noextract`) to preserve the `src/` tree and avoid re-downloading/re-extracting.
