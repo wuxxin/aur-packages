@@ -11,21 +11,35 @@ usage() {
 Usage: ${0##*/} [OPTIONS]
 
 Scans the root .gitignore and all package-level .gitignore files,
-combines and prefixes their patterns, filters out 'scratch' and '*pkg*' patterns,
+combines and prefixes their patterns, filters out 'scratch' patterns,
 discovers matching build/temporary artifacts on disk, and optionally deletes them.
+
+Package files that are installable or distributable (see KEEP GLOBS below) are
+never deleted, even when a .gitignore pattern matches them. Negation lines in
+.gitignore files ('!pattern') are honoured as permanent keep-rules: a path that
+matches a negation is excluded from cleanup.
+
+KEEP GLOBS (basename patterns, always protected):
+    *.pkg.tar.*   built installable packages
+    *.src.tar.*   source package archives
+    pkgver*.tar*  upstream release tarballs kept for PKGBUILD updates
 
 OPTIONS:
     -d, --delete     Delete all matched temporary and build files/directories
     -n, --dry-run    Preview matching patterns and files without deleting (default)
+    -k, --keep GLOB  Add an extra basename pattern that is never deleted
+                     (repeatable; also protects the named file from negation-free cleanup)
     -h, --help       Show this usage message
 
 EXAMPLES:
-    ${0##*/}              # Preview artifacts to be cleaned
-    ${0##*/} --delete     # Delete matching artifacts
+    ${0##*/}                          # Preview artifacts to be cleaned
+    ${0##*/} --delete                 # Delete matching artifacts
+    ${0##*/} -k '*.onnx' --delete     # Also keep every .onnx model file
 EOF
 }
 
 DO_DELETE=0
+KEEP_GLOBS=('*.pkg.tar.*' '*.src.tar.*' '*pkgver*.tar*')
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -36,6 +50,14 @@ while [[ $# -gt 0 ]]; do
     -n | --dry-run)
         DO_DELETE=0
         shift
+        ;;
+    -k | --keep)
+        if [[ $# -lt 2 ]]; then
+            echo "Error: --keep requires a glob argument" >&2
+            exit 1
+        fi
+        KEEP_GLOBS+=("$2")
+        shift 2
         ;;
     -h | --help)
         usage
@@ -48,6 +70,22 @@ while [[ $# -gt 0 ]]; do
         ;;
     esac
 done
+
+# Paths matching one of the keep globs (basename match, plus 'dir/**' style globs).
+is_kept() {
+    local rel="$1" base="${1##*/}" pat pat_base
+    for pat in "${KEEP_GLOBS[@]}"; do
+        pat_base="${pat##*/}"
+        # shellcheck disable=SC2053  # right-hand side is a glob on purpose
+        if [[ "$base" == $pat || "$rel" == $pat ]]; then
+            return 0
+        fi
+        if [[ -n "$pat_base" && "$rel" == */"$pat_base" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
 
 echo "==> Scanning .gitignore files in ${REPO_ROOT}..."
 
@@ -63,8 +101,9 @@ done < <(find "${REPO_ROOT}" -mindepth 2 -maxdepth 2 -name ".gitignore" -print0 
 
 echo "Found ${#GITIGNORE_FILES[@]} .gitignore files."
 
-# Extract and prefix patterns
+# Extract and prefix patterns; negation lines become keep-rules instead.
 RAW_PATTERNS=()
+RAW_KEEPS=()
 for gifile in "${GITIGNORE_FILES[@]}"; do
     rel_dir="$(dirname "${gifile#"${REPO_ROOT}/"}")"
     while IFS= read -r line || [[ -n "$line" ]]; do
@@ -74,6 +113,12 @@ for gifile in "${GITIGNORE_FILES[@]}"; do
         # Skip empty lines and comments
         if [[ -z "$line" || "$line" =~ ^# ]]; then
             continue
+        fi
+
+        is_negation=0
+        if [[ "$line" == '!'* ]]; then
+            is_negation=1
+            line="${line#!}"
         fi
 
         # Strip leading slash
@@ -86,14 +131,14 @@ for gifile in "${GITIGNORE_FILES[@]}"; do
             full_pat="${clean_pat}"
         fi
 
-        # Filter out scratch patterns
+        # Filter out scratch patterns (agent workspace, never auto-cleaned)
         pat_lower="$(echo "$full_pat" | tr '[:upper:]' '[:lower:]')"
         if [[ "$pat_lower" == *scratch* ]]; then
             continue
         fi
 
-        # Filter out any pattern containing pkg
-        if [[ "$pat_lower" == *pkg* ]]; then
+        if [[ $is_negation -eq 1 ]]; then
+            RAW_KEEPS+=("$full_pat")
             continue
         fi
 
@@ -101,19 +146,34 @@ for gifile in "${GITIGNORE_FILES[@]}"; do
     done <"$gifile"
 done
 
-# Sort and deduplicate patterns
-mapfile -t UNIQUE_PATTERNS < <(printf '%s\n' "${RAW_PATTERNS[@]}" | sort -u)
+# Sort, drop empty entries (an empty pattern would expand to REPO_ROOT), deduplicate.
+mapfile -t UNIQUE_PATTERNS < <(printf '%s\n' "${RAW_PATTERNS[@]}" | grep -v '^$' || true)
+if [[ ${#RAW_KEEPS[@]} -gt 0 ]]; then
+    mapfile -t UNIQUE_KEEPS < <(printf '%s\n' "${RAW_KEEPS[@]}" | grep -v '^$' || true)
+else
+    UNIQUE_KEEPS=()
+fi
 
 echo ""
-echo "==> Clean patterns (${#UNIQUE_PATTERNS[@]} unique patterns, excluding 'scratch' and '*pkg*'):"
+echo "==> Clean patterns (${#UNIQUE_PATTERNS[@]} unique patterns, excluding 'scratch'):"
 for pat in "${UNIQUE_PATTERNS[@]}"; do
     echo "  - ${pat}"
+done
+
+echo ""
+echo "==> Protected paths (.gitignore negations: ${#UNIQUE_KEEPS[@]}, keep globs: ${#KEEP_GLOBS[@]}):"
+for pat in "${UNIQUE_KEEPS[@]}"; do
+    echo "  ! ${pat}"
+done
+for pat in "${KEEP_GLOBS[@]}"; do
+    echo "  # ${pat}"
 done
 
 echo ""
 echo "==> Traversing filesystem for matching build/temporary artifacts..."
 
 MATCHES=()
+KEPT_COUNT=0
 for pat in "${UNIQUE_PATTERNS[@]}"; do
     # Strip trailing slashes for glob matching
     clean_target="${pat%/}"
@@ -129,10 +189,26 @@ for pat in "${UNIQUE_PATTERNS[@]}"; do
             rel_path="${item#"${REPO_ROOT}/"}"
             rel_lower="$(echo "$rel_path" | tr '[:upper:]' '[:lower:]')"
 
-            # Safety guard: Never touch scratch or pkg paths
-            if [[ "$rel_lower" == *scratch* || "$rel_lower" == *pkg* ]]; then
+            # Safety guard: Never touch the agent scratch workspace
+            if [[ "$rel_lower" == *scratch* ]]; then
                 continue
             fi
+
+            # Keep-rules: installable package files and .gitignore negations win.
+            if is_kept "$rel_path"; then
+                KEPT_COUNT=$((KEPT_COUNT + 1))
+                continue
+            fi
+            kept=0
+            for keep in "${UNIQUE_KEEPS[@]}"; do
+                # shellcheck disable=SC2053  # left side compared as glob against negation pattern
+                if [[ "$rel_path" == $keep || "${rel_path##*/}" == "${keep##*/}" ]]; then
+                    kept=1
+                    KEPT_COUNT=$((KEPT_COUNT + 1))
+                    break
+                fi
+            done
+            [[ $kept -eq 1 ]] && continue
 
             MATCHES+=("$rel_path")
         fi
@@ -152,7 +228,7 @@ if [[ ${#UNIQUE_MATCHES[@]} -eq 0 ]]; then
     exit 0
 fi
 
-echo "==> Matches found (${#UNIQUE_MATCHES[@]} items):"
+echo "==> Matches found (${#UNIQUE_MATCHES[@]} items, ${KEPT_COUNT} protected by keep-rules):"
 TOTAL_BYTES=0
 for rel in "${UNIQUE_MATCHES[@]}"; do
     full_path="${REPO_ROOT}/${rel}"
@@ -179,8 +255,8 @@ if [[ $DO_DELETE -eq 1 ]]; then
     for rel in "${UNIQUE_MATCHES[@]}"; do
         full_path="${REPO_ROOT}/${rel}"
         # Safety checks before removal
-        if [[ "$rel" == *scratch* || "$rel" == *pkg* || "$rel" == "." || "$rel" == ".." || -z "$rel" ]]; then
-            echo "  [SKIPPED] Refusing to delete safety-restricted path: ${rel}"
+        if [[ "$rel" == *scratch* || "$rel" == "." || "$rel" == ".." || -z "$rel" ]] || is_kept "$rel"; then
+            echo "  [SKIPPED] Refusing to delete protected path: ${rel}"
             continue
         fi
 
