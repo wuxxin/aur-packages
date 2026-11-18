@@ -1,11 +1,10 @@
 # oh-my-pi-git
 
-AUR-style private build of [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (omp), pinned to the latest
-upstream git tag plus HEAD. This package **is** the harness running in the mypai omp sandbox; its source checkout
-under `src/oh-my-pi/` is the ground truth for every harness-behavior claim made elsewhere in the workspace.
+AUR-style private build of [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (omp), of latest upstream git HEAD.
 
-Local changes vs. upstream live here as patches; what upstream changed toward this system per upgrade is recorded
-in [CHANGELOG.md](CHANGELOG.md) (privacy-neutral, consumable by other mypai infrastructure).
+This package **is** the harness running in the mypai omp sandbox; its source checkout under `src/oh-my-pi/` is the ground truth for every harness-behavior claim made elsewhere in the workspace.
+
+Local changes vs. upstream live here as patches. Ecosystem deltas relevant to this system's services (features to adopt, breaking changes) per upgrade is recorded in [CHANGELOG.md](CHANGELOG.md) (privacy-neutral, consumable by other mypai infrastructure).
 
 ## Local modifications to upstream omp
 
