@@ -26,13 +26,14 @@ index 3b866a179..21ac471a6 100644
              bytes_ -= entries_[i].bytes();
              erase(i);
              ++evictions_;
-@@ -562,6 +572,9 @@ private:
+@@ -591,7 +594,10 @@ private:
      uint64_t next_serial_ = 1, guarded_ = 0;
      bool guard_blocked_ = false;
      ConversationKvReuse reuse_;
 +    bool disk_spill_ = false;
 +    int64_t disk_spill_min_tokens_ = 4096;
 +    std::string disk_spill_dir_;
+     SegmentPoolBudget* pool_ = nullptr;   // STRATA_PARK_SEGPOOL_MIB (not owned)
  };
  
  } // namespace strata::core
@@ -89,7 +90,7 @@ index e380c7e02..d0b4ce31b 100644
          else if (a == "--prompt-cache-tail") o.prompt_cache_tail = true;
          else if (a == "--prompt-cache-spread") o.prompt_cache_spread = true;
          else if (a == "--prompt-cache-every") o.prompt_cache_every = std::max(0LL, std::atoll(next("--prompt-cache-every")));
-@@ -12097,6 +12108,10 @@ int main(int argc, char** argv) {
+@@ -12987,6 +12998,10 @@ int main(int argc, char** argv) {
          strata::core::ConversationCache conversations(
              o.prompt_cache > 0 ? (size_t) o.conversation_cache_mib * 1024 * 1024 : 0,
              (size_t) o.conversation_cache_slots, o.conversation_cache_min_tokens);
@@ -97,9 +98,9 @@ index e380c7e02..d0b4ce31b 100644
 +            std::string dir = o.disk_spill_dir.empty() ? "" : o.disk_spill_dir;
 +            conversations.configure_spill(true, dir, o.disk_spill_min_tokens);
 +        }
-         // Disk sessions: what a session file is bound to.  The model fingerprint samples every model input this
-         // engine loaded, by role (conversation_file.hpp), once; the config fingerprint covers the RESOLVED settings
-         // that change what the saved bytes mean - the rope (K is cached post-RoPE), the loaded control vector, the
+         // The park pools (park_pool_policy.hpp): memory held idle between parks so a park does not pay the first touch of fresh pages.
+         //   * the segment pool: one arena for the K/V buffers of parked conversations (STRATA_PARK_SEGPOOL_MIB=N sets its size, 0 turns it
+         //     off; unset: min(2 GiB, a quarter of the cache); Linux only, the OS layer of Windows and macOS is not written yet: inert there);
 @@ -15533,6 +15548,15 @@ int main(int argc, char** argv) {
                  std::fflush(stdout);
                  continue;

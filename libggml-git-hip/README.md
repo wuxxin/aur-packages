@@ -118,17 +118,19 @@ The built-in voice names for the `Qwen3-TTS-12Hz-0.6B-CustomVoice-Q8_0.gguf` mod
 
 Adapts upstream Strata to dynamically link against system-shared `libggml.so`, `libllama.so`, and `libmtmd.so`:
 - **Dynamic CPU Traits Shim (`src/platform/ggml_cpu_shim.cpp`)**: When `libggml` is built with dynamic backend plugin loading (`GGML_BACKEND_DL=ON`), CPU arithmetic kernels reside in `/usr/lib/ggml/libggml-cpu-*.so`. The shim discovers and loads the active CPU variant plugin at runtime via `dlopen`/`dlsym` and provides hardware-accelerated CPU feature queries (`ggml_cpu_has_*`) via compiler builtins.
-- **Vision Reader Dynamic Linking**: Builds `strata-vision-hip` linking against system `libmtmd.so` and `libllama.so` with shared HIP runtime execution.
+- **Vision Reader Dynamic Linking**: Builds `strata-vision-hip` linking against system `libmtmd.so` and `libllama.so`, plus the upstream own-tower target `strata_vit_own` (built for HIP with the same gfx architectures), with shared HIP runtime execution.
 
-### Strata NVMe Conversation Cache Spillover & S3 Memory Reclaim (`strata-nvme-spill.patch`)
+### Strata `CLEAR_CACHE` stdin command (`strata-clear-cache.patch`)
 
-Implements S3 suspend memory safety and lazy multi-agent session offload:
-- **`CLEAR_CACHE` Command**: Adds a stdin protocol command to `src/program/generate.cpp`. When received (e.g. triggered via `SIGUSR1` pre-suspend hook), drops all parked conversation slots via `conversations.clear()` and invokes `strata::core::release_free_heap()` (`malloc_trim(0)`). This reclaims ~16.0 GiB of host RAM without unloading the 24.0 GiB model weights in VRAM, enabling AMDGPU's S3 deep sleep VRAM-to-RAM eviction to complete safely without kernel page allocator deadlocks.
-- **Opt-In Lazy NVMe Spillover (`--disk-spill`)**: In `include/strata/core/conversation_cache.hpp`, when `ConversationCache::drop_oldest()` evicts a conversation slot containing at least `--disk-spill-min-tokens` (default: 4096 tokens), the slot is persisted to NVMe storage under `--disk-spill-dir` (`~/.cache/user-cache` on `rpool/data/user-cache`) before RAM eviction. Short queries (< 4096 tokens, e.g. quick tool hooks) are erased with zero disk writes, preventing multi-agent tool loops from evicting deep parent project contexts.
-- **CLI Flags**:
-  - `--disk-spill`: Enables lazy NVMe KV cache spillover on slot eviction.
-  - `--disk-spill-min-tokens <N>`: Minimum token length required to write evicted slot to disk (default: 4096).
-  - `--disk-spill-dir <path>`: Target cache directory for spilled sessions (default: `~/.cache/user-cache`).
+Adds a serve-protocol command to the engine's stdin loop: writing `CLEAR_CACHE` drops all parked conversation slots (`ConversationCache::clear()`) and trims the heap (`release_free_heap()` / `malloc_trim(0)`), answering `CLEARED <n>`. Used as the pre-suspend hook: reclaims host RAM held by parked conversations without unloading model weights in VRAM, so AMDGPU S3 deep-sleep eviction completes safely. Split out of the former NVMe-spill scaffold (see `strata-spill-plan.md` for the removed KV-spill half).
+
+### Strata NVMe Conversation Cache Spillover (removed)
+
+The former `strata-nvme-spill.patch` was removed from this build (kept unreferenced here for reference). It never persisted KV bytes — it wired `--disk-spill*` flags and logged evictions only, and upstream has since added its own memory machinery (RAM release on eviction #5697, segment/checkpoint park pools with budget accounting). Its useful half, the `CLEAR_CACHE` command, lives on as `strata-clear-cache.patch` above; a real KV spill design is parked at `strata-spill-plan.md`.
+
+### stable-diffusion.cpp private-symbol shim (`stable-diffusion-graph-view.patch`)
+
+llama.cpp b12521+ keeps `ggml_graph_view` private (defined in ggml.c, not exported from libggml). stable-diffusion v0.3.37's system-ggml compat shim calls it under `SD_GGML_GRAPH_COMPAT`; this patch mirrors the function locally inside that block so `libstable-diffusion.so`, `sd-cli` and `sd-server` link against our shared library.
 
 ### acestep.cpp System GGML Integration (`acestep-system-ggml.patch`)
 
@@ -157,67 +159,11 @@ Adds upstream support for the [jina-reranker-v3](https://huggingface.co/jinaai/j
 To assist with version identification and debugging of Git-HEAD packages:
 - **Whisper**: Appends the specific Git commit hash of the whisper.cpp repository to the output of `whisper-cli --version` (e.g., `whisper.cpp version: 1.9.1 (commithash)`).
 - **Qwen3-TTS**: Implements the `--version` flag for `qwen3-tts-cli` to output `qwen3-tts version 0.1-main-commithash` where the branch name (`main`) and short commit hash of the qwen3-tts.cpp repository are dynamically resolved at configure time.
-- **Strata Engine**: Implements the `--version` flag for `strata` to output its git tag and build commit hash (e.g. `strata version: 0.2.7 (5e8a4cca7)`).
+- **Strata Engine**: Implements the `--version` flag for `strata` to output its git tag and build commit hash (e.g. `strata version: 0.2.15 (c77572806)`).
 
 ---
 
-## Changelog
+## Changelog & Update Notes
 
-### `12284.r12.g1648d64-1` (Current)
-- **acestep.cpp Subpackage (`acestep.cpp-git-ggml-hip`)**:
-  - Added subpackage for ACE-Step 1.5 text-and-lyrics music generation (`ace-lm`, `ace-synth`, `ace-server`, `ace-understand`, `neural-codec`, `mp3-codec`, `quantize`).
-  - Dynamic linking against system shared `libggml.so` via `acestep-system-ggml.patch`.
-  - Runtime device offloading (HIP/ROCm, Vulkan, CPU) through GGML dynamic backend plugin discovery.
-- **Patch Refresh & Upstream Sync**:
-  - Refreshed `strata-system-ggml.patch` to support upstream Strata CMake reorganization (`cmake/strata_ggml.cmake`, including `src/platform/ggml_cpu_shim.cpp` and system `mtmd`/`llama` vision linking) and updated Strata packaging for `cmake/`, `strata_cli/`, `strata.py`, and `tools/chat.py`.
-  - Refreshed `strata-version-commit.patch`, `jina-reranker-v3.patch`, and `whisper-version-commit.patch` with zero offsets.
-  - Added `strata-nvme-spill.patch`: engine `CLEAR_CACHE` stdin protocol command for zero-turnaround S3 suspend memory reclamation and opt-in `--disk-spill` lazy NVMe KV offload for long conversations.
-  - Updated all components to latest git HEAD.
-### `11937.r7.g1b4554e-1`
-- **Strata Documentation & Packaging Fixes**:
-  - Resolved `install` file conflict in `package_strata-engine-git-ggml-hip()` by preserving `docs/*.md` under `/usr/share/doc/strata-engine-git-ggml-hip/docs/` alongside root `README.md` and `SECURITY.md`, maintaining markdown inter-doc relative link structures.
-  - Added `/usr/share/doc/strata` compatibility symlink.
-  - Added `hipblaslt` direct runtime dependency to `strata-engine-git-ggml-hip`.
-  - Added `-DCMAKE_SKIP_RPATH=ON` and `patchelf --remove-rpath` to remove ephemeral staging directory paths from the compiled `strata` binary.
-  - Passed `--no-same-owner` during embedded `llama.cpp` tar extraction for reliable rootless and sandboxed builds.
-- **Strata Git Versioning (`strata-version-commit.patch`)**:
-  - Implemented Git tag and commit identification in `strata --version` (e.g. `strata version: 0.2.7 (5e8a4cca7)`).
-- **Upstream Sync**: Updated all submodules and component repositories to latest git HEAD.
-
-### `11753.r0.gd8d9297-1`
-- **Strata Engine Subpackage (`strata-engine-git-ggml-hip`)**:
-  - Integrated Strata inference engine for large MoE models (Qwen 3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen 3.6-35B).
-  - Native AMD ROCm/HIP wave32 compilation (`gfx1010`–`gfx1201`).
-  - Dynamic linking against system shared `libggml.so`, `libllama.so`, and `libmtmd.so` via CPU traits shim (`strata-system-ggml.patch`).
-  - Multimodal vision reader (`strata-vision-hip`) and `/usr/bin/strata` runtime launcher.
-
-### `10524.r8.g70aff25-1`
-- **Patch Modernization & Cleanup**:
-  - Replaced outdated / fuzzy patches with clean diffs matching latest upstream Git HEADs (zero fuzz, zero offsets, zero rejects).
-  - Dropped `llama-cmake-include.patch`: upstream `llama.cpp` has integrated `INTERFACE_INCLUDE_DIRECTORIES` into `ggml-config.cmake.in`.
-  - Dropped `llama-patch-abi.py` & `llama-shims.py`: upstream `llama-cpp-python` Git HEAD now natively supports modern `llama.h` ABI and functions.
-  - Refreshed `jina-reranker-v3.patch` cleanly against latest `llama.cpp` `src/llama-graph`, `src/llama-model`, and Qwen3 architectures.
-  - Refreshed `whisper-version-commit.patch` cleanly against latest `whisper.cpp`.
-  - Added `sd-system-ggml.patch`: fixed `stable-diffusion.cpp` linear I8 matrix multiplication and quantization compatibility when building against shared system GGML.
-- **Build System**: Updated all source checksums via `updpkgsums` and validated compilation of all 7 split packages.
-
-### `10344.r14.g030ebb5-1`
-- **Jina Reranker v3 Integration**: Added `jina-reranker-v3.patch` for Qwen3 cross-encoder embeddings and dense projection layers.
-- **Python Bindings Compatibility**: Introduced ABI shims for LoRA and sampler functions to bridge `llama-cpp-python` with dynamic `libllama.so`.
-- **Dynamic Backend Loading**: Hardened `GGML_BACKEND_DL=ON` across CPU variants, OpenBLAS, HIP/ROCm, and Vulkan.
-
-### `9700.r12.g41bf982-1`
-- **New Split Packages**:
-  - Added `qwen3-tts.cpp-git-ggml-hip` with hybrid CPU/GPU split execution, device selection, and automatic voice fallback.
-  - Added `parakeet.cpp-git-ggml-hip` (FastConformer and TDT ASR).
-  - Added `stable-diffusion.cpp-git-ggml-hip` with web UI and system ggml integration.
-- **Version Identification**: Implemented commit-hash tagging patches for `whisper.cpp` and `qwen3-tts.cpp`.
-
-### `7974.r6.g262364e-1`
-- **Initial Release**: Unified shared library `libggml-git-hip` with split packages `llama.cpp-git-ggml-hip`, `whisper.cpp-git-ggml-hip`, and `python-llama-cpp-git-ggml-hip`.
-- **RDNA2 Acceleration**: HIP compilation with ROCm toolchain targeting modern AMD architectures (gfx1030+).
-
-
-
-
-
+- Package change history: [CHANGELOG.md](CHANGELOG.md)
+- Per-update ecosystem deltas relevant to this system's services (features to adopt, breaking changes): [curated-changes.md](curated-changes.md)

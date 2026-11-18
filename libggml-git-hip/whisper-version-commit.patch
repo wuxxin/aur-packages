@@ -34,7 +34,7 @@ index 3fcf586..10359f1 100644
  
      if (WHISPER_USE_SYSTEM_LLAMA)
          message(STATUS "Using system-provided llama.cpp, skipping llama.cpp fetch")
--        find_package(llama 0.6.0 REQUIRED)
+-        find_package(llama 1.0.0 REQUIRED)
 +        find_package(llama REQUIRED)
      else()
          include(FetchContent)

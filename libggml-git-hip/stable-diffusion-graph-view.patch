@@ -1,0 +1,34 @@
+stable-diffusion.cpp v0.3.37 calls ggml_graph_view() from its system-ggml compat shim,
+but llama.cpp b12521+ keeps that symbol private (defined in ggml.c, not exported from
+libggml). Mirror it locally inside the SD_GGML_GRAPH_COMPAT block; fields mirror
+ggml.c:ggml_graph_view of the pinned tree.
+
+diff --git a/src/core/ggml_compat.cpp b/src/core/ggml_compat.cpp
+--- a/src/core/ggml_compat.cpp
++++ b/src/core/ggml_compat.cpp
+@@ -4,7 +4,25 @@
+ #ifdef SD_GGML_GRAPH_COMPAT
+ // Upstream ggml still requires its private graph layout for these operations.
+ #include "ggml-impl.h"
+ 
++// llama.cpp b12521+: ggml_graph_view is not exported from libggml; mirror it here.
++static struct ggml_cgraph sd_ggml_graph_view(struct ggml_cgraph * cgraph0, int i0, int i1) {
++    struct ggml_cgraph cgraph = {};
++    cgraph.size             = 0;
++    cgraph.n_nodes          = i1 - i0;
++    cgraph.n_leafs          = 0;
++    cgraph.nodes            = cgraph0->nodes + i0;
++    cgraph.grads            = NULL; // gradients would need visited_hash_set
++    cgraph.grad_accs        = NULL;
++    cgraph.leafs            = NULL;
++    cgraph.use_counts       = cgraph0->use_counts;
++    cgraph.visited_hash_set = cgraph0->visited_hash_set;
++    cgraph.order            = cgraph0->order;
++    cgraph.uid              = 0;
++    return cgraph;
++}
++#define ggml_graph_view sd_ggml_graph_view
++
+ #include <unordered_map>
+ #include <unordered_set>
+ #include <utility>
