@@ -4,15 +4,17 @@ Consumer-facing digest of upstream deltas between two `libggml-git-hip` builds, 
 
 ## Window: 2026-11-14 → 2026-11-18 (`12383.r1.g3549c27` → `12522.r0.g2cbfc3c`)
 
+Complete per-source commit listings for this window: [full-changes.md](full-changes.md). The sections below are the filtered digest.
+
 Pinned range per component:
 
 | component | from (installed) | to (built, pending install) |
 |---|---|---|
 | llama.cpp / ggml | `3549c27` (b12383) | `2cbfc3c` (b12522), 138 commits |
-| Strata | v0.2.13.1, engine 0.1.59.1 | **v0.2.15**, Control/Terminal 0.2.14–0.2.15, engines **0.1.60** (`c77572806`), +947 commits |
-| whisper.cpp | pre-1.9.6-dev | `6680804f9`, 1.9.6-dev (llama pin 1.0.0) |
-| stable-diffusion.cpp | — | v0.3.37 (`532d2c15` opaque-API refactor #2365) |
-| llama-cpp-python / acestep.cpp | — | 0.3.37 bump + llama pin `a956a852c`; 2 commits |
+| Strata | v0.2.13.1, engine 0.1.59.1 | **v0.2.15**, Control/Terminal 0.2.14–0.2.15, engines **0.1.60** (`c77572806`), +736 commits (range, no-merges) |
+| whisper.cpp | pre-1.9.6-dev | `6680804f9`, 1.9.6-dev (llama pin 1.0.0), 110 commits |
+| stable-diffusion.cpp | — | v0.3.37 (`532d2c15` opaque-API refactor #2365), 10 commits |
+| llama-cpp-python / acestep.cpp | — | 0.3.37 bump + llama pin `a956a852c` (3); 4 commits |
 | qwen3-tts.cpp, parakeet.cpp | unchanged upstream | unchanged |
 
 ### Breaking / adopt now
@@ -40,7 +42,8 @@ Append a new "Window:" section; never rewrite older ones. Procedure:
 
 1. **Baseline pin**: the installed pkgver encodes llama.cpp (`<N>.r<k>.g<hex>` = tag b\<N\> + k commits + `h`); component pins come from embedded versions — `/usr/lib/strata/engine/BUILD.json` (Strata), `whisper-cli --version`, package install mtimes under `/var/lib/pacman/local/*ggml-hip*/desc`.
 2. **Fetch**: run `updpkgsums` in the package dir (it refreshes the local git mirrors; slow first time). All VCS sums stay SKIP.
-3. **Range logs** per mirror: `git -C <mirror> log --oneline <old-pin>..HEAD` (tags when available, e.g. Strata `v0.2.13.1..HEAD`; else `--since=<baseline date>`). Save to `../scratch/chlog/`.
-4. **Filter** for this system: `hip|rocm|gfx|amd|kfd`, `serve|launch|engine|prefill|expert|quant|iq[0-9]|mtp|draft|cache|spill|nvme|vision|qwen3next|deepseek`, drop `windows|strix|arc|sycl|metal|arm|neon|780m|integrated` noise. Read the surviving lines fully for Strata and llama.cpp; summarize per component in the table + three sections (breaking / features / verified).
-5. **Prove**: after building, re-check `strata --version`, whisper strings, and any new CLI surface before writing "Verified".
-6. Record patch drift fixes in `CHANGELOG.md` (package history), consumer consequences here — keep the two roles separate.
+3. **Range logs** per mirror: `git -C <mirror> log --oneline <old-pin>..HEAD` (tags when available, e.g. Strata `v0.2.13.1..HEAD`; for components without a pin use the exact baseline `base=$(git -C <mirror> rev-list -1 --before=<window-start>T00:00 HEAD)` — a date-filtered `--since` log misses commits merged later). Save to `../scratch/chlog/`.
+4. **Full enumeration**: append a new window section to [full-changes.md](full-changes.md) with the complete unfiltered lists (`git log --no-merges --date=short --pretty='%h %ad %an: %s' <range>` per mirror, incl. explicit `0 commits` for untouched components); use its counts in the table above.
+5. **Filter** for this system: `hip|rocm|gfx|amd|kfd`, `serve|launch|engine|prefill|expert|quant|iq[0-9]|mtp|draft|cache|spill|nvme|vision|qwen3next|deepseek`, drop `windows|strix|arc|sycl|metal|arm|neon|780m|integrated` noise. Read the surviving lines fully for Strata and llama.cpp; summarize per component in the table + three sections (breaking / features / verified).
+6. **Prove**: after building, re-check `strata --version`, whisper strings, and any new CLI surface before writing "Verified".
+7. Record patch drift fixes in [PKG-CHANGELOG.md](PKG-CHANGELOG.md) (package history), consumer consequences here — keep the two roles separate.

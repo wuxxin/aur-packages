@@ -1,6 +1,6 @@
 # Changelog — libggml-git-hip
 
-Package-level change history for the `libggml-git-hip` split-package build. Per-update ecosystem deltas relevant to consumers of this system are tracked separately in `curated-changes.md`.
+Package-level change history for the `libggml-git-hip` split-package build. Per-update ecosystem deltas relevant to consumers of this system are tracked separately in [CHANGELOG.md](CHANGELOG.md); complete per-source commit lists in [full-changes.md](full-changes.md).
 
 ### `12522.r0.g2cbfc3c-1` (Current, built 2026-11-18; not yet installed)
 Replaces the installed `12383.r1.g3549c27-1` (2026-11-14).
@@ -8,7 +8,7 @@ Replaces the installed `12383.r1.g3549c27-1` (2026-11-14).
 - **Patch refresh**: `whisper-version-commit.patch` re-pinned to the new upstream context (`find_package(llama 1.0.0)` stripped); `strata-system-ggml.patch` vision hunk rewritten onto upstream's own-ViT-tower layout — system-mode `strata-vision` now links the new `strata_vit_own` target (built via `STRATA_VISION_HIP`, same gfx archs).
 - **Added**: `strata-clear-cache.patch` — the engine's `CLEAR_CACHE` stdin command (drop parked conversations + `malloc_trim`) split out of the old spill scaffold; verified in the built binary. Added `stable-diffusion-graph-view.patch` — llama.cpp b12521+ keeps `ggml_graph_view` private (defined in ggml.c, not exported from libggml); stable-diffusion v0.3.37's system-ggml compat shim calls it, so the patch mirrors it locally inside the `SD_GGML_GRAPH_COMPAT` block.
 - **Removed**: `strata-nvme-spill.patch` (kept unreferenced in this directory; design parked at `strata-spill-plan.md`). The patch was a scaffold: it logged evictions and wired `--disk-spill*` flags, never persisted KV. Upstream supersedes its memory half (#5697 RAM release on eviction, segment/checkpoint park pools with budget accounting).
-- **Docs**: changelog split out of `README.md` into this file; added `curated-changes.md` with a reusable per-window extraction procedure.
+- **Docs**: changelog split out of `README.md` into this file; added `CHANGELOG.md` (per-window consumer digest with a reusable extraction procedure) and `full-changes.md` (complete per-source commit listings).
 
 ### `12284.r12.g1648d64-1`
 - **acestep.cpp Subpackage (`acestep.cpp-git-ggml-hip`)**:

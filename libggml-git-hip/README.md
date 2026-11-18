@@ -4,7 +4,7 @@ An optimized Git HEAD compilation of the GGML tensor library and associated tool
 
 This package uses **dynamic backends** (`GGML_BACKEND_DL=ON`) to compile and package **CPU** (with auto-selected instruction set variants), **OpenBLAS**, **HIP/ROCm**, and **Vulkan** backends under a unified shared library.
 
-Package change history: [PKG-CHANGELOG.md](PKG-CHANGELOG.md) , per-update ecosystem deltas relevant to this system's services (features to adopt, breaking changes): [CHANGELOG.md](CHANGELOG.md)
+Package change history: [PKG-CHANGELOG.md](PKG-CHANGELOG.md) , per-update ecosystem deltas relevant to this system's services (features to adopt, breaking changes): [CHANGELOG.md](CHANGELOG.md), complete per-source commit listings per window: [full-changes.md](full-changes.md)
 
 ## Split Packages
 
