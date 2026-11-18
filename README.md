@@ -55,7 +55,7 @@ Can be **broken or bitrotten at anytime**.
 
 ### currently used private forks
 
-- [oh-my-pi-git-tag](oh-my-pi-git-tag) - AI coding agent for the terminal
+- [oh-my-pi-git](oh-my-pi-git) - AI coding agent for the terminal
     - Built from git latest tag with dynamically evaluated versioning and system libraries (opus, pcre2).
 - [libggml-git-hip](libggml-git-hip) - HIP libggml git version shared library
     - builds `libggml`, `llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts`, `parakeet.cpp`, `strata-engine` with hip/rocm accel from latest git

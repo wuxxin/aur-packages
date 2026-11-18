@@ -22,7 +22,7 @@ This document tracks repository activity, commit counts, merge frequency, and re
 | *└─ qwen3-tts.cpp* | [khimaros/qwen3-tts.cpp](https://github.com/khimaros/qwen3-tts.cpp) | 0 | 0 | `main` | 2026-06-16 | 0 | 0 | 0 | 0.0 | — | `11857.r9.g3f03b17-1` (ref `0c8b2ba`) | 0 | **Stale** |
 | *└─ parakeet.cpp* | [mudler/parakeet.cpp](https://github.com/mudler/parakeet.cpp) | 0 | 0 | `main` | 2026-10-07 | 0 | 0 | 0 | 6.2 | — | `11857.r9.g3f03b17-1` (ref `e75de9b`) | 34 | **Stale** |
 | *└─ strata* | [Niko1221/Strata](https://github.com/Niko1221/Strata) | 0 | 0 | `main` | 2026-10-24 | **342** | 70 | 7 | 844.2 | `v0.2.1.4`, `v0.2.2` | `11857.r9.g3f03b17-1` (ref `4b9e05a`) | 0 | **Highly Active** |
-| **oh-my-pi-git-tag** | [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) | 0 | 0 | `main` | 2026-10-27 | **746** | 241 | 4 | 1380.0 | `v18.12.5`, `v18.12.6` | `18.13.1.r289.gc7ffd4f-1` (ref `c7ffd4f`) | 0 | **Highly Active** |
+| **oh-my-pi-git** | [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) | 0 | 0 | `main` | 2026-10-27 | **746** | 241 | 4 | 1380.0 | `v18.12.5`, `v18.12.6` | `18.13.1.r289.gc7ffd4f-1` (ref `c7ffd4f`) | 0 | **Highly Active** |
 | **pocket-tts.cpp-git** | [VolgaGerm/PocketTTS.cpp](https://github.com/VolgaGerm/PocketTTS.cpp) | 0 | 0 | `master` | 2026-03-29 | 0 | 0 | 0 | 0.0 | — | `0.1.0.r18.ge801e7d-1` (ref `e801e7d`) | 0 | **Stale** |
 | **python-bitsandbytes-rocm-git** | [bitsandbytes-foundation/bitsandbytes](https://github.com/bitsandbytes-foundation/bitsandbytes) | 0 | 0 | `main` | 2026-08-26 | 0 | 0 | 0 | 0.0 | — | `0.50.2.r2.g83364904-1` (ref `83364904`) | 0 | **Stale** |
 | **python-gptqmodel-rocm-git** | [ModelCloud/GPTQModel](https://github.com/ModelCloud/GPTQModel) | 0 | 0 | `main` | 2026-08-25 | 0 | 0 | 0 | 0.0 | — | `7.3.2.r31.g7df3d1e83-1` (ref `7df3d1e83`) | 11 | **Stale** |
@@ -132,7 +132,7 @@ This document tracks repository activity, commit counts, merge frequency, and re
 * **Recent Focus**:
   - Up to date with installed package (0 new commits).
 
-### oh-my-pi-git-tag (`can1357/oh-my-pi`)
+### oh-my-pi-git (`can1357/oh-my-pi`)
 * **Status**: Highly Active (746 commits, 4 tags/releases in the last week). **0 commits since installed 18.13.1.r289.gc7ffd4f-1 (ref `c7ffd4f`).**
 * **Recent Focus**:
   - Up to date with installed package (0 new commits).

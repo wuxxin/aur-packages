@@ -39,8 +39,8 @@ def run_cmd(cmd: List[str], cwd: Optional[str] = None) -> str:
 
 def ensure_repo_sources() -> str:
     """Ensure the oh-my-pi repository is cloned/fetched and return its path."""
-    pkg_src = "oh-my-pi-git-tag/src/oh-my-pi"
-    bare_path = "oh-my-pi-git-tag/oh-my-pi"
+    pkg_src = "oh-my-pi-git/src/oh-my-pi"
+    bare_path = "oh-my-pi-git/oh-my-pi"
     target_url = "https://github.com/can1357/oh-my-pi.git"
 
     if os.path.exists(pkg_src) and run_cmd(["git", "-C", pkg_src, "rev-parse", "HEAD"]):
@@ -229,14 +229,14 @@ def generate_markdown(
         "### Manual Step-by-Step Procedure",
         "1. **Fetch Upstream Tags**:",
         "   ```bash",
-        "   git -C oh-my-pi-git-tag/src/oh-my-pi fetch origin --tags",
+        "   git -C oh-my-pi-git/src/oh-my-pi fetch origin --tags",
         "   # Query tags from the last 7 days sorted chronologically (oldest to newest)",
-        "   git -C oh-my-pi-git-tag/src/oh-my-pi tag -l --sort=creatordate --format='%(creatordate:short) %(refname:short)'",
+        "   git -C oh-my-pi-git/src/oh-my-pi tag -l --sort=creatordate --format='%(creatordate:short) %(refname:short)'",
         "   ```",
         "2. **Inspect Monorepo Package Changelogs**:",
         "   `can1357/oh-my-pi` maintains modular changelogs under `packages/*/CHANGELOG.md`. For each target release tag, inspect all package changelogs for the matching `## [X.Y.Z]` headings:",
         "   ```bash",
-        "   for ch in oh-my-pi-git-tag/src/oh-my-pi/packages/*/CHANGELOG.md; do",
+        "   for ch in oh-my-pi-git/src/oh-my-pi/packages/*/CHANGELOG.md; do",
         "       echo \"=== $ch ===\"",
         "       sed -n '/## \\[17.3.0\\]/,/## \\[/p' \"$ch\"",
         "   done",
