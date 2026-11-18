@@ -1,5 +1,5 @@
 diff --git a/packages/coding-agent/scripts/compile-binary.ts b/packages/coding-agent/scripts/compile-binary.ts
-index 05d9d70b789..b4f05504048 100644
+index 05d9d70b78..b4f0550404 100644
 --- a/packages/coding-agent/scripts/compile-binary.ts
 +++ b/packages/coding-agent/scripts/compile-binary.ts
 @@ -50,7 +50,12 @@ export async function compileCodingAgent(options: CodingAgentCompileOptions): Pr

@@ -1,6 +1,6 @@
-pkgbase = oh-my-pi-git-tag
+pkgbase = oh-my-pi-git
 	pkgdesc = AI coding agent for the terminal — hash-anchored edits, optimized tool harness, LSP, Python SDK, browser extension, subagents, and more (git latest tag)
-	pkgver = 18.21.0.r32.g6e8ab5f
+	pkgver = 18.22.2.r190.g2cdc756
 	pkgrel = 1
 	url = https://github.com/can1357/oh-my-pi
 	arch = x86_64
@@ -42,9 +42,9 @@ pkgbase = oh-my-pi-git-tag
 	source = skip-native-embed-for-aur.patch
 	source = relative-json-asset-paths.patch
 	sha256sums = SKIP
-	sha256sums = bb28e64651c71739d1920e2710f7937770e65ae5e6ea3e2f4e303daf6622d05f
-	sha256sums = 8a0ed6a622859366f906375143fa59b7830c73d0c90c10483628f2f42e118083
-	sha256sums = b1ac2e50d47c08dd874e6cbc6f5be43e5c2660d86183319e9abf3e33b2cfe2f8
-	sha256sums = 776521387270139bab83e49392ea6dfa58623fc6f762c4ae8ada3f3dd65bcc0a
+	sha256sums = a70471cb6d7b75d68cbe468a37afc5b4c981d06e9c617cab497fcd1ae098a51a
+	sha256sums = b0c192f53b699dfebbaa765aa017c6e576d1625dcff22d187a8c56cde2e538fe
+	sha256sums = 491c747d8a8d3740cb81f8e4189341d775e07ec91302e450f554208bdceb5639
+	sha256sums = 1ce0a4c853ee980694d6a1da6944098978f0407c4ca3dd612ff6017744766e8c
 
-pkgname = oh-my-pi-git-tag
+pkgname = oh-my-pi-git

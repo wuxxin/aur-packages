@@ -1,5 +1,5 @@
 diff --git a/MODULE.bazel b/MODULE.bazel
-index 89489f52565..aeb78a3661e 100644
+index 08765d2266..68622ad57e 100644
 --- a/MODULE.bazel
 +++ b/MODULE.bazel
 @@ -192,11 +192,12 @@ crate.from_cargo(
@@ -48,7 +48,7 @@ index 89489f52565..aeb78a3661e 100644
  use_repo(crate, "crates")
 diff --git a/bazel/patches/opusic-sys-dynamic.patch b/bazel/patches/opusic-sys-dynamic.patch
 new file mode 100644
-index 00000000000..4bd8bbafd52
+index 0000000000..4bd8bbafd5
 --- /dev/null
 +++ b/bazel/patches/opusic-sys-dynamic.patch
 @@ -0,0 +1,14 @@
@@ -66,3 +66,18 @@ index 00000000000..4bd8bbafd52
 +     //dont use any dynamic linking if bundling is requested
 +     #[cfg(feature = "bundled")]
 +     build();
+diff --git a/scripts/bazel-natives.ts b/scripts/bazel-natives.ts
+index 69497f453b..96e2b72e54 100755
+--- a/scripts/bazel-natives.ts
++++ b/scripts/bazel-natives.ts
+@@ -356,6 +356,10 @@ export const GLIBC_ADDON_NEEDED: ReadonlySet<string> = new Set([
+ 	"libdl.so.2",
+ 	"ld-linux-x86-64.so.2",
+ 	"ld-linux-aarch64.so.1",
++	// The AUR build links Arch's shared libopus/libpcre2 (use-system-opus-pcre2.patch);
++	// upstream builds embed the vendored static copies and never emit these names.
++	"libopus.so.0",
++	"libpcre2-8.so.0",
+ ]);
+ 
+ /** The one symbol a Linux addon exports (`:exports_map` in crates/natives/BUILD.bazel). */
