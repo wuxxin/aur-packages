@@ -1,66 +1,46 @@
-# Changelog — libggml-git-hip
+# Curated changes — what each update window means for this system
 
-Package-level change history for the `libggml-git-hip` split-package build. Per-update ecosystem deltas relevant to consumers of this system are tracked separately in `curated-changes.md`.
+Consumer-facing digest of upstream deltas between two `libggml-git-hip` builds, filtered to what is actionable on **this system**: an Arch Linux x86_64 workstation with two AMD RDNA GPUs (gfx1030 + gfx1100) driven by the HIP backend (Vulkan as fallback), running this package suite as local inference services — strata-engine serving a Qwen3.8-Flash-Next MoE (MTP drafter, web chat/agent tooling over `strata serve`), plus whisper/parakeet ASR, qwen3-tts TTS, stable-diffusion image gen, acestep music, llama-server embedding/rerank workloads. Other mypai infrastructure (service control scripts, benchmarks, docs) should read this file for features to adopt and breaking changes; it deliberately contains no hostnames or personal paths — "this system" means the deployment described above.
 
-### `12522.r0.g2cbfc3c-1` (Current, built 2026-11-18; not yet installed)
-Replaces the installed `12383.r1.g3549c27-1` (2026-11-14).
-- **Upstream sync**: llama.cpp b12383→b12522, Strata v0.2.13.1→v0.2.15 (Control/Terminal 0.2.14/0.2.15, engines 0.1.60), whisper.cpp 1.9.6-dev, stable-diffusion.cpp v0.3.37, llama-cpp-python bump; qwen3-tts.cpp and parakeet.cpp unchanged upstream.
-- **Patch refresh**: `whisper-version-commit.patch` re-pinned to the new upstream context (`find_package(llama 1.0.0)` stripped); `strata-system-ggml.patch` vision hunk rewritten onto upstream's own-ViT-tower layout — system-mode `strata-vision` now links the new `strata_vit_own` target (built via `STRATA_VISION_HIP`, same gfx archs).
-- **Added**: `strata-clear-cache.patch` — the engine's `CLEAR_CACHE` stdin command (drop parked conversations + `malloc_trim`) split out of the old spill scaffold; verified in the built binary. Added `stable-diffusion-graph-view.patch` — llama.cpp b12521+ keeps `ggml_graph_view` private (defined in ggml.c, not exported from libggml); stable-diffusion v0.3.37's system-ggml compat shim calls it, so the patch mirrors it locally inside the `SD_GGML_GRAPH_COMPAT` block.
-- **Removed**: `strata-nvme-spill.patch` (kept unreferenced in this directory; design parked at `strata-spill-plan.md`). The patch was a scaffold: it logged evictions and wired `--disk-spill*` flags, never persisted KV. Upstream supersedes its memory half (#5697 RAM release on eviction, segment/checkpoint park pools with budget accounting).
-- **Docs**: changelog split out of `README.md` into this file; added `curated-changes.md` with a reusable per-window extraction procedure.
+## Window: 2026-11-14 → 2026-11-18 (`12383.r1.g3549c27` → `12522.r0.g2cbfc3c`)
 
-### `12284.r12.g1648d64-1`
-- **acestep.cpp Subpackage (`acestep.cpp-git-ggml-hip`)**:
-  - Added subpackage for ACE-Step 1.5 text-and-lyrics music generation (`ace-lm`, `ace-synth`, `ace-server`, `ace-understand`, `neural-codec`, `mp3-codec`, `quantize`).
-  - Dynamic linking against system shared `libggml.so` via `acestep-system-ggml.patch`.
-  - Runtime device offloading (HIP/ROCm, Vulkan, CPU) through GGML dynamic backend plugin discovery.
-- **Patch Refresh & Upstream Sync**:
-  - Refreshed `strata-system-ggml.patch` to support upstream Strata CMake reorganization (`cmake/strata_ggml.cmake`, including `src/platform/ggml_cpu_shim.cpp` and system `mtmd`/`llama` vision linking) and updated Strata packaging for `cmake/`, `strata_cli/`, `strata.py`, and `tools/chat.py`.
-  - Refreshed `strata-version-commit.patch`, `jina-reranker-v3.patch`, and `whisper-version-commit.patch` with zero offsets.
-  - Added `strata-nvme-spill.patch`: engine `CLEAR_CACHE` stdin protocol command for zero-turnaround S3 suspend memory reclamation and opt-in `--disk-spill` lazy NVMe KV offload for long conversations.
-  - Updated all components to latest git HEAD.
+Pinned range per component:
 
-### `11937.r7.g1b4554e-1`
-- **Strata Documentation & Packaging Fixes**:
-  - Resolved `install` file conflict in `package_strata-engine-git-ggml-hip()` by preserving `docs/*.md` under `/usr/share/doc/strata-engine-git-ggml-hip/docs/` alongside root `README.md` and `SECURITY.md`, maintaining markdown inter-doc relative link structures.
-  - Added `/usr/share/doc/strata` compatibility symlink.
-  - Added `hipblaslt` direct runtime dependency to `strata-engine-git-ggml-hip`.
-  - Added `-DCMAKE_SKIP_RPATH=ON` and `patchelf --remove-rpath` to remove ephemeral staging directory paths from the compiled `strata` binary.
-  - Passed `--no-same-owner` during embedded `llama.cpp` tar extraction for reliable rootless and sandboxed builds.
-- **Strata Git Versioning (`strata-version-commit.patch`)**:
-  - Implemented Git tag and commit identification in `strata --version` (e.g. `strata version: 0.2.7 (5e8a4cca7)`).
-- **Upstream Sync**: Updated all submodules and component repositories to latest git HEAD.
+| component | from (installed) | to (built, pending install) |
+|---|---|---|
+| llama.cpp / ggml | `3549c27` (b12383) | `2cbfc3c` (b12522), 138 commits |
+| Strata | v0.2.13.1, engine 0.1.59.1 | **v0.2.15**, Control/Terminal 0.2.14–0.2.15, engines **0.1.60** (`c77572806`), +947 commits |
+| whisper.cpp | pre-1.9.6-dev | `6680804f9`, 1.9.6-dev (llama pin 1.0.0) |
+| stable-diffusion.cpp | — | v0.3.37 (`532d2c15` opaque-API refactor #2365) |
+| llama-cpp-python / acestep.cpp | — | 0.3.37 bump + llama pin `a956a852c`; 2 commits |
+| qwen3-tts.cpp, parakeet.cpp | unchanged upstream | unchanged |
 
-### `11753.r0.gd8d9297-1`
-- **Strata Engine Subpackage (`strata-engine-git-ggml-hip`)**:
-  - Integrated Strata inference engine for large MoE models (Qwen 3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen 3.6-35B).
-  - Native AMD ROCm/HIP wave32 compilation (`gfx1010`–`gfx1201`).
-  - Dynamic linking against system shared `libggml.so`, `libllama.so`, and `libmtmd.so` via CPU traits shim (`strata-system-ggml.patch`).
-  - Multimodal vision reader (`strata-vision-hip`) and `/usr/bin/strata` runtime launcher.
+### Breaking / adopt now
 
-### `10524.r8.g70aff25-1`
-- **Patch Modernization & Cleanup**:
-  - Replaced outdated / fuzzy patches with clean diffs matching latest upstream Git HEADs (zero fuzz, zero offsets, zero rejects).
-  - Dropped `llama-cmake-include.patch`: upstream `llama.cpp` has integrated `INTERFACE_INCLUDE_DIRECTORIES` into `ggml-config.cmake.in`.
-  - Dropped `llama-patch-abi.py` & `llama-shims.py`: upstream `llama-cpp-python` Git HEAD now natively supports modern `llama.h` ABI and functions.
-  - Refreshed `jina-reranker-v3.patch` cleanly against latest `llama.cpp` `src/llama-graph`, `src/llama-model`, and Qwen3 architectures.
-  - Refreshed `whisper-version-commit.patch` cleanly against latest `whisper.cpp`.
-  - Added `sd-system-ggml.patch`: fixed `stable-diffusion.cpp` linear I8 matrix multiplication and quantization compatibility when building against shared system GGML.
-- **Build System**: Updated all source checksums via `updpkgsums` and validated compilation of all 7 split packages.
+- **`CLEAR_CACHE` stays** — split out of the removed spill scaffold into `strata-clear-cache.patch`; the pre-suspend hook works unchanged (drops parked conversations, trims heap, answers `CLEARED <n>`). What is gone: the `--disk-spill*` flags (they never persisted anything; upstream #5697 now releases parked-conversation RAM on eviction and park pools are budget-accounted).
+- **Strata CPU expert path changed**: engine 0.1.60 builds the expert pool and DeepSeek/Flash CPU lanes on Strata's own quant layer (`STRATA_OWN_CPU_QUANT`, default ON on x86) — ggml-cpu is out of the pool, bit-exact against it (AVX2/AVX-512-VNNI/Q4_0/Q5/IQ4_NL/MXFP4; NVFP4 scale decode 5× faster). Expect changed CPU-side decode throughput on our dynamic expert offloading; benchmark before/after on upgrade.
+- **stable-diffusion.cpp C API refactor (#2365)**: opaque options/tensors/results. `sd-cli`/`sd-server` are unaffected, but any code linking `libsd` directly (custom tools) must migrate to the new handles. The v0.3.37 shim also calls llama.cpp's now-private `ggml_graph_view`; our `stable-diffusion-graph-view.patch` mirrors it locally — needed as long as we build SD against system ggml.
 
-### `10344.r14.g030ebb5-1`
-- **Jina Reranker v3 Integration**: Added `jina-reranker-v3.patch` for Qwen3 cross-encoder embeddings and dense projection layers.
-- **Python Bindings Compatibility**: Introduced ABI shims for LoRA and sampler functions to bridge `llama-cpp-python` with dynamic `libllama.so`.
-- **Dynamic Backend Loading**: Hardened `GGML_BACKEND_DL=ON` across CPU variants, OpenBLAS, HIP/ROCm, and Vulkan.
+### Features worth wiring in
 
-### `9700.r12.g41bf982-1`
-- **New Split Packages**:
-  - Added `qwen3-tts.cpp-git-ggml-hip` with hybrid CPU/GPU split execution, device selection, and automatic voice fallback.
-  - Added `parakeet.cpp-git-ggml-hip` (FastConformer and TDT ASR).
-  - Added `stable-diffusion.cpp-git-ggml-hip` with web UI and system ggml integration.
-- **Version Identification**: Implemented commit-hash tagging patches for `whisper.cpp` and `qwen3-tts.cpp`.
+- **llama.cpp on our GPUs**: GDN (gated-delta-net) MMA kernel enabled on CDNA (#31327 — Qwen3-Next-family linear attention), MoE regression fix on HIP (#32344), `MUL_MAT_ID` abort with odd src0 columns on AMD fixed (#32385), stream_k tuning for GCN, K/V read-order rotation for L2 hits (#32407). Server: slot scheduler refactor (`server_slot_sched`, #32154), streaming connection-reuse fix (#30492) — relevant to keep-alive clients of llama-server.
+- **Model correctness**: `qwen3next` output-projection weight scale applied (#32393), qwen4exp graph-realloc + FP8 checkpoint converter fixes — quality fixes for Qwen3/Next-family serving on all backends.
+- **Strata serve/chat**: declared boolean tool arguments accept `True`/`False` (tool-calling agents), stop-without-timeout drains requests, parked-message routing and agent-question notifications fixed; Drafting on/off/auto control per model — our MTP-drafted Flash-Next setup can pin drafting from config instead of environment.
+- **Strata vision**: upstream own Qwen ViT tower (`tools/vision/own`) now has a HIP build; our package builds it (`strata_vit_own` linked into `strata-vision`). Upstream default remains mtmd — try `--tower own|auto` when testing the multimodal reader.
+- **Strix/integrated-GPU arena work** (unregistered expert arena, KFD quiet switches): not applicable to gfx1030/gfx1100 desktop cards; ignore unless a second machine joins.
 
-### `7974.r6.g262364e-1`
-- **Initial Release**: Unified shared library `libggml-git-hip` with split packages `llama.cpp-git-ggml-hip`, `whisper.cpp-git-ggml-hip`, and `python-llama-cpp-git-ggml-hip`.
-- **RDNA2 Acceleration**: HIP compilation with ROCm toolchain targeting modern AMD architectures (gfx1030+).
+### Verified in this build
+
+- `strata --version` prints `strata version: 0.2.15 (c77572806)`; the built engine binary contains the `CLEAR_CACHE` handler (`CLEARED %zu`); `libwhisper.so.1.9.6` embeds `1.9.6-dev (6680804f9)`.
+- All 9 packages build clean from a wiped cache via `updpkgsums && makepkg -Cf --nocheck` at `12522.r0.g2cbfc3c-1`, zero rejects, including the two new patches and the refreshed ones.
+
+## How to regenerate this file (next iteration)
+
+Append a new "Window:" section; never rewrite older ones. Procedure:
+
+1. **Baseline pin**: the installed pkgver encodes llama.cpp (`<N>.r<k>.g<hex>` = tag b\<N\> + k commits + `h`); component pins come from embedded versions — `/usr/lib/strata/engine/BUILD.json` (Strata), `whisper-cli --version`, package install mtimes under `/var/lib/pacman/local/*ggml-hip*/desc`.
+2. **Fetch**: run `updpkgsums` in the package dir (it refreshes the local git mirrors; slow first time). All VCS sums stay SKIP.
+3. **Range logs** per mirror: `git -C <mirror> log --oneline <old-pin>..HEAD` (tags when available, e.g. Strata `v0.2.13.1..HEAD`; else `--since=<baseline date>`). Save to `../scratch/chlog/`.
+4. **Filter** for this system: `hip|rocm|gfx|amd|kfd`, `serve|launch|engine|prefill|expert|quant|iq[0-9]|mtp|draft|cache|spill|nvme|vision|qwen3next|deepseek`, drop `windows|strix|arc|sycl|metal|arm|neon|780m|integrated` noise. Read the surviving lines fully for Strata and llama.cpp; summarize per component in the table + three sections (breaking / features / verified).
+5. **Prove**: after building, re-check `strata --version`, whisper strings, and any new CLI surface before writing "Verified".
+6. Record patch drift fixes in `CHANGELOG.md` (package history), consumer consequences here — keep the two roles separate.

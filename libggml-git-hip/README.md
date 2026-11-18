@@ -1,6 +1,10 @@
 # libggml-git-hip
 
-An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts.cpp`, `parakeet.cpp`, `strata-engine`, `acestep.cpp`) for Arch Linux. This package uses **dynamic backends** (`GGML_BACKEND_DL=ON`) to compile and package **CPU** (with auto-selected instruction set variants), **OpenBLAS**, **HIP/ROCm**, and **Vulkan** backends under a unified shared library.
+An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts.cpp`, `parakeet.cpp`, `strata-engine`, `acestep.cpp`) for Arch Linux. 
+
+This package uses **dynamic backends** (`GGML_BACKEND_DL=ON`) to compile and package **CPU** (with auto-selected instruction set variants), **OpenBLAS**, **HIP/ROCm**, and **Vulkan** backends under a unified shared library.
+
+Package change history: [PKG-CHANGELOG.md](PKG-CHANGELOG.md) , per-update ecosystem deltas relevant to this system's services (features to adopt, breaking changes): [CHANGELOG.md](CHANGELOG.md)
 
 ## Split Packages
 
@@ -161,9 +165,3 @@ To assist with version identification and debugging of Git-HEAD packages:
 - **Qwen3-TTS**: Implements the `--version` flag for `qwen3-tts-cli` to output `qwen3-tts version 0.1-main-commithash` where the branch name (`main`) and short commit hash of the qwen3-tts.cpp repository are dynamically resolved at configure time.
 - **Strata Engine**: Implements the `--version` flag for `strata` to output its git tag and build commit hash (e.g. `strata version: 0.2.15 (c77572806)`).
 
----
-
-## Changelog & Update Notes
-
-- Package change history: [CHANGELOG.md](CHANGELOG.md)
-- Per-update ecosystem deltas relevant to this system's services (features to adopt, breaking changes): [curated-changes.md](curated-changes.md)
