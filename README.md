@@ -5,9 +5,8 @@ Arch Linux [AUR packages](https://aur.archlinux.org/) repository for custom PKGB
 ## Repository Structure
 
 - `libggml-git-hip/` — ROCm/HIP accelerated shared GGML library; split packages: llama.cpp, python-llama-cpp, whisper.cpp, stable-diffusion.cpp, qwen3-tts.cpp, parakeet.cpp, acestep.cpp.
-- `strata-engine-git-hip/` — Strata inference engine for large MoE models (Qwen3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen3.6-35B) with native HIP acceleration.
+- `strata-engine-git-hip/` — Strata inference engine for large MoE models (Qwen3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen3.6-35B)
 - `oh-my-pi-git/` — AI coding agent for the terminal.
-- `python-torch*-rocm/` — PyTorch ROCm builds.
 - `<package-dir>/` — AUR package directories containing PKGBUILDs.
 - `scripts/` — Repository utility scripts.
 - `research/` — Development stats, build notes, and research reports.
@@ -59,6 +58,7 @@ Can be **broken or bitrotten at anytime**.
 
 - [oh-my-pi-git](oh-my-pi-git) - AI coding agent for the terminal
     - Built from git latest tag with dynamically evaluated versioning and system libraries (opus, pcre2).
+
 - [libggml-git-hip](libggml-git-hip) - HIP libggml git version shared library
     - builds `libggml`, `llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts.cpp`, `parakeet.cpp`, `acestep.cpp` with hip/rocm accel from latest git
     - with patches and Python Bindings to support the latest git version,

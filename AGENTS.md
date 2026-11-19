@@ -4,9 +4,8 @@
 
 - `README.md` — Human documentation, package list, AUR-synced vs. private forks.
 - `libggml-git-hip/` — ROCm/HIP accelerated shared GGML library; split packages: llama.cpp, python-llama-cpp, whisper.cpp, stable-diffusion.cpp, qwen3-tts.cpp, parakeet.cpp, acestep.cpp.
-- `strata-engine-git-hip/` — Strata inference engine for large MoE models (Qwen3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen3.6-35B) with native HIP acceleration; self-contained stack, no ggml dependency.
+- `strata-engine-git-hip/` — Strata inference engine for large MoE models (Qwen3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen3.6-35B)
 - `oh-my-pi-git/` — AI coding agent for the terminal.
-- `python-torch*-rocm/` — PyTorch ROCm builds.
 - `<package-dir>/` — AUR package directories containing PKGBUILDs.
 - `scripts/` — Repository utility scripts.
 - `research/` — Development stats, build notes, and research reports.
