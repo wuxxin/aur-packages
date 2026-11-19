@@ -14,7 +14,7 @@
 
 **Context:** Custom Arch PKGBUILDs for ROCm/HIP software (`llama.cpp`, PyTorch, vLLM) and experimental forks.
 
-use Skill `archlinux-pkgbuild` when working with this repository.
+Always use Skill `archlinux-pkgbuild` when working with this repository.
 
 ### Rules & Workflow
 
