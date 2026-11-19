@@ -4,6 +4,7 @@
 
 - `README.md` — Human documentation, package list, AUR-synced vs. private forks.
 - `libggml-git-hip/` — ROCm/HIP accelerated GGML, llama.cpp, whisper.cpp.
+- `oh-my-pi-git/` — AI coding agent for the terminal.
 - `python-torch*-rocm/` — PyTorch ROCm builds.
 - `<package-dir>/` — AUR package directories containing PKGBUILDs.
 - `scripts/` — Repository utility scripts.
@@ -26,9 +27,8 @@ Always use Skill `archlinux-pkgbuild` when working with this repository.
   - Use env overrides (`GGML_BACKEND_PATH`, `LLAMA_SERVER_BIN`) to test custom dynamic libs.
 - **Package Layout:** Follow existing folder structures. Put patches in the package directory and reference them in `source=()`.
 - **New Packages:** Include a `.gitignore` excluding source/package tarballs (`*.tar*`, `*.pkg.tar*`).
-- **Docs** Update `README.md` on major changes.
+- **Docs** Update `README.md` on major changes, update the package README.md or CHANGELOG.md if it exists
 - **Upstream Activity Stats**: if asked to do so, update upstream activity stats, first dry-run `python scripts/update-activity.py`, then run with `--write` to update `research/weekly-devel-activity.md`.
-
 
 ### Code Style & Tooling
 
@@ -48,19 +48,4 @@ Always use Skill `archlinux-pkgbuild` when working with this repository.
 
 #### Desktop Files (`.desktop`)
 - Use `%h` for home paths (`%h/.local/bin/app`), define `TryExec`, follow FreeDesktop.org categories.
-
-
-### Shell Command Discipline (Log Management)
-
-**CRITICAL Rule:** Never dump large command output (>100 lines) into context context. Redirect outputs (compilations, benchmarks) to `scratch/` logs and filter via `tail`/`grep`.
-
-```bash
-# General logging pattern
-command > scratch/log 2>&1; grep -i "error\|warning\|EXIT" scratch/log | tail -20
-
-# Build logging pattern
-makepkg ... > scratch/build.log 2>&1 || grep -i "error" scratch/build.log | tail -30
-```
-
-Keep stderr separate when needed for debugging, but never print full unfiltered build streams.
 

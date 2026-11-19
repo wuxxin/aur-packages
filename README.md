@@ -4,12 +4,13 @@ Arch Linux [AUR packages](https://aur.archlinux.org/) repository for custom PKGB
 
 ## Repository Structure
 
-- `libggml-git-hip/` — ROCm/HIP accelerated GGML, `llama.cpp`, and `whisper.cpp` packages
-- `python-torch*-rocm/` — PyTorch ROCm packages
-- `<package-dir>/` — Package directories containing PKGBUILDs
-- `scripts/` — Repository utility scripts
-- `research/` — Development stats, build notes, and research reports
-- `scratch/` — Workspace for temporary build logs and checkout sources (`scratch/*-sources`)
+- `libggml-git-hip/` — ROCm/HIP accelerated GGML, llama.cpp, whisper.cpp.
+- `oh-my-pi-git/` — AI coding agent for the terminal.
+- `python-torch*-rocm/` — PyTorch ROCm builds.
+- `<package-dir>/` — AUR package directories containing PKGBUILDs.
+- `scripts/` — Repository utility scripts.
+- `research/` — Development stats, build notes, and research reports.
+- `scratch/` — Agent workspace (checkout sources, build logs, scratch testing).
 
 Development activity tracking:
 
