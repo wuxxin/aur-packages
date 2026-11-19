@@ -28,4 +28,4 @@ Upstream moved its tree to `engine/`, `terminal/`, `app/`. The package installs 
 makepkg -si          # builds engine + vision reader for this machine's gfx targets
 ```
 
-HIP architectures come from `rocm-supported-gfx` (override with `AMDGPU_TARGETS=`); the RDNA whitelist in the PKGBUILD mirrors what Strata's kernels support. Ecosystem-wide update notes for our deployment: see [../libggml-git-hip/CHANGELOG.md](../libggml-git-hip/CHANGELOG.md).
+HIP architectures come from `rocm-supported-gfx` (override with `AMDGPU_TARGETS=`); the RDNA whitelist in the PKGBUILD mirrors what Strata's kernels support. Update windows for our deployment: [CHANGELOG.md](CHANGELOG.md) (Strata digest), ecosystem-wide: [../libggml-git-hip/CHANGELOG.md](../libggml-git-hip/CHANGELOG.md).
