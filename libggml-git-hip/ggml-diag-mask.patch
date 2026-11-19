@@ -272,31 +272,31 @@ diff --git a/ggml/src/ggml.c b/ggml/src/ggml.c
 index 1fca258..d98ad9c 100644
 --- a/ggml/src/ggml.c
 +++ b/ggml/src/ggml.c
-@@ -1112,9 +1112,12 @@ static const char * GGML_OP_NAME[GGML_OP_COUNT] = {
-     "OPT_STEP_SGD",
- 
+@@ -1114,9 +1117,12 @@ static const char * GGML_OP_NAME[GGML_OP_COUNT] = {
      "GLU",
+ 
+     "SLEEP",
 +
 +    "DIAG_MASK_INF",
 +    "DIAG_MASK_ZERO",
  };
  
--static_assert(GGML_OP_COUNT == 99, "GGML_OP_COUNT != 99");
-+static_assert(GGML_OP_COUNT == 101, "GGML_OP_COUNT != 101");
+-static_assert(GGML_OP_COUNT == 100, "GGML_OP_COUNT != 100");
++static_assert(GGML_OP_COUNT == 102, "GGML_OP_COUNT != 102");
  
  static const char * GGML_OP_SYMBOL[GGML_OP_COUNT] = {
      "none",
-@@ -1225,9 +1228,12 @@ static const char * GGML_OP_SYMBOL[GGML_OP_COUNT] = {
-     "sgd(x)",
- 
+@@ -1227,9 +1230,12 @@ static const char * GGML_OP_SYMBOL[GGML_OP_COUNT] = {
      "glu(x)",
+ 
+     "sleep(x)",
 +
 +    "diag_mask_inf(x)",
 +    "diag_mask_zero(x)",
  };
  
--static_assert(GGML_OP_COUNT == 99, "GGML_OP_COUNT != 99");
-+static_assert(GGML_OP_COUNT == 101, "GGML_OP_COUNT != 101");
+-static_assert(GGML_OP_COUNT == 100, "GGML_OP_COUNT != 100");
++static_assert(GGML_OP_COUNT == 102, "GGML_OP_COUNT != 102");
  
  static_assert(GGML_OP_POOL_COUNT == 2, "GGML_OP_POOL_COUNT != 2");
  

@@ -1055,3 +1055,678 @@ dd70c923 2026-11-14 Andrei: feat: update llama.cpp to a956a852c (#2414)
 ```
 ```
 
+
+## Window: 2026-11-18 → 2026-11-19 (`12522.r0.g2cbfc3c` → `12550.r2.g9a080f44b`)
+
+### llama.cpp — 30 commits
+
+```
+9a080f44b5 2026-11-19 Ravi Panchumarthy: ggml-openvino: fix OpenVINO CI, minor fixes and optimizations (#32590)
+c7468107ef 2026-11-19 Bhargav Krish: cuda: Scatter kernel for set_n (#32489)
+ac830a9cbb 2026-11-19 Andreas Kieslinger: ggml : add backend scheduler tests (#27258)
+8af68d486a 2026-11-19 Piotr Wilkin (ilintar): llama: fixes for Inkling 2 attention mask (#32429)
+f8caa5ea30 2026-11-19 Alexey Kopytko: metal : fix the second argument of NSMakeRange (#32602)
+4db8b7638f 2026-11-19 SS1618: webgpu: add POOL_2D support (#32250)
+01592dc58b 2026-11-19 Georgi Gerganov: llama : remove redundant fields from llm_graph_params (#32596)
+8bf2132c3f 2026-11-19 Georgi Gerganov: readme : fix release badge (#32597)
+5812201a81 2026-11-19 Adrien Gallouët: ci : fix build-opencl.yml (#32594)
+41d8297fe4 2026-11-19 Pascal: metal : CONV_2D tensor API for M5, split-K for all chips (#32542)
+51a77c4f24 2026-11-19 saiph: qwen3vl : set t_layer_inp for EAGLE-3 (#32589)
+76f186df71 2026-11-19 Bartowski: ggml : IQ2 creation speedup through caching (#31910)
+95b09b62be 2026-11-19 Adrien Gallouët: llama : remove PATH_MAX (#32557)
+b5dbca1e44 2026-11-19 Adrien Gallouët: ci : use LLVM 22 (#32565)
+80437488a4 2026-11-19 Aleksander Grygier: ui: cut Llama Chat's first-load JavaScript by 63%, load diagrams, math and PDFs on demand (#32555)
+39039aa27f 2026-11-19 Adrien Gallouët: llama : fall back to buffered I/O on EIO (#32545)
+7a4117eef9 2026-11-19 Birk Skyum: vulkan : enable MMQ with mixed signedness integer dots (#31045)
+573aa89de6 2026-11-19 Jeff Bolz: vulkan: Implement stream-k MUL_MAT (#28528)
+ecafc67145 2026-11-18 Daniil Sterkhov: vulkan: use floating-point zero for storage-only FP16 in DIAG/TRI (#32379)
+d4f5c26049 2026-11-19 Aman Gupta: CUDA: use 64-bit dst offsets in mul_mat_q (#32374)
+08c252e221 2026-11-18 lhez: opencl: allow adjusting KV padding in decomposed FA (#32522)
+e4b620af19 2026-11-19 Xuan-Son Nguyen: mtmd: support voxcpm2 (#32443)
+b001d7bb22 2026-11-19 En Yao: ggml : WASM Relaxed SIMD Enhancement (#19590)
+0a76757469 2026-11-19 mahounairo: llama : fix sticky NaN in recurrent state (#31913)
+b044890408 2026-11-18 Xuan-Son Nguyen: server: fix sleep state for v1/realtime (#32567)
+78e05298f0 2026-11-19 parthod0x: model : limite: reject mudd configs that index past mudd_tap_idx on load (#32562)
+785f6bac00 2026-11-18 Chenyang Li: ui : keep streaming reasoning box inside the viewport when zoomed (#31966)
+edec462cc0 2026-11-18 Adrien Gallouët: ggml, ci : use llvm 22.1.8 (#32548)
+4483b2b987 2026-11-18 Alessandro de Oliveira Faria (A.K.A.CABELO): vendor : update cpp-httplib-0.67.0 [no ci] (#32563)
+bafa0420c1 2026-11-18 Tarek Dakhran: server : enable packing for d1-2B and d1-Omni-2B models (#32553)
+```
+
+### Strata — 609 commits (includes tag v0.2.16; Control/Terminal 0.2.16, engines 0.1.61-0.1.62)
+
+```
+58ee32277 2026-11-18 Niko1221: Supporters: round pictures, one row per level with the biggest supporters first and largest, no amounts shown (README, SUPPORTERS.md and the 7 translations)
+26ae4fa2d 2026-11-18 Niko1221: Supporters: the 15 public GitHub sponsors, grouped by tier (highest first), in README, SUPPORTERS.md and the 7 translated READMEs; adds codeconduit-official, kingdonb, jaceknoga, Daisame, moruku36 and hrkgk
+650ef4a91 2026-11-18 Niko1221: README and its 7 translations: the dark-mode logo points to app/host/public/brand (it still named the old apps/ folder, so GitHub's dark theme showed no logo)
+19f18e103 2026-11-18 Niko1221: Docker: the image build context carries engine/third_party/strata-gguf-py (the Terminal bundle's model preparation tools; the first v0.2.16 image build stopped without it)
+64524fb9f 2026-11-18 Niko1221: App: the failed-drafter line with the draft layer standing in says what the Terminal says
+90225fa09 2026-11-18 Niko1221: App: the offline draft-layer note is the Terminal's new sentence
+b09ffc67b 2026-11-18 Niko1221: setup: a DFlash2 drafter that is already there prints no "0.00 of 0.00 GB"
+3899cfe7f 2026-11-18 Niko1221: last-run message: sentence break
+cc0242cc8 2026-11-18 Niko1221: oomd room tests: run on Windows too (the drop is injected)
+fe502d8c6 2026-11-18 Niko1221: strata launch: the Access step only looks at this computer; the offline check names no host (S6, S12)
+43e4f52f6 2026-11-18 Niko1221: serve: probe children get no stdin
+aa754707c 2026-11-18 Niko1221: oomd: free the model's file cache before the load, trim while it loads, say what happened last time
+99ae410bd 2026-11-18 Niko1221: Tests: the stand-in screens of the Access and Drafting tests know the two new calls (S12, N1)
+e9911105f 2026-11-18 Niko1221: Card speed child: no stdin, so it answers in 0.05 s instead of running into its 20 s limit (A9)
+ada3cf4f9 2026-11-18 Niko1221: strata launch screens, round 2: disk verdicts, step counter, 80 columns, drafter lines, offline, port (N1, T10b, S1-S6, S9, S11, S12, S13)
+9491a54c9 2026-11-18 Niko1221: Terminal: monitor top line and Hardware tab, sub-command help, drafter ready line (S2, S4, S7, S8, S10)
+dbe88acdc 2026-11-18 Niko1221: Uninstaller: the four files left in the data folder are the app's own state and stay with it (A10)
+1ba3b14d3 2026-11-18 Niko1221: First run: the host reads the PC when it starts, and the checking line says it is still working after 12 s (A9)
+1249ab4d0 2026-11-18 Niko1221: Status check: ask first whether anything listens, and look at the ports all at once (A9)
+d59184acd 2026-11-18 Niko1221: Setup: plain tune prompt, no 404 text on the normal engine fallback, quiet pull
+3c3609212 2026-11-18 Niko1221: Offline DFlash2: the smaller prepared drafter file alone is enough
+69289adbe 2026-11-18 Niko1221: Chat page: with no picture reader the paperclip hint and the picture note say so and that text files still work (A8)
+30d4d09a5 2026-11-18 Niko1221: Update Strata: the app's own step never turns a finished update into a failure sentence (W-F1)
+bf1295276 2026-11-18 Niko1221: Engine arch note: read BUILD.json "archs" as a string too
+76512d99f 2026-11-18 Niko1221: Config snapshot world: the Arc picture rule answers for the simulated machine's system
+c5cc7351f 2026-11-18 Niko1221: Config snapshot: the Linux machines' engine start carries MALLOC_ARENA_MAX=2 (P11)
+d030dc039 2026-11-18 Niko1221: Config snapshot golden: Arc A750 launch starts with pictures off (T14 of FIX-TUI)
+f731cd184 2026-11-18 Niko1221: Config snapshot test world: installed_engine_exe takes the backend again
+9b673a4e4 2026-11-18 Niko1221: Test follows T14: an Arc with no engine installed yet gets pictures off, one whose engine carries the reader keeps them on
+aeff969c6 2026-11-18 Niko1221: FIX-APP A7: the update jobs go on when the only loaded models are in state error
+5e0309832 2026-11-18 Niko1221: FIX-APP A6: the same chat open in two windows: every page on a running turn gets its frames
+c2b15cd97 2026-11-18 Niko1221: FIX-APP A4: the app host's /v1 serves the one loaded model whatever name the client sends
+f7060ec95 2026-11-18 Niko1221: FIX-APP A5: after a Tools change the busy message names the Tools settings, not the models
+ab8b5ad73 2026-11-18 Niko1221: FIX-APP A3: the first "Tune & start chatting" says it downloads the drafter, with its size
+cc35a7494 2026-11-18 Niko1221: FIX-APP A1: a version card says "Already on this computer" when its files are there
+79beaff7e 2026-11-18 Niko1221: FIX-APP A2: the first-run "Your model" step says it is checking while the version list loads
+d8da4b984 2026-11-18 Niko1221: strata launch: fixes from the Linux test run (T14, T18, T22) and the tests that followed the new defaults
+5ddeebf2b 2026-11-18 Niko1221: Update: a test start that failed because an older Control's runtime host was dead is tried again by the next plain `strata update`
+55f7b69cb 2026-11-18 Niko1221: P1: the rename of a stale strata.ps1 also leaves a line in launcher-heal.log beside it, for support (an update's own test start swallows the screen line)
+1151d3f8f 2026-11-18 Niko1221: P13/P14 tests: keep two setup tests off the network
+0343762da 2026-11-18 Niko1221: P13: --gguf-dir without --family / --model: the files name the model, so setup does not ask "Which model?" and "Which size?"
+7c11f994e 2026-11-18 Niko1221: P12: setup's tuning question defaults to No, like the Terminal's first launch
+46a645f2b 2026-11-18 Niko1221: P14: setup uses the Terminal's Auto drafter rule instead of always fetching the 5 GB MTP layer
+73db60a02 2026-11-18 Niko1221: P10: the installer's graphics-line test expects the clean names
+89fec2d1a 2026-11-18 Niko1221: strata launch Save screen: keep the choices on screen in small windows with the new Download row (T2)
+1c43e5d97 2026-11-18 Niko1221: Spawn-site inventory: P6's git symbolic-ref call and the pacer's systemctl reads
+fff90b841 2026-11-18 Niko1221: strata launch screens: fixes found by the real 80x24 walk on p1004 (T2, T10)
+02c4bd423 2026-11-18 Niko1221: P4: keep systemd-oomd from ending a model load on a Linux desktop (a pressure pacer around the engine start)
+7f7bbf56d 2026-11-18 Niko1221: P8: setup on a Pascal / Volta card takes the feed's CUDA 12 engine package instead of compiling
+c3b6ba8e9 2026-11-18 Niko1221: strata launch screens: first-impression fixes T2-T12, T14-T16, T18, T22
+42a8d60da 2026-11-18 Niko1221: Terminal: the monitor's memory tiles, the host-log reason and the start-screen engine line (T1, T13, T19, T21)
+2fd4e1d7f 2026-11-18 Niko1221: P6: a clone on a tag or a commit says it is on a fixed release
+371834c15 2026-11-18 Niko1221: P5: keep a short UPDATE.bat in the 0.2.16 layout so an old clone's update ends cleanly
+aeecf0f5d 2026-11-18 Niko1221: P11: MALLOC_ARENA_MAX=2 for the server and the engine on Linux
+5696cb3f6 2026-11-18 Niko1221: P10: install.sh names every graphics card once, with clean names
+5dc269cf8 2026-11-18 Niko1221: P2: install.ps1 adds its folder to the user PATH without rewriting the rest of it
+630e3a3df 2026-11-18 Niko1221: P1: a typed `strata` in PowerShell is always strata.cmd (no strata.ps1 in the PATH folder)
+6f6099fe6 2026-11-18 Niko1221: Windows: no Strata process may reach CPython 3.12's _wmi (the runtime host died with 0xC0000005 when WMI refuses the account)
+48aa03ec4 2026-11-17 Niko1221: Metal: a finished batch window beats the serve watchdog (issue #29)
+2d0b062a2 2026-11-17 Niko1221: doctor: an installed engine that failed its integrity check shows the integrity sentence, not "no engine for this PC"
+017dc208e 2026-11-17 Niko1221: test_doctor_signed_engine.py: `doctor --profile` against a signed engine in a component folder of a clean home
+9711739de 2026-11-17 Niko1221: docs: the aarch64 Control and engine are 0.1.62 in docs/data/release.json (strata-control-0.1.62-linux-aarch64.tar.gz, strata-engine-0.1.62-linux-aarch64-cuda-cuda13.tar.gz)
+f2919b358 2026-11-17 Niko1221: Connection banner: after two failed Retries it says the background part has stopped and what helps (packaged-app walkthrough A63)
+6fc8add9b 2026-11-17 Niko1221: Tasks: a line says why Run now is disabled when no model is loaded on this computer (packaged-app walkthrough A70)
+03d037aa6 2026-11-17 Niko1221: Connection banner: it wraps, so the text keeps its width and Retry no longer sits over it (packaged-app walkthrough A62-A65)
+b056792b5 2026-11-17 Niko1221: First run: an unreadable download list has its own words and one next step; the offline and error cards can go on without an engine (packaged-app walkthrough A10, fix 2)
+872e23c55 2026-11-17 Niko1221: First run: Control's own offline words are recognised, so an offline person gets the offline card (packaged-app walkthrough A10, fix 1)
+829a0cba3 2026-11-17 Niko1221: Sidebar: the model chip names the model picked from an API connection (packaged-app walkthrough A15 / A16)
+f9a4df21e 2026-11-17 Niko1221: docs: the Mac packaging scripts' comments and README name the moved places (tools/packaging/feed_tool.py, tools/packaging/UPDATES.md, app/desktop/scripts/make-dmg.sh, the package's metal/ folder)
+55276c09d 2026-11-17 Niko1221: Test: the French word for a code block's label is the same as the English one
+6d8a84590 2026-11-17 Niko1221: Tasks: at a narrow width the header controls take a row under the title instead of running off the right edge (GUI-VIS-1117 finding 7b)
+5addb33c0 2026-11-17 Niko1221: terminal/serve/test_stop_open_string.py: a tool call left open at a normal stop is never repaired into a call (soak 11-17, s005 turn 36)
+bb1a9e787 2026-11-17 Niko1221: Agent: a folder blocked in Settings -> Tools is enforced from the next message, not only after the host restarts (SAFETY, 0.2.16 visual walkthrough finding 1; #5737)
+bf6d911f1 2026-11-17 Niko1221: test_drafting: the last block of test_the_server_applies_it_at_every_start no longer depends on the box's GPU
+f994d618c 2026-11-17 Niko1221: Languages: the engine settings texts and the Monitor's "Last:" line are translated (GUI-VIS-1117 finding 10)
+b60358f27 2026-11-17 Niko1221: Chat: with no model loaded, a line under the box says why Send is grey and what to do (GUI-VIS-1117 finding 6)
+6e4104fdd 2026-11-17 Niko1221: Monitor: the VRAM total is the larger of the host probe and the engine's own, and never sits below the reading (GUI-VIS-1117 finding 8)
+78c188e93 2026-11-17 Niko1221: Tasks: "Run now" on the list row is enabled when a model is ready, like the one inside the task (GUI-VIS-1117 finding 7a)
+0aac6edf2 2026-11-17 Niko1221: Serving: the "Tools for apps on this computer" switch is also drawn when one model is loaded (GUI-VIS-1117 finding 9b)
+a26b822ca 2026-11-17 Niko1221: Language switch: a live switch redraws the chat messages, and the tool-summary lines and the code label are said in the chosen language (GUI-VIS-1117 finding 2)
+252fc0c09 2026-11-17 Niko1221: First run: the Prepare page says what is already on this computer, the file check has its own title, the tuning card has no gap, 30d / 7d are translated (GUI-VIS-1117)
+b3b58b4e4 2026-11-17 Niko1221: Tests: the model-deletion tests and the Terminal's pytest session never read the real Strata settings file
+1d295787b 2026-11-17 Niko1221: engine: WIN32_LEAN_AND_MEAN before every <windows.h> include that does not define it (a Windows CUDA build blocker: `small` is `#define small char` from rpcndr.h)
+5064fab2b 2026-11-17 Niko1221: serve/server.py: restore the changes of 18526b879 that the first fix commit dropped; the only difference from 18526b879 is the moved re-export block
+b3b766983 2026-11-17 Niko1221: docs/GYRO.md: STRATA_NO_TQ_KERNELS=1 changes nothing in a default build
+4b647b0bf 2026-11-17 Niko1221: docs: the engine build does not fetch or use llama.cpp; the sentences that said so are gone
+cebd4489a 2026-11-17 Niko1221: tools/layout/checks/docs_paths.py: a file name in a sentence is not a hit, and an explained list for lines that are correct as written
+ba971b3ab 2026-11-17 Niko1221: docs: every command and path in the user-facing pages names the moved place (terminal/tools, terminal/serve, tools/packaging, app/, engine/sycl, docs/bench-results ...)
+26cfd1e0f 2026-11-17 Niko1221: tools/layout/checks/docs_paths.py: a scan of the user-facing pages for commands and paths that name a place the move took away
+6e7264c88 2026-11-17 Niko1221: tests/terminal/test_scripts_run_by_path.py: the programs a checkout starts by path get past their imports from a foreign folder
+4d718835c 2026-11-17 Niko1221: engine/metal/setup_mac.py, engine/sycl/setup_intel.py, engine/sycl/serve/server_intel.py: terminal/ is on sys.path again
+18a50687f 2026-11-17 Niko1221: The Linux Intel Arc package bundles libz.so.1 with its notice: build_sycl_linux.sh, notices/libz.txt, and a test that every bundled system library has its notice
+2c7513613 2026-11-17 Niko1221: tools/layout/split: the re-export block goes after the last statement before the first function, and the run ends with a script-mode smoke
+2a20dbce6 2026-11-17 Niko1221: serve/test_server_script_mode.py: serve/server.py is started as a script, from a foreign folder, against a mock engine
+e22685cbb 2026-11-17 Niko1221: serve/server.py: the re-export block of the split comes after the file's sys.path lines, so `python serve/server.py` works again
+43822f4a8 2026-11-17 Niko1221: docs: the build commands configure engine/ (and engine/sycl), and build.sh's hint names engine/sycl/tools
+194d068e0 2026-11-17 Niko1221: tools/layout/checks/path_scan2.py: variables joined with unquoted segments, for-loop variables, cmake -S folders, and paths that existed before the move
+d68481912 2026-11-17 Niko1221: test_build_windows_bats.py: the Windows build scripts name only paths that exist, checked on every OS
+119f1a4d0 2026-11-17 Niko1221: trellis/build.sh: the include folders and sources are named from the repository root as before the move
+2d57d0dd8 2026-11-17 Niko1221: engine_flow.sh and update_model_flow.sh: the packaging scripts are run from the repository root
+926bd1cf9 2026-11-17 Niko1221: Dockerfile.src: the engine is configured from engine/ and the Terminal is packaged with tools/packaging/package_terminal.py
+42dce6453 2026-11-17 Niko1221: engine/sycl/tools/build.sh: the SYCL developer build configures engine/sycl
+9e2dd798f 2026-11-17 Niko1221: build_split_cuda.sh and build_split_hip.sh: cmake configures engine/
+8dedfb537 2026-11-17 Niko1221: build_windows.bat (HIP, Windows): the repository root is three levels up, the engine is configured from engine\, the readers and the zip script are in terminal\tools
+3d83b4328 2026-11-17 Niko1221: Engines 0.1.62 (the same number as Control)
+c341b007f 2026-11-17 Niko1221: Revert "release manifest: Control may be ahead of this release's own engines when the manifest says so (control_ahead)"
+1678aff46 2026-11-17 Niko1221: docs: SUPPORTERS.md at the top level, next to README.md; a line to it under the avatars of README.md and the seven translated READMEs
+0c99fcf85 2026-11-17 Niko1221: serve: a call max_tokens cut short is replayed with the parameters it has, not as a parameter called "arguments" (soak 11-17)
+07f6f3218 2026-11-17 Niko1221: Version 0.2.16 / Control 0.1.62 / engines 0.1.61: app and Terminal 0.2.16, Control 0.1.62, engine packages 0.1.61
+4af90108d 2026-11-17 Niko1221: release manifest: Control may be ahead of this release's own engines when the manifest says so ("control_ahead")
+44d4a006a 2026-11-17 Niko1221: test_control_install: the ".." escape test climbs to a real setup.py again, and asserts it is there
+6a3ddb731 2026-11-17 Niko1221: docs/media/make_figures.py: the app's icon sprite and font are read from terminal/serve/web
+f25db3e05 2026-11-17 Niko1221: make-dmg.sh: the minimum-macOS check runs tools/packaging/binary_deps.py
+ad1fb73b5 2026-11-17 Niko1221: build_cuda_windows.py: the engine is configured from engine/ and the packaging scripts are run from tools/packaging/
+3176dfd1a 2026-11-17 Niko1221: tools/layout/checks: a second path scan for paths built from __file__, a root variable or the script's own folder
+f1b70b2a9 2026-11-17 Niko1221: terminal/serve/test_commit_limit.py: the engine header is read from engine/include after the layout move (release-check fix 2, #1607)
+f71bc1cb1 2026-11-17 Niko1221: Host: a taskkill of the Harness has a time limit, and every call to Control writes its start and end with the time it took (SOAK-APP 13:20 pending Unload)
+cde489b96 2026-11-17 Niko1221: Models: the model card tells the person when the engine says Windows' memory limit is close and Strata may stop without a message (#1607)
+8a66e8f78 2026-11-17 Niko1221: Agent: a turn that never becomes ours ends with a plain message, and a restart of the Harness waits for a chat that is starting on it (SOAK-APP 12:39 stuck turns)
+7d77f51ca 2026-11-17 Niko1221: serve/server.py: 230 definitions move unchanged into serve/server_parts/ (file split, 2,498 of 11,310 lines)
+4058aa782 2026-11-17 Niko1221: Layout move for 0.2.16: the top level becomes app/, engine/, terminal/, docs/, tools/ and .github/
+e60613ac7 2026-11-17 Niko1221: tools/layout: the 0.2.16 layout move script, its checks and the file-split script (added before the move, no change to the product)
+483778931 2026-11-17 Niko1221: tool calls: a reply cut inside an announced call carries strata_unread_tool_markup {"reason": "cut_off"} (soak l620b2)
+037be4947 2026-11-17 Niko1221: Chats: a damaged or older chat file with a missing date, title or message text no longer takes the whole chat page down
+5b068304c 2026-11-17 Niko1221: tool calls: a string value over 4 KB keeps its closer and the parameters after it (the scan compaction rebases the value start) (#4686)
+09db599e9 2026-11-17 Niko1221: Tests: timeskip-real retries the removal of its scratch folder and never fails on the cleanup alone
+c4ac57a55 2026-11-17 Niko1221: Tests: the "cannot fit even after the summary" case is sent clearly past the window's edge, so environment paths cannot flip it
+cf08d5c44 2026-11-17 Niko1221: status: `strata status` runs on the standard library alone again (no rich, no textual)
+17fca7056 2026-11-17 Niko1221: Tests: the host test runner passes its files relative to the host folder, so a checkout with a long path no longer fails with ENAMETOOLONG
+0d23ecda3 2026-11-17 Niko1221: tune: `strata tune auto --concurrency N` judges every setting on N requests decoding at once (opt-in); a load-tuned preset is applied only to starts that run requests together (#4821)
+14a702526 2026-11-17 Alex Yong: Monitor: a Mac's GPU temperature and power without root, opt-in with STRATA_MACOS_SENSORS=1 (PR #5793, #5016)
+f232ad9ae 2026-11-17 Niko1221: Helpers: a Helper time limit in Settings, and a plain note on a helper that has worked over 30 minutes (#5996)
+c41975671 2026-11-17 Niko1221: Docs: how to open the developer tools in the app window (#5408)
+9160728c3 2026-11-17 Niko1221: Desktop: the browser developer tools are built into the Windows and Linux app and stay off unless asked for (#5408)
+f1dd410a2 2026-11-17 Niko1221: Settings: a Reply width choice for the text of an answer (#5066)
+79c837181 2026-11-17 Niko1221: Helpers: "View log" shows what a helper did, for every helper that did something (#5254)
+0e7d5ca9c 2026-11-17 Niko1221: tune: an account of every tune is saved and `strata tune report` shows it; progress says "run N of M" (#5232, report and progress)
+efdde5c31 2026-11-17 Niko1221: presets effective: say where each non-automatic setting comes from (#5351, first step)
+8f5054a13 2026-11-17 Niko1221: tune, serve: a full graphics card is said as such, the failed engine's log is kept, the next engine waits for the memory to come back (#5078)
+11b22a0ff 2026-11-17 Niko1221: Chat: the context popover says how much room is left before older messages are summarized (#5091)
+773f2e248 2026-11-17 Niko1221: Sidebar: a New chat button on each workspace row starts a chat in that workspace (#4913)
+73fb2a10c 2026-11-17 Niko1221: launch: the Delete key on the preset list asks the same question as "d" (#5819)
+26e6a1783 2026-11-17 Niko1221: Hebrew: the catalog loads guic-he.json, so the 0.2.16 new-UI strings show in Hebrew
+6cfa02c48 2026-11-17 Niko1221: Chat: a picture pasted or dropped while the chat is busy is not thrown away in silence (#5960)
+64bbd0df0 2026-11-17 Niko1221: tests: serve/test_monitor.py waits for a request's final state instead of reading it right after the reply
+f6b06df07 2026-11-17 zapabob: Tests: the overflow-recovery case checks that the retry answers the original message and that a summary ran (PR #5777)
+71483db50 2026-11-17 Niko1221: UI: selected text can be seen (#5073)
+b03943b21 2026-11-17 Niko1221: Models: "Use a local GGUF" keeps picture reading on when a reader is already on this computer (#4926)
+7fa7deda7 2026-11-17 Niko1221: Tests: a message parked in one chat goes out once, from that chat, whatever the person does between two chats (#5806)
+814d1507f 2026-11-17 Niko1221: docs: SETTINGS.md regenerated from the register (STRATA_I8_SM70 and STRATA_PF_FUSED_SM75_KQ join the rollback table; 83 -> 85 rows)
+53313f795 2026-11-17 Niko1221: register: STRATA_STOP_LAYERS and STRATA_STOP_STAGES are research (#6011)
+63a20e813 2026-11-17 Niko1221: register: the eight new opt-in notes carry the two-card numbers, or say "not measured here" (#5860, #5864)
+1576f28e3 2026-11-17 Niko1221: drafting line: --batch-mtp on a layer split whose slots are pipelined says "none in parallel slots", as the engine runs them
+d595c139f 2026-11-17 Niko1221: Chat: the collapsed "A tool call that could not run" line shows a chevron, so it reads as something that opens (follow-up to a24501c01)
+f3abf9b11 2026-11-17 Niko1221: tests: setup.main() --update no longer pulls or moves files inside the test_setup_update test (a failure in any git checkout)
+4619efa43 2026-11-17 Niko1221: Chat: "Number quotes", a switch that numbers several quoted passages and names who wrote each (#5993)
+925906f63 2026-11-17 Niko1221: German and Portuguese: the tool-call strings use the catalog's own words (guic23, guic24)
+2b6417bef 2026-11-17 Niko1221: docs: --conversation-cache-rewind-keep row (#5862); a comment in the park path says why a slot holding the conversation does not skip the park
+2b1cbc7df 2026-11-17 Niko1221: Setup: "Only connect to Strata on another computer" on the first-run engine card, so setup needs no local engine (#5529)
+b7d0eedfc 2026-11-17 Niko1221: Monitor: the Context fill gauge shows what fills the window, in parts (PR #4636 by thisisspartan)
+b98760e5d 2026-11-17 Niko1221: Serve: the metrics carry what the context gauge needs, the reused prefix and the engine's generation (PR #4636 by thisisspartan)
+a24501c01 2026-11-17 Niko1221: Chat: a tool call the model wrote as text that nothing ran is one collapsed line, not raw markup in the answer (#TOOLCALL-B follow-up)
+7195c7ab8 2026-11-17 Niko1221: Test: the Monitor's GPU load label test follows the label span #4968 gave an id
+5190dd665 2026-11-17 Niko1221: Monitor: #4968 revised, min and max over the newest 500 requests, time-weighted averages, plain tooltips
+4fe921325 2026-11-17 奥克队长: Monitor: a model card, the Speed card's min and max, and power and temperature averages (PR #4968)
+18af37321 2026-11-17 Niko1221: Agent: a reply whose tool call could not run gives the model a tool error and the turn goes on, two times at most (#TOOLCALL-B, #6032)
+8639854b8 2026-11-17 bitaccesscomau: batch slots on two cards: slot runs, lookup drafts, resident copies, a turn read in its slot - each opt-in (#5864)
+3635f6d8c 2026-11-17 bitaccesscomau: Test the half rule of the rewind keep (#5862)
+ed76fe5b0 2026-11-12 bitaccesscomau: --conversation-cache-rewind-keep on a layer split
+fe686835d 2026-11-12 bitaccesscomau: --conversation-cache-rewind-keep: skip the park when a rewind keeps the conversation live
+b6d168658 2026-11-17 Niko1221: Chat: the status line says what the model does now, and nothing rotates any more (owner, 0.2.16)
+4996806bb 2026-11-17 Niko1221: Hebrew: the screen title "Serving" and eleven icon names were still English
+bb9a7db1b 2026-11-17 Niko1221: French: a no-break space before ; : ? ! and inside « » in every French catalog
+35eab91fb 2026-11-17 Niko1221: Tests: the "refused once" recovery test leaves room for the retry, and a message that cannot fit even after the summary has its own test
+0bf27a4be 2026-11-17 Niko1221: serve: a reply's token limit is a whole number on Chat and Messages, as on Responses (#4037)
+99dd9f8bf 2026-11-17 Niko1221: Reapply #4141 port (macintog): the M5 difference was the m1002 gate running released kernels; with matching kernels BASE-05 is 10 / 10 (m1002-20261117-0244-e992 and your d13)
+2c6e2c244 2026-11-17 Niko1221: HIP Linux: a package built against a kpack ROCm carries rocBLAS's device code and points the loader at it (#5060)
+117c267e1 2026-11-17 Niko1221: Agent: /compact no longer leaves the chat "still working" (follow-up to #6070)
+fbbe11f0f 2026-11-17 Niko1221: Revert #4141 port: M5 BASE-05 differs on 7 / 10, first tokens are special-token ids; back when fixed
+e03d090ef 2026-11-17 Niko1221: tests/cuda/prefill_decode_golden.cu: include ggml.h for the oracle's ggml_type / ggml_get_type_traits
+01a1eb935 2026-11-17 Niko1221: cmake: one adapt_async_default_test target (CMakeLists.txt:361 duplicated cmake/backends/cpu.cmake:48, d312a945b / #5814)
+c78548016 2026-11-17 Niko1221: Hebrew: the 18 strings of the move-a-chat, Your rules and route-tail-skip settings (#6060, #6051, #5084)
+cb275901b 2026-11-17 Niko1221: serve: a request that ends early stops only the engine it ran on, never the engine that replaced it (#5573)
+b11cd8d38 2026-11-17 macintog: metal: the prompt GEMM grid follows the layer's tile, so a K-quant layer covers its whole ffn width (#4141)
+9bcc20a2f 2026-11-17 Niko1221: tests/split: the 8192-row pick table is read from pf_pick.hpp (kPfPicks[]), where #5496 / #5667 moved it from engine.cu
+f59ac8eaf 2026-11-17 Niko1221: Hebrew: the skipped-files line drops the glued English plural {1} (#6060)
+598e70d11 2026-11-17 Niko1221: tests: the language picker lists ten languages with Hebrew (#6060)
+c5bdd43b2 2026-11-17 Niko1221: tests: gr_parity checks the STRATA_HC_Q8 read with q8_inject (#3225)
+737729c1c 2026-11-17 Niko1221: HIP: the persistent hc read declines int8 rows (STRATA_HC_REQ8 with STRATA_HC_PERSIST) (#5560)
+8ee96a8d4 2026-11-17 Niko1221: tests: the Hebrew page is right to left and its send arrow is mirrored (#6060)
+ad5074630 2026-11-17 Niko1221: Hebrew: the send arrow points the way the text runs
+bf1d53001 2026-11-16 DeDuplicate: App and web page: Hebrew, right to left (PR #6060)
+98ebfb3e1 2026-11-16 Niko1221: Expert settings: the route tail skip is a choice (Automatic / Off / 1-9), in the app and the Terminal (owner, 0.2.16)
+fe5917a28 2026-11-16 Niko1221: setup, telemetry: two Mac fixes found by the Mac test run (M1, M2)
+a76f2f136 2026-11-16 Niko1221: tests: Mac runs skip what is Linux / Windows only, with the reason (#4138 Mac follow-up)
+88a882f87 2026-11-16 Niko1221: tests: the mixed-PC and engine-library cases follow the host or name their PC (#4138 Mac follow-up)
+f41cd82be 2026-11-16 Niko1221: tests: the shape-engine cases speak about a Linux NVIDIA PC on a Mac (#4138 Mac follow-up)
+4cf9bee16 2026-11-16 Niko1221: tests: the update-with-a-model cases follow the host engine family (#4138 Mac follow-up)
+7c743ad7f 2026-11-16 Niko1221: tool calls: `<parameter name="K">` inside a `<function=NAME>` call is parameter K (#5969's third form, recovery on)
+70212f629 2026-11-16 Niko1221: serve: the Intel reader counts a client open in several descriptors once on Windows too
+9bb5d16b1 2026-11-16 bitaccesscomau: pipelined decode on two cards: a counted gate, a lazy draft chain, lookup runs - each opt-in (#5860)
+a2ab3965e 2026-11-16 Niko1221: HIP: the head-alias spacer's free and drop_window_graphs' graph destroy discard their result explicitly (#5188 follow-up)
+c5191669b 2026-11-16 Niko1221: Tests: the spawn-site list counts setup.py's update pull (fix-up of 165374a42, Q6)
+54ce499ed 2026-11-16 Niko1221: sycl: Windows counts the room a page file may still grow by, in the Intel engine's own copies too (#5742, SYCL port)
+cefd71248 2026-11-16 Niko1221: tests: DL99 expects the German Sie wording ("Ihr Modell ist heruntergeladen")
+7fd5336c3 2026-11-16 Niko1221: tests: the agent profile test expects the gate's blocked-folder list (#5737)
+7368a9d6d 2026-11-16 Niko1221: French: no-break spaces in the new 0.2.16 strings
+7a06a5e74 2026-11-16 Elvis-Luo: metal: release prompt scratch buffers before workspace growth (#3527)
+7ec17fa64 2026-11-16 Florian Nourrisse: metal: Context::alloc and wrap drain their own autorelease pool, so free() gives the buffer back
+a1b7cd186 2026-11-16 Niko1221: cache: the RAM gate evicts nothing when even all parked conversations would not make room (#2253)
+e05e6e0cc 2026-11-16 Niko1221: serve: a reply with tools that ends in tool-call markup that is no call is written again once; strata_unread_tool_markup
+9dcee7083 2026-11-16 Niko1221: tests: slash-commands expects the German Sie wording ("Ihre Dateien wurden nicht geändert")
+63f324dd4 2026-11-16 Niko1221: Settings: the blocked-folder field waits for an IME composition before Enter adds the folder (#5737)
+f2cd2c033 2026-11-16 Niko1221: memory: Windows counts the room a page file may still grow by (#5742)
+831bbd506 2026-11-16 Niko1221: memory: Windows counts the room a page file may still grow by (#5742)
+cc0d0371f 2026-11-16 Niko1221: sycl: a GPU allocation above the card's single-allocation limit says so; the arena stops, an auto cache is sized to it (#5557, #5578)
+6da257d80 2026-11-16 Niko1221: tools: batch_slot_park_test.py, a conversation continued after its batch slot was overwritten (#5401)
+7966ebe6e 2026-11-16 Niko1221: serve (Metal): a batch slot is not parked before its overwrite (#5401)
+ac2710f4f 2026-11-16 Niko1221: memory: the ZFS arcstats file is read on every system (#5519 follow-up: memory_guard_test failed on Windows)
+756070beb 2026-11-16 Niko1221: Tests: the tuning-plan test's stub engine names unknown arguments, as the engine does
+d80b5531e 2026-11-16 Niko1221: memory: the ZFS arcstats file is read on every system (#5519 follow-up: memory_guard_test failed on Windows)
+152bc6e71 2026-11-16 Niko1221: Settings: Your rules, the person's own rules for every chat (#5084)
+4a88fc266 2026-11-16 Niko1221: German: Sie in the tools catalog and the web page; a check that keeps it (owner decision 11-16)
+5c342fab5 2026-11-16 Niko1221: German: Sie in the engine catalog and its generator (owner decision 11-16)
+3f73ee04b 2026-11-16 Niko1221: German: Sie in the fix, tune and ui catalogs (owner decision 11-16)
+554fe0cc4 2026-11-16 Niko1221: German: the app's main catalog addresses the reader as Sie (owner decision 11-16)
+e977ee6d6 2026-11-16 Niko1221: Desktop shell: French in the tray and the shell prefs (0.2.16 languages check)
+d77eb5a0d 2026-11-16 Niko1221: Web page: an Experts tab with the ranks the expert cache learned (#5723)
+fd253804e 2026-11-16 Vitalii Parfyonov: Settings: when older messages are summarized, and what a new chat starts with (PR #4847)
+985888a76 2026-11-16 Niko1221: Agent: blocked folders the assistant may not touch, in any mode (#5737)
+8e5c5d10a 2026-11-16 Niko1221: Agent: Run as administrator, one command at a time, Windows asks each time (#5968)
+5b089d829 2026-11-16 Niko1221: Web chat: answer from the thinking a Stop left without an answer (#5508)
+85d2d56f1 2026-11-16 MegaRushX: Web chat: bring a saved chat back from its Markdown export (PR #4753)
+5e587a9c4 2026-11-16 Niko1221: Web chat: the token count under an answer is a plural (1 token, Russian 1 токен / 2 токена / 5 токенов / 21 токен)
+01ba9a7fa 2026-11-16 Niko1221: Chats: move a chat to another workspace from its Actions menu (#6051)
+355fbceae 2026-11-16 Niko1221: tests: a HIP config beside NVIDIA cards is not sized as an NVIDIA card by the start-time fit (#5322)
+374be3fdf 2026-11-16 Niko1221: Tests: damaged-chats.test.mjs keeps its storage and ends within its own time (fix-up of 4864a4daa)
+ba334f333 2026-11-16 Niko1221: Chats: a storage that keeps no write does not make the first read wait forever (fix of 2068aafd7, #5422)
+f8890fe16 2026-11-16 Niko1221: prefill: the Radeon 780M can take Gyro's trellis experts on the fused prompt kernels with STRATA_PF_TQ_G11=1 (#6067)
+18735248d 2026-11-16 Niko1221: settings register: STRATA_PF_FUSED_SM75_KQ (the Turing K-quant fused path of 042f91a3f)
+f91ca8ba9 2026-11-16 Niko1221: sycl: the arena memory reader counts the ZFS ARC above its floor too (#5519, SYCL port)
+05eb785f9 2026-11-16 Niko1221: memory: the ZFS ARC above its floor counts as available RAM (#5519)
+7708b7b4e 2026-11-16 Niko1221: settings register: STRATA_I8_SM70 (the Volta int8 tile rule of f-0216-tune-vt f41d35929)
+e9eff1850 2026-11-16 Niko1221: metal moe: IQ1_M expert gate/up on the register-operand prompt chain (mm_gu3)
+aac8a26eb 2026-11-16 Niko1221: settings register: STRATA_HEAD_ALIAS_TEST_MOVE, a test-only knob of #5188 (status research)
+0ff6a85a5 2026-11-16 Niko1221: Setup: the 0.2.16 move-over renames and never copies (fix-up of 90fc7bfff, Q7)
+90fc7bfff 2026-11-16 Niko1221: Setup: a clone's first run in the 0.2.16 layout carries its old state into terminal/ (MAP-0215 Q7)
+165374a42 2026-11-16 Niko1221: Update: setup.py --update gets the newest code itself (git pull), as UPDATE.bat / update.sh did (MAP-0215 Q6)
+c42ed6318 2026-11-16 Niko1221: memory: the ZFS ARC above its floor counts as available RAM (#5519)
+6dac82609 2026-11-16 Niko1221: sycl: the INFO line reports the expert total, experts= beside expert_slots= (#5012)
+2577c5f10 2026-11-16 Niko1221: --prefill-head-alias without an expert profile: the start ends with the --expert-profile error, not a SIGSEGV (NV-ALIAS-NOPROFILE)
+dc58a88de 2026-11-16 Niko1221: tests: the fetch-reserve check of #5810 is skipped on a Mac
+bbe17294e 2026-11-16 Niko1221: components: strata components add-build, an engine built on this computer as a local engine (#5114)
+59b2fb5fb 2026-11-16 Niko1221: tests: the tuner's second engine spawn site is listed (#4652 follow-up)
+46cc702ef 2026-11-16 Sergey: tests: name the PC the fake engine packages are built for (#4138)
+cef9bca88 2026-11-16 Niko1221: setup: an Intel GPU built into the processor is never taken for an Arc card (#2115's safe part)
+4df2fa0ac 2026-11-16 Niko1221: docs: the RX 6000 FP16 prompt default was not measured on Windows by us (#5151)
+6152ed720 2026-11-16 Niko1221: engine: the INFO line reports the expert total; the qwen35moe engine reports its experts (#5012)
+4df219b15 2026-11-16 Sam Nolak: conversation cache: preserve prefill-pipe plans when copying checkpoints (#5847)
+be8f4d1f3 2026-11-16 Sam Nolak: conversation cache: keep checkpoint device tags when splitting stage parts (#5848)
+196a32bdd 2026-11-16 Gabriel A. Devenyi: /v1/responses: tool_choice "required" and a named function force a call, as on the chat and Anthropic routes (#4835)
+88c4e7939 2026-11-01 Spinoza: metal moe: instantiate IQ1_M's expert gate/up (the GSQ packs' experts)
+c1fa42c13 2026-11-16 Niko1221: HIP: the RX 6000 cards read prompts with FP16 GEMMs by default (#5151)
+05795a84a 2026-11-16 Niko1221: tool calls: Claude's `<invoke name="T"><parameter name="K">` dialect inside the wrapper is the call (#5969 parser part, recovery on)
+30584e3da 2026-11-16 Niko1221: tests: every catalog is complete in all nine languages (0.2.16 languages check)
+dca239508 2026-11-16 Niko1221: serve: the Intel reader takes GUI-1116's load rules for #5994, so its test runs against the re-export
+ab3e8add7 2026-11-16 Niko1221: verify: drop_window_graphs is public, so the head-alias restore can call it (#5188)
+30ce30b18 2026-11-16 Niko1221: settings register: STRATA_METAL_WRAP_PLE (#6024)
+db7aca7f2 2026-11-16 Niko1221: launch: an Arc card is listed once when the shared reader already holds it
+0b427a2b7 2026-11-16 Niko1221: launch: an Intel Arc card is sized from its own memory; the id table is the fallback (#5111 follow-up)
+8baf90170 2026-10-20 Matthias Nott: fix(metal): wrap a Gyro file without its PLE table: the head and tail ranges only, no read-ahead of the table
+042f91a3f 2026-11-16 Niko1221: Turing prompt experts: the fused kernels for the K-quant and Q8_0 pairs too (#6066)
+7aaa98049 2026-11-16 Niko1221: tests: an Arc B-series beside an NVIDIA card starts with STRATA_ENGINE_BACKEND=sycl (#5111)
+e04cb092f 2026-11-16 Niko1221: /v1/responses: the tools a client's own tool_search returned in this request are accepted as declared (#4621, #1917)
+3fa42af43 2026-11-16 Niko1221: tests: the model folder stub borrows model_folder_trace too (#4887 follow-up)
+e5f426aff 2026-11-16 Niko1221: settings register: STRATA_STOP_LAYERS and STRATA_STOP_STAGES (#6011)
+d62581230 2026-11-16 Niko1221: drafting: an Intel config's /work MTP path is checked on the host (#5395)
+be5a7422a 2026-11-16 Niko1221: tests: strata-sycl.sh passes a setting of 0 into the container (#4639)
+028b96373 2026-11-16 Niko1221: settings register: STRATA_METAL_KEEPALIVE_MS and STRATA_METAL_KEEPALIVE_WINDOW_S (#6078)
+f4eca4a61 2026-11-16 Krischan-Klug: serve: Codex's client-side tool_search, its finds declared where the search answered (#1917, PR #4621, prompt side)
+4d692f450 2026-11-16 Niko1221: responses: Codex multi-agent v2 items (agent_message, multi_agent_call) are read, not refused (#4210, #5244)
+d4c732f6a 2026-11-16 Niko1221: --prefill-head-alias: a head that comes back at another address drops the window graphs instead of stopping the engine (#5188)
+69a8dad81 2026-11-16 Niko1221: tool calls: `<function=NAME` + line break (the `>` left out) of a declared tool opens the call (#6032 R6, recovery on)
+4f7843fa5 2026-11-16 Niko1221: conversation cache: a failed K/V size estimate names its part and cause (#4384, the part kept)
+9c349c45a 2026-11-16 Niko1221: tool calls: the model's empty stubs are skipped, a cut opener is dropped, a call with no readable parameter is not run (#6032 R5, recovery on)
+d312a945b 2026-11-16 Niko1221: adaptive tier: a serve session does not choose the asynchronous tier by itself while STRATA_ADAPT_FETCH is on (#5814)
+6339bb094 2026-11-16 Niko1221: MCP: a model that reads pictures gets the pictures its tools return, by default (#2343)
+0f09a2eff 2026-11-16 Niko1221: docs: the Responses API table names Codex multi-agent v2's input items (#4210, #5244)
+dcde1156c 2026-11-16 Niko1221: tool calls: a declared parameter written as the XML element `<NAME>value</NAME>` is read (#6032 R4, recovery on)
+277af44e9 2026-11-16 Krischan-Klug: serve: Codex's client-side tool_search, its finds declared where the search answered (#1917, PR #4621, prompt side)
+5205fc8bb 2026-11-16 Niko1221: serve: POST /load answers an engine that dies or sticks while it starts with a 503 (PR #4307, honest-answers part)
+e46fd29a0 2026-11-16 Niko1221: serve telemetry: the Windows AMD reader reads only AMD adapters and only the engine's own card (#4884 follow-up)
+ae9b390af 2026-11-16 Niko1221: tool calls: a body of `<arguments>` + a JSON object is the call's arguments (#6032 R3, recovery on)
+3cb933d29 2026-11-16 Niko1221: responses: Codex multi-agent v2 items (agent_message, multi_agent_call) are read, not refused (#4210, #5244)
+f8aad5b3d 2026-11-16 Niko1221: docs: INTEL.md Monitor readings work without root; the sampler is optional (#5988)
+6ebbfdfa8 2026-11-16 Niko1221: serve: Intel Arc load and VRAM in the Monitor without root (#5988, from PR #5994)
+b3e6361c5 2026-11-16 Niko1221: tool calls: damaged openers of a declared parameter not set yet are read as that parameter (#6032 R2, recovery on)
+888c0db15 2026-11-16 Niko1221: update: no model test load when memory is short; an unproven engine falls back by itself (#5400)
+b683a5f03 2026-11-16 Niko1221: conversation checkpoints: a layer split's stale parts go when the prompt read ends (#6011 follow-up)
+dd1ddc6ea 2026-11-16 Keoian: prompt read: a Stop is seen by every stage of a layer split and between layers (#6011)
+198cb95c9 2026-11-16 Niko1221: tool calls: a rejected undeclared call names the closest declared tool as a hint; nothing runs under a guessed name (#5904, #5933, #4622)
+55a6dc414 2026-11-16 Niko1221: docs/MAC.md: the memory table and the streaming rule follow setup's new rule (#3983)
+3c39183e1 2026-11-16 Niko1221: HIP gfx103x: no start-up tip asking for STRATA_HIP_PROMPT_F16=1 (#5151)
+624cebd60 2026-11-16 Niko1221: docs/GYRO.md: Metal has decode and prompt kernels for the pair trellis (#6025)
+cf5abac23 2026-10-24 Thomas Zenkel: mac_fit: setup decides resident vs streaming with the engine's rule (12 GiB beside the weights, resident_cap)
+2569c79ec 2026-11-16 Niko1221: tool calls: the damaged followers end a value; a parameter's name is cut where the model ran past it (#6032 R1)
+f513ad460 2026-11-16 Niko1221: Monitor: the GPU load tooltip (s9101) in reviewed ko wording (#5484)
+fa01eee33 2026-11-16 Niko1221: Monitor: the GPU load tooltip (s9101) in reviewed pt wording (#5484)
+b559cb8ae 2026-11-16 Niko1221: Monitor: the GPU load tooltip (s9101) in reviewed ru wording (#5484)
+6acdb581b 2026-11-16 Niko1221: Monitor: the GPU load tooltip (s9101) in reviewed de wording (#5484)
+4406cb7d4 2026-11-16 Niko1221: Monitor: the GPU load tooltip (s9101) in reviewed ja wording (#5484)
+46801f654 2026-11-16 Niko1221: Monitor: the GPU load tooltip (s9101) in reviewed zh wording (#5484)
+abcc03f29 2026-11-16 Niko1221: sycl: save and restore sessions without an MTP drafter (#1492, SYCL port)
+cb5e504c8 2026-11-16 Niko1221: Language (French): the 0.2.16 translation pass of the GUI-1116 strings
+4314a7565 2026-11-16 Niko1221: Language (Korean): the 0.2.16 translation pass of the GUI-1116 strings
+8e246a6d1 2026-11-16 Niko1221: Language (Portuguese): the 0.2.16 translation pass of the GUI-1116 strings
+28f680837 2026-11-16 Niko1221: Language (Russian): the 0.2.16 translation pass of the GUI-1116 strings
+d611df3f7 2026-11-16 Niko1221: Language (Spanish): the 0.2.16 translation pass of the GUI-1116 strings
+f57bb305f 2026-11-16 Niko1221: Language (German): the 0.2.16 translation pass of the GUI-1116 strings
+262f2a012 2026-11-16 Niko1221: Language (Japanese): the 0.2.16 translation pass of the GUI-1116 strings
+aa0d96380 2026-11-16 Niko1221: Language (Chinese): the 0.2.16 translation pass of the GUI-1116 strings
+7089546a2 2026-11-16 Niko1221: Language: a test for the 0.2.16 translation pass (all languages checked)
+64dde763c 2026-11-16 Niko1221: conversation cache: the SSD tier writes in the background (#5697, P2 step 2c)
+3365da461 2026-11-16 bbingoCN: tune: probe the flags an engine accepts but does not document (#4652)
+6e930669e 2026-11-16 ezoushen: drafting: a GPU lookup that found no card is made again, so a service started at boot gets DFlash2 (#5427)
+677616cc9 2026-11-16 Niko1221: metal/tests/moe_mm_parity: accept the pair-trellis types TQP5/6/7, so their prompt kernels get a parity test (#6025)
+265ccb475 2026-11-15 Matthias Nott: fix(metal): list the pair-trellis types (147-149) in the Metal quant tables so the intake tool's table matches iq_host.cpp
+a7ee639f6 2026-11-15 Matthias Nott: build(metal): tqp_parity links the in-repo TQP reference when no fork checkout is given (TQP_REF_LIB entry points)
+5327fc945 2026-11-15 Matthias Nott: build(metal): tqp_parity test against the pair-trellis reference (fork source or in-repo ref/tqp)
+56f3e5aef 2026-10-25 Matthias Nott: fix(metal): deq_tqp reads the pair-trellis stream as 16-bit words (one 64-bit window a lane) instead of 24 byte loads: Coder-L decode 72 -> 85 tok/s
+a632e75b5 2026-10-24 Matthias Nott: feat(metal): prompt kernels for the pair-trellis expert types TQP5/TQP6/TQP7
+5e3541605 2026-10-23 Matthias Nott: TQP5/6/7: numpy reference decoder, fork C harness, parity fixtures from the real model
+945265ee8 2026-10-23 Matthias Nott: feat(metal): decode kernels for the pair-trellis expert types TQP5/6/7 (147-149), CPU reference and expert_parity types
+53d37e6f7 2026-11-16 Niko1221: docs, bench: PcieAuto on gfx103x, the measurements (#4007, #5984)
+0fcfa45a6 2026-11-16 Niko1221: Metal: the #879 host scan of the logits rows as a branch-free reduction (#3287)
+25c9dc514 2026-11-16 Niko1221: DFlash2 confidence: only a slot at least IQ3_S's is priced at its own size; IQ3_XXS keeps today's steps (#5700)
+1b87d4d6a 2026-11-16 Niko1221: packaging: the Terminal bundle ships without pip and ensurepip's spare wheel (#5303)
+bbb6e183a 2026-11-16 Niko1221: drafting: every other drafter decision takes the config's card family on a mixed NVIDIA + AMD computer (#5109)
+c594b8e0d 2026-11-16 Niko1221: DFlash2 confidence: the pack's slot size covers the ISTA i-quant packs too; say so and test it (#5700)
+904608ee2 2026-11-09 woodsonl: DFlash2 confidence: count slots at the pack's own slot size
+d68fe3205 2026-11-16 Niko1221: bench: a run that finds no server names the address it asked (#5369, port part)
+9466f6be3 2026-11-16 Niko1221: serve tests: long streamed tool arguments - same calls and streamed JSON in every piece size, time about linear (#4686)
+fb3c3ea69 2026-11-16 InB4DevOps: serve/frontend: make the remaining streamed tool argument parsing linear (#4686)
+620f3e034 2026-11-16 Niko1221: Revert 3fd8b4cae: the per-slot window cache did not fix STRATA_METAL_BATCH_ROWS=0
+151f1d918 2026-11-16 Niko1221: procs: an engine whose parent or start time cannot be read is not called an orphan (#3789)
+58d6d339a 2026-11-16 Niko1221: Revert #5918's fp16 K/V commits (82e0d2d46, 7406f8de1): --kv fp16 answers garbage on this head
+188aaf7bf 2026-11-16 Niko1221: serve: the drafter is sized from the card the engine serves from on a mixed NVIDIA + AMD computer (#5109)
+5c5731d0f 2026-11-16 Niko1221: serve tests: a cancelled run with no data sends no chunk, the role included (#4758 follow-up)
+8426249f0 2026-11-16 Oleksiy Penkov: serve/frontend: a rewritten non-string parameter counts once with its later value; null placeholders by the declared type (#5493)
+3fd8b4cae 2026-11-16 Niko1221: Metal: the slot-by-slot batch path keeps its encoded windows per slot (STRATA_METAL_BATCH_ROWS=0 answered garbage)
+dc1c66d21 2026-11-16 Niko1221: docs/MAC.md: the first request after a load waits once for the prompt kernels (#5369, part 3)
+b21fc065c 2026-11-16 Niko1221: tests: the missing-helper count no longer depends on this PC's graphics card
+80843d373 2026-11-16 Niko1221: profiles: a missing profile that is a launch preset's name points at launch-<name> (#5369, part 2)
+82e0d2d46 2026-11-13 Catalin: [Engine] Metal: saturate the fp16 K/V store and drop a non-finite cache term
+7406f8de1 2026-11-13 Catalin: [Engine] honour --kv fp16 on Metal with direct-half kernels
+7e53cd15c 2026-11-10 Fett2: Serve drafting: an Intel start lost DFlash2 because the check read strata-sycl.sh, not its binary (#5138 Bug 1)
+c5fe0c146 2026-11-16 Niko1221: Agent: {{model_name}} names the model the chat was switched to (fix-up of d91c5cdd1, #5971)
+36ca46942 2026-11-16 Niko1221: cuda12 engine packages carry sm_120 machine code; the PTX stays compute_89 (#5784)
+217bc144d 2026-11-16 Dzmitry Senchankau: tests: stop the wizard-discovery test from reading the checkout's own run configs (PR #3521)
+03c230a3e 2026-11-16 Niko1221: Metal: STRATA_NAN_INJECT reaches the #879 guard on the Mac, and the flagged row's position is this window's (#3287)
+fc43bb769 2026-10-29 ctr-137: [SYCL] preserve STRATA_* environment values of 0 in strata-sycl.sh (#4546)
+a1c56f544 2026-11-12 Catalin: [Engine] Metal: saturate the fp16 expert activations, the source of the #879 poison
+3e7524e16 2026-11-12 Catalin: [Engine] Metal: barrier the fold against the window's projections so a torn read cannot seed the recurrent state with NaN
+7d25cb9b1 2026-11-09 Catalin: [Engine] Metal: default the verifier's layer end so the #879 guard's gates open on the Mac
+26aee8ce4 2026-11-09 Catalin: [Engine] Metal: record non-finite logits in both serve paths so #879 can end and flush a poisoned conversation
+383236030 2026-11-16 Niko1221: settings register: STRATA_TEST_POOL_DELAY, the #5160 test hook (fixes settings_register.py --check after bba1a0e92)
+c770de846 2026-11-16 Niko1221: tests: an old engine and a failed engine update do not end a launch (#5038)
+2af552efe 2026-11-16 Niko1221: serve telemetry: the Windows AMD reader takes the first temperature the card reports (#3682, #4884)
+5e965ec57 2026-11-16 Niko1221: tool calls: a parameter's type declared through anyOf / oneOf is read (#2371)
+6bcc750bd 2026-11-16 Niko1221: discovery: a nest of models dirs counts as one level (PR #3528)
+6a3bcc3b7 2026-11-16 Niko1221: Mac release steps refuse a binary that needs a newer macOS than the app's minimum (#4634, #4986)
+e7199a026 2026-11-16 Niko1221: serve telemetry: the Monitor reads AMD cards on Windows through the driver's ADL2 (#4884, #1380)
+88e6356a4 2026-11-16 Niko1221: native_dense_types_parity --head: the output head's real shape at 2, 5 and 8 columns (#6030)
+bfa6315d7 2026-11-16 Niko1221: tune: strata tune auto takes an installed model by name, and --plan previews the tune (#5232)
+fec06e9f7 2026-11-16 Niko1221: setup: --output jsonl, machine-readable progress for a program that installs a model (#4941)
+e17d5c9c1 2026-11-16 Niko1221: setup --update: an Intel (SYCL) install reads the engine version from the engine, not the launcher (#4544, PR #4645)
+6fe4c2491 2026-11-16 Momoyeyu: fix(serve): save and restore sessions without an MTP drafter (#1492)
+1956aa16c 2026-11-16 Amit Tsur: chat completions: allow response_format with tools, as /v1/responses does (#4756)
+99b1b27b1 2026-11-16 Amit Tsur: serve: a stalled peer does not hold a handler or the engine's turn (#4759, #2916)
+f7734779b 2026-11-16 Amit Tsur: serve: send the stream role with the first response data (#4758, #2391)
+6a1e6833d 2026-11-16 Niko1221: models: strata models explain NAME shows where the launch looks for a model (#4887)
+f201b033f 2026-11-16 Niko1221: drafting: DFlash2 on the Coder when it is chosen by name (#5240)
+fd67c5fa9 2026-11-16 Niko1221: Monitor: the GPU load card says what it measures (#5484, part 1)
+33cfc83aa 2026-11-16 Niko1221: serve: fit_max_tokens never shortens max_tokens below room for an answer; below it, the context 400 (#5924 part 1)
+54377532c 2026-11-16 Niko1221: HIP: iq_kernels.cu builds again (the Volta tile check is CUDA only) (#6053 follow-up)
+029df1c73 2026-11-16 Niko1221: HIP: iq_kernels.cu builds again (the Volta tile check is CUDA only) (#6053 follow-up)
+309e0b0c6 2026-11-16 Niko1221: telemetry: the Monitor reads an Intel Arc card from sysfs on every serve route (#5353)
+ab72340ef 2026-11-16 Niko1221: drafting: no DFlash2 is planned for the Intel engine where it refuses it (#5747)
+69857af16 2026-11-16 Niko1221: conversation cache: the SSD tier - evicted conversations go to disk and come back (#5697, P2 step 2b)
+0d7eebeaf 2026-11-16 Niko1221: Docs: how to connect an HTTP tool server that needs a key (#5389)
+019f3e2a3 2026-11-16 Niko1221: serve: before_load reads stdout and stderr apart; Windows-safe tests (#5987 follow-up)
+3f83e96a1 2026-11-16 Niko1221: HIP: iq_kernels.cu builds again (the Volta tile check is CUDA only) (#6053 follow-up)
+2a43d823e 2026-11-16 Niko1221: Linux window: the DMA-BUF renderer is turned off only where it is needed (#5417)
+a154ac9ee 2026-11-16 Niko1221: setup / docs: the RX 6600 / 6600 XT / 6650 XT words for gfx1032 (#5174, #2784)
+2b7798749 2026-11-16 Niko1221: Monitor: the host's own GPU readings fill every reading the engine lacks, field by field (#5946 #4660 #3727)
+799764b4e 2026-10-17 chenxyz129: WIP gfx1032: setup ROCM_INDEXES/AMD_ARCHS/AMD_NAMES/AMD_CARDS, docs, setup test
+f12b65334 2026-11-16 Niko1221: Metal: a bounded GPU keep-alive between requests, so the first command buffer after a pause does not wait (#6078)
+3313dbd61 2026-11-16 Niko1221: docs: a greedy request is sent without the model card's penalties (#3295, #2940)
+acc2211d3 2026-11-16 Niko1221: serve: a failed chat stream ends with the error object and [DONE], no finish_reason "error" chunk (#5633)
+b9495f17a 2026-11-16 Vop3p: HIP gfx103x: PcieAuto on by default (#4007, #5984)
+959689382 2026-11-16 Niko1221: Monitor: the VRAM hit rate column only when a request has one (#5484, part 2)
+fcfe18e55 2026-11-16 Niko1221: Web Monitor: an empty GPU card says why, also when the GPU has a name (#5457)
+4d27caa37 2026-11-16 Niko1221: Tasks: Run now works when a model is loaded in the app (#5383)
+a9fbb4534 2026-11-01 oceanio: metal: pictures in batch slots, each slot rotates by its own M-RoPE table
+244b41082 2026-11-16 Niko1221: HIP: the RX 6000 package covers the RX 6600 / 6600 XT / 6650 XT (gfx1032) (#5174, #5209, #4455, #4650)
+ab0f20be0 2026-11-16 Gabriel A. Devenyi: Responses API: a request cancelled at the drain deadline gets 503 server_draining or response.failed, not 400 "malformed" (#4831)
+3af02433a 2026-11-16 Gabriel A. Devenyi: Responses: a text.format answer cut by max_output_tokens ends incomplete with the text so far, not 502 or response.failed (#4830)
+25d88c4a5 2026-11-16 Gabriel A. Devenyi: Anthropic errors: /v1/messages and /v1/messages/count_tokens answer an error in Anthropic's shape (#4834)
+55ccf8556 2026-11-16 Gabriel A. Devenyi: /v1/responses: send Retry-After on a GpuBusy 503, as chat and messages do (#4833)
+2e38afdfc 2026-11-16 Niko1221: Engine settings: Diagnostics shows only failures nothing has settled since (#5489)
+1e5343e50 2026-11-16 Niko1221: Setup wizard: each engine card's size counts once when the host reports 0 (PR #3798 follow-up, #3727)
+0266236ce 2026-11-16 Niko1221: split: the NVIDIA prompt-path pick does not count FNX_ARENA's unallocated expert slots as free VRAM (#5496, PR #5667)
+b2c826738 2026-11-16 Niko1221: Monitor (web): the PCIe card shows the slowest card's link from gpu_pcie_bottleneck (#4623 / #5801 rule)
+0027d210b 2026-11-16 Niko1221: tools tests: test_strata_mcp.py run directly runs all its tests (#4906)
+b58d6cdfe 2026-11-02 hotocoo: [Engine] macOS builds target macOS 15.0, and the packager refuses a Mac binary that needs a newer macOS (#4634)
+517e0baa5 2026-11-16 Eranicus30666: serve: put the streamed usage in its own final chunk when include_usage is requested (#2870, #5448, #5450)
+3fc30c971 2026-11-16 Niko1221: Metal: --batch-mtp is left off with a warning instead of ending the engine (#5674)
+2068aafd7 2026-11-16 Niko1221: Chats: two windows opened together move the browser's chats to the host once (#5422)
+085860e4f 2026-11-16 Niko1221: serve: POST /load with an engine that cannot start is a 503 with the reason, not a dropped connection (#2497)
+0b4d17edb 2026-11-16 Niko1221: serve tests: a refused batch admission adds no latency observation and no Prometheus success / prompt-token count (#3336)
+d7ce708ba 2026-11-16 christopherrobertbrooks-tech: serve: temperature 0 stays greedy - no model-card penalties on a greedy request (#3295, #2940)
+c844e3098 2026-11-16 Niko1221: serve: a chat stream the engine could not finish closes with finish_reason "error" (#5633)
+7ca57d2c3 2026-11-16 Niko1221: prefill: the RX 7000 cards (gfx1100-1102) take Gyro's trellis experts on the fused prompt kernels (#6067)
+937fe7115 2026-11-16 Niko1221: host tests: agent-host's readiness probe gives up on a host that never answers (#5577)
+9c1a4b6e7 2026-11-16 Niko1221: App font: backticks and other spacing accents get their width back (#6068)
+f59c0da97 2026-11-16 Niko1221: sycl: Prefill::release destroys only the queues the prompt path created, never the default in-order queue (#5405)
+4864a4daa 2026-11-16 TheHubUser4860938: Chats: a damaged chat file has a surface and can be deleted; a newer Strata's chat is kept apart (#5809, #5421)
+3ff8e6363 2026-11-16 Niko1221: Web page: the name in the header links to the project (#5510)
+ee7033605 2026-11-16 LawiK974: launch, docker: --draft-vocab and DRAFT_VOCAB carry setup's draft vocabulary (#5786)
+adf7324fe 2026-11-16 Joe Oghali: sm_60: the VMAD dp4a fallback's accumulator is early-clobber, so it never shares a register with an input (#4274)
+cf0743747 2026-11-16 Gabriel A. Devenyi: Streams: an error after the 200 is the API's own last frame, not a second HTTP response in the body or a silent end (#4829)
+200539a37 2026-11-16 Niko1221: setup: find ROCm's HIP compiler in lib/llvm/bin too (rocm-core 10.1) (#6071)
+12add7952 2026-11-16 Stormace: fix(host): let the HTML preview panel use pointer lock (PR #5081)
+3c48b8c07 2026-11-16 Niko1221: Metal: the PLE conv weight's load rule in a header with a GPU-free test (#5387, #5416, #5818)
+d46463ab9 2026-11-05 cha: [Engine] Metal: narrow a BF16 blk.1.ple_conv1d to F16 at load
+4d34b7f54 2026-11-16 Niko1221: Approval card: Approve no longer casts a shadow below its box beside Deny (#5077)
+804003950 2026-11-16 Niko1221: HIP: the expdec int4 staging arrays take the aligned-after-declarator form (#5518, #5795, #5905, #4600, #4151)
+e23bad99b 2026-11-16 Niko1221: strata serve: /v1's foreign-Origin check also covers an empty Origin and GET /v1 (owner 11-16)
+473e92a91 2026-11-16 Niko1221: Serving API: without an API key, web pages of other sites can't use /v1 (owner 11-16)
+518cec958 2026-11-16 Niko1221: drafting: a missing stock DFlash2 pack falls back to the tuned pack, not to no drafter (#5810)
+cd14fd48a 2026-11-16 Niko1221: launch: run-defaults.json, user-wide server settings for every launch (#5858)
+e56fb100b 2026-11-16 Niko1221: Translations: three host sentences this round shows get catalog keys; an approval card's error result is translated
+a9b48530e 2026-11-16 Stormace: Chat: /compact in the chat's command menu (#5092, #5091)
+ceb26f223 2026-11-16 Niko1221: Chat errors: the engine-failure sentences are in the catalogs; s9044's German uses Sie like the rest
+4e645853a 2026-10-30 au70ma70n: [GUI] settings: let a long help line wrap instead of squeezing every field
+ce664a958 2026-11-16 峯岸　亮: Local models: a GGUF whose window is 1K or 2K tokens can be imported and run (#4249)
+a421f7dee 2026-10-29 Nyarlathoteppppp: image models: downloads honour HF_ENDPOINT like setup and the MTP fetch (#4369)
+aa4bafd1d 2026-11-16 Niko1221: launch: programs on this computer read a One-address server at that address (#5917 follow-up)
+a1047b7fd 2026-11-16 ruibeikaa: Monitor: an impossible PCIe traffic reading is no reading (#4713)
+2ce8d8272 2026-11-16 jun76: Monitor: total power counts the cards that report it, as the energy meter does (#4430)
+12121745c 2026-11-16 Hermes Agent: Models: a packaged Qwen3.8 model shows the KV format it was saved with (#5374, #5919)
+25822a9cb 2026-11-16 Niko1221: monitor: reach a server on one address of this computer over HTTP, without a proxy (#5917 follow-up, #4207)
+e81a74af3 2026-11-16 Niko1221: Serving API: /v1/models also says context_length, so clients need not use the engine's private port (#5893)
+c6903e998 2026-11-16 吴佳浩Alben: launcher: start the bundled runtime when access(X_OK) is denied (#4312 #4309)
+afc36b1de 2026-11-16 Niko1221: tests: a no_child marker that cannot be written never publishes host state (#4250)
+a82132337 2026-10-27 Miquel Alsas: Native serving reports each loaded model's context window: /v1/models gains meta.n_ctx, the key the control server already uses, left out when unknown rather than 0 (#3931)
+96edb9337 2026-11-16 Niko1221: conversation cache: the RAM gate stops evicting when memory does not come back (#5697)
+b1aa5fc75 2026-11-16 Niko1221: Approvals: an approval the host no longer waits for ends its card instead of asking forever (#5308)
+64050ffaa 2026-11-16 anon761: generate: --expert-support reports GPU expert-kernel support without a pack or a GPU (#6059)
+85c949f85 2026-11-16 Justin Capella: engine: a failed prompt-read kernel check under --serve ends at once with an ERR line (#6054)
+1b58c335d 2026-11-16 Momoyeyu: fix(serve): save and restore sessions without an MTP drafter (#1492)
+5e29505f7 2026-11-16 Niko1221: models import / setup --gguf-dir: a Qwen3.6-35B-A3B file the Qwen3.6 engine loads is accepted as family qwen36 (#5869)
+d91c5cdd1 2026-11-16 Niko1221: Agent: the assistant is told the name of the model it runs on, not only its id (#5971)
+3c0300cfb 2026-11-16 Niko1221: test_cmake_script_policies: no -P script with IN_LIST is left (f-0216-ggml2 step 10)
+4ea65a39f 2026-11-16 Niko1221: Goals: failing tool calls pause a goal with one sentence (#4981)
+08e0a5c17 2026-11-16 HexGrimm: A new chat opened from a chat on an API model starts on that model (#5750)
+d5c920128 2026-11-12 Heinz N. Gies: Wait for the chat saves before the reattach test removes its folder
+dce45ccc7 2026-11-16 Niko1221: Chat: a web address written as plain text in an answer is a link (#6000)
+0fc79a8a5 2026-11-16 Niko1221: Chats: a reply streamed into a big chat no longer rewrites the whole chat every second (#5923)
+9314ced9c 2026-11-16 Niko1221: drafting: the DFlash2 download honours HF_ENDPOINT, read at each fetch (#5083)
+1f6ed28df 2026-11-16 slyfox1186: strata_cli: the Advanced table does not call an environment setting a typing mistake (#5600 #5136)
+ff3f85511 2026-11-16 Niko1221: serve: a before_load refusal answers with the command's own reason (#5987)
+241dbde61 2026-11-16 Anonymous: [TUI] readiness: probe /v1/telemetry with the telemetry key when there is no API key (#4161)
+577e1287a 2026-11-16 Niko1221: conversation cache SSD tier: the spill store - entries written as session files, matched, read back (#5697, #5835)
+61dac9f42 2026-11-16 Shikaku: launch: keep the Settings view's values across launches; --set idle-unload writes the server's key, not an engine flag (#5371 #4985)
+5a43df088 2026-11-16 lamboJw: Chat speed line: register its two live templates in every catalog, so no language shows raw {0}{1} (#4620)
+a54f9dbbb 2026-11-16 Niko1221: tool calls: a parameter's type declared through anyOf / oneOf is read (#2371)
+d33537215 2026-11-16 Niko1221: launch: "fit to your card" for Qwen3.6 takes setup's rule for the model and context (#5239)
+3612d32b6 2026-11-16 Niko1221: launch: Qwen3.6-35B-A3B in the model list as a group of its own, as the app lists it (#5869)
+a1c210144 2026-11-16 Niko1221: Chat: a closed preview panel stays closed at the next start (#5548)
+32502389a 2026-11-16 Niko1221: API models: an earlier picture never stops the chat; the newest four are kept (#4311 review)
+c79654b6a 2026-11-16 dan64: serve: one unknown key in .shared-settings.json no longer clears the rest (#4934 #4933)
+a8a3df28c 2026-10-27 szl0834: [GUI] Preserve image messages in provider chat history
+705b92319 2026-11-16 Niko1221: tune / presets: keep the 4K prompt speed as pp4k and the long prompt's apart, so a recheck compares like with like (#5324)
+f5c07ddfd 2026-10-29 lamboJw: serve telemetry: each card's PCIe link and traffic in "gpus"; the machine's link is the narrowest card's
+4aaec72f8 2026-11-16 Niko1221: Monitor: the card the engine runs on when the config names none and its environment picks one (#4640)
+ac4d569bc 2026-11-16 Niko1221: Serving: a switch per model, "Tools for apps on this computer", off by default (#5661)
+02deda130 2026-11-16 Niko1221: conversation cache SSD tier: one folder per engine process, dead ones cleaned, and its budget (#5697, #5835, #6034)
+7f6757c67 2026-11-16 Niko1221: Serving API: a model's MCP tools only for a keyed client of this computer that the person opted in (#5661)
+03b402dad 2026-11-16 Niko1221: Int8 prompt kernels on Volta: the same products on the FP16 tensor cores for long prompts, bit-identical (#6053)
+92373a464 2026-11-16 Niko1221: Delete a model: a read-only file or an empty read-only folder no longer leaves the pack behind (#4089)
+beff6c2b0 2026-11-16 Niko1221: settings register: STRATA_I8_SM70 (the Volta int8 tile rule of f-0216-tune-vt f41d35929)
+97211fe0e 2026-11-16 Niko1221: native helpers: one versioned contract, explicit opt-in, exact fallback; the GGUF preflight helper uses it (#5961 #5978)
+16fac56ad 2026-11-16 Niko1221: Time Skip: a chat's second trial keeps its Stop when the first trial ends (#4611)
+9f8fafa0f 2026-10-29 The Undercouch Studios: apps/host: a Time-skip trial drops its poll, entry, chat pointer, model choice and ended promise
+0f6994f52 2026-11-16 Niko1221: SYCL Monitor: an Intel load that cannot be measured yet is unknown, not idle; the old sampler fills gaps (#5994 review)
+88787f851 2026-11-16 Rob Riggs: SYCL Monitor: Intel readings without root or a helper service (#5994)
+e907a56ea 2026-11-16 Niko1221: Agent: a cloud model's maximum output is no longer reserved for every reply, so compaction does not start after 4K tokens (#5011)
+88b5ca6d0 2026-11-16 Niko1221: [Docs] the MMQ build path is gone: four pages say where the old numbers and builds come from (own-stack step 10)
+659ad380c 2026-11-16 Niko1221: Agent: an agent that does not answer is no longer reported as a refused mode, and the cause is logged (#5070)
+3e26b4e15 2026-11-16 Niko1221: [Engine] remove llama.cpp's MMQ build path and the vendored ggml-cuda (own-stack step 10)
+553a0d3bd 2026-11-16 Niko1221: setup: colour in the menus only where the terminal shows it (#5935)
+5820ff60d 2026-11-16 Niko1221: launch: "One address only" - serve on one address of this computer (a second network card, a VPN) (#5917)
+fa77c94ac 2026-11-16 Niko1221: Chats: a start reads only the chats saved since the index was written (#5359 review)
+955a2c31d 2026-11-16 Hermes Agent: Chats: the chat files own their revisions at start, so a failed index write cannot roll a revision back (#5359)
+f56ef6fe9 2026-11-16 Niko1221: serve: refused parks counted by reason in /metrics and the Prometheus text (#6081)
+0df5bb13f 2026-11-16 Niko1221: Host: an adopted OpenAI-style server is asked for a model it listed, not "local" (#5574)
+9c8eb61f6 2026-11-16 Hermes Agent: Tests: the host suite runs with a scratch HOME, USERPROFILE and STRATA_HOME too (#5775)
+e06e5d871 2026-11-16 Niko1221: Host: a job list JSON cannot hold is logged and skipped, not thrown out of every state change (#5802 review)
+e19adee7e 2026-11-16 likenparklioo: Host: a failed save of the native job history no longer stops inference or polling (#5802, #5744)
+497ee681c 2026-11-15 Richard Ayotte: fix(sycl): stop relinking every executable on every build (#6042)
+04acca9c1 2026-11-16 Niko1221: sycl: the start-up log names the Level Zero loader, UR adapter and SYCL runtime files in use (#5914)
+71ff7c6b1 2026-11-16 Niko1221: sycl: --ple-gguf: a file whose only tensor is the PLE table is a table, not a model shard (#6026, #6013; port of 290d4f57f)
+ec8a1d12e 2026-11-16 Salvatore Mendola: setup: colour the model family and size names in the menus (#5935)
+3cf039689 2026-11-16 Niko1221: --ple-gguf: a file whose only tensor is the PLE table is a table, not a model shard (#6026, #5942, #6013)
+70667dd72 2026-11-16 Niko1221: Approvals: Details shows the whole command the agent asks to run, not its first 600 characters (#5856)
+9e4ef7ee8 2026-11-16 Niko1221: Agent: OpenAI-style servers other than OpenAI get no "store" field, so Gemini answers (#5903)
+3321fe756 2026-11-16 Niko1221: launch / connect: say how to see a hidden key, and that a key that is on is checked on this computer too (#5948)
+15cb96072 2026-11-16 Niko1221: telemetry: the top-level PCIe fields stay card 0's; the slowest card is named in gpu_pcie_bottleneck (#5801 #5981)
+4c3470aa8 2026-11-16 Niko1221: conversation cache: a park that cannot fit is refused before anything is evicted (#5697)
+3c503be7a 2026-11-16 Niko1221: Test: the store's error test follows the chat error branch of 7bcb5a69c
+adafc50b5 2026-11-16 Niko1221: Agent: a model's "Tool timeout (seconds)" reaches its MCP servers in the desktop agent (#5788)
+da6391c77 2026-11-16 Chak @ WCH: Agent: an MCP server's own timeout reaches the Harness as toolCallTimeoutMs (#5790, #5788)
+6f807dfc6 2026-11-16 Niko1221: Start-up line: name the native output head's real GGUF type instead of "Q5_K" (#6030)
+cd4b7d7ee 2026-11-16 Stuart Chapin: add the strata-gguf-preflight Rust crate (#5961)
+6f5ad10c6 2026-11-16 Niko1221: tests: list the AMD test start's strata-device probe as a spawn site (#6015)
+7bcb5a69c 2026-11-16 Niko1221: Errors: an engine that stops or fails while answering is said so in plain words, with its line under Details
+d6e670171 2026-11-16 Niko1221: Agent: a wake that starts before the idle watch's first snapshot, and several wakes while no page is open, all reach the chat (#6070 review)
+7496424a5 2026-11-16 Niko1221: Host: a link or file the opener refuses is a 400 with its reason, not a 500
+98f984998 2026-11-16 Niko1221: Errors: an OpenAI-shaped error body shows its message, not raw JSON
+4fc847203 2026-11-16 Jie Ren: Monitor: each card gets its own PCIe ceiling and power limit, so a card that runs narrower than it could is visible (#5801)
+2c48a5698 2026-11-16 Niko1221: setup: plainer words for the parallel note when RAM rules it out (#6046)
+695233185 2026-11-16 Niko1221: tools/logits_dump.py: read STRATA_LOGITS_DUMP records with their headers (#6030)
+b9eff8d34 2026-11-16 Niko1221: runtime: the restart plan reports the stop phase's limit and, apart from it, the last stop's time; protocol notes (#5956 #5958 #5954)
+e86074f3c 2026-11-16 Niko1221: Storage: list the DeepSeek models of an earlier Strata so their files can be seen and freed (#6048)
+f830a0001 2026-11-16 Niko1221: serve: "ERR verify: the GPU stopped waiting" is a fatal engine line, like the #267 timeouts (#5160)
+680a400cc 2026-11-16 Niko1221: Web chat: a picture is attached at once and keeps its original when no preview can be made; stored previews are checked (#5998 review)
+a9f2de40f 2026-11-16 Guillaume PUTIER: setup: parallel counts pinned RAM and per-cell VRAM at long contexts (#6046)
+b1cdaa389 2026-11-16 Niko1221: serve: a request cut off by the server stopping the engine fails (503), not "length" with 0 tokens (#6055)
+289752e03 2026-11-16 MegaRush: Web chat: a small thumbnail of an attached picture rides with the name into the saved chat (#5998, #5509)
+420b7fe57 2026-11-16 Milly: Agent: a reply the agent starts by itself after a background command finishes reaches the chat (#6070)
+9824b2e7a 2026-11-16 Niko1221: engine test start (AMD): the engine sees only the cards its package has code for; a repeated failure says so (#6015)
+2c8d300ad 2026-11-16 Niko1221: --prompt-cache-every: the periodic checkpoints sit on the resumed request's grid (#6052)
+398ff4b5a 2026-11-16 Niko1221: tool_addition: system messages only, the outer shape checked, one definition per name (#6005, #5952)
+5f5a35b85 2026-11-14 connorbanting03: [Engine] read tools from Anthropic tool_addition blocks (#5952)
+f41d35929 2026-11-16 Niko1221: Int8 prompt kernels on Volta: the tile that keeps two blocks per SM, and the big grids read from global memory (#6053)
+5480e2bad 2026-11-16 Niko1221: Int8 prompt kernels: write each group's launch record with a small kernel instead of a host copy (#6053)
+6a139a1a2 2026-11-16 Niko1221: serve: a restart during a slot's release does not touch the new engine's claim (#5657, #4451)
+e331637df 2026-11-09 MIDHAT NASHAR: [Engine] transfer cancelled slot claims before starting the release waiter (#5657)
+7c4b55cb3 2026-11-16 Niko1221: connect --write --if-unchanged: compare the bytes the write would produce, keep an unchanged file private (#5957)
+ac7c09367 2026-11-16 Niko1221: setup --prepare-pack: the step line says "model file reader ready", not llama.cpp's gguf-py
+290d4f57f 2026-11-16 Niko1221: --ple-gguf: a file whose only tensor is the PLE table is a table, not a model shard (#6026, #5942, #6013)
+db410c88b 2026-11-16 Niko1221: Harness: a restarted MCP server gets a new session in the desktop agent instead of failing every call (#6014)
+bba1a0e92 2026-11-16 Niko1221: sycl: a GPU wait on the host that runs out fails its window instead of using stale expert rows (#5160, #5992, #6016)
+6de12dc91 2026-11-16 Niko1221: launch: the Advanced step works out the engine command once per set of choices, not on every key (#5940)
+443a0c330 2026-11-16 Niko1221: Models: no "Context memory" select for Qwen3.6, which has no KV-format choice (#5919)
+0a26f8357 2026-11-16 l473n79c618e: feat(connect): --write --if-unchanged leaves a file that already holds the rendered content alone (#5957)
+a71b0abd1 2026-11-16 Niko1221: Harness: one unreadable folder no longer blanks a whole glob / grep in the agent (#5964)
+6f5382c1f 2026-11-16 Niko1221: connect --write: one order and the same side effects in both output modes (#5955)
+16d2a7dfc 2026-11-16 l473n79c618e: fix(connect): make --write --output json run the write and report each file (#5955)
+6ba86f961 2026-11-16 Niko1221: sycl: window_jobs_test --legacy runs the cases through the 756242554 loop and must fail (#6016)
+633db39c7 2026-11-16 Niko1221: strata-q36 standalone entry: the Turing fused set-up as strata --model has it (one switch list for both entries)
+21d15ebf7 2026-11-16 Niko1221: vision: gfx1151 (Strix Halo) takes F16 inputs for BF16 matrices too
+d860f672e 2026-11-16 Niko1221: First run: name the card in setup's order, a discrete card before the processor's graphics (#6015)
+3bd38bbaa 2026-11-16 Niko1221: test_faulthandler: the shipped Python 3.12 names no threads; a closed error output and a log file (#5921)
+7b73ebf93 2026-11-13 gingertonik: serve: a native death of the server names its Python line in its own output
+f0c526a81 2026-11-16 Niko1221: First run: name the card with the most memory, not the processor's graphics listed first (#6015)
+066929d41 2026-11-16 fumisato407-crypto: Fields: the Enter that commits an IME conversion runs no field's action, in the app and in the web page (#6033, #5071)
+d47229d5a 2026-11-16 Dmitriy: drafting: keep an explicitly selected DFlash2 file (--draft-model in user_args) (#5902)
+ebc61512c 2026-11-16 Niko1221: route_prior_parity: STRATA_ROUTE_PRIOR on synthetic router rows, degenerate and rankable (#5655)
+5144e8b53 2026-11-13 William Stone: Route prior: commit the biased top-10 atomically - a partly readable row keeps the router's top-10
+709d0a99c 2026-11-09 William Stone: Route prior: a degenerate token keeps the router's picks instead of a sentinel expert id
+511dfc8ea 2026-11-16 Niko1221: Build scripts: the picture reader takes no -DLLAMA_DIR (or GGML_*) any more
+8dbfd5210 2026-11-16 sonic-netizen: Host: native Monitor rows carry the engine's hit rate and PCIe share, so the VRAM hit rate column is no longer always a dash (#6079)
+ca3c58c46 2026-11-16 Niko1221: vision: the Metal reader holds BF16 matrices as F16 and writes their inputs as F16
+b6ce9d479 2026-11-16 Niko1221: STRATA_CKPT_ASYNC: one owner for the checkpoint staging buffer from the join to the launch (#6075)
+af44aac1d 2026-11-16 Niko1221: Desktop: the Windows and macOS app tells its host it is the app window, so links in answers open in the browser (#5072, #4721)
+2b81d475e 2026-11-16 Niko1221: serve/mcp.py: a restarted HTTP MCP server gets a new session and the refused call runs once (#6014)
+9eef1667c 2026-11-16 carlos: sycl: the xe spin bound follows the host: 1,000,000 reads once a stage can ask the host (#5992, bound part only)
+9a3ae96c6 2026-11-16 Niko1221: tests: the start's wait for its owner's state file, model-free (#5601)
+f0f39de26 2026-11-15 carlos: sycl: expert_pool_dispatch_multi reads one snapshot of ids and clears job_of exactly where it opened jobs (#6016)
+5c35417bc 2026-11-16 djmarker287-code: Host: the LAN share listener passes POST /v1/responses on to the API handler (#5925)
+00d0fe58f 2026-11-16 djmarker287-code: Host: a malformed JSON body on an inference route answers 400, not 500 (#5930)
+347b29592 2026-11-16 Vladimir: Host: compare the model library's file IDs as BigInt so two folders with large IDs are not taken for one (#6037)
+18fdeb21c 2026-11-16 Niko1221: [Engine] quant layer: the Q8_K quantizer keeps its product unfused under Clang / icx too (step 4 follow-up)
+f6de3a6c6 2026-11-16 Niko1221: test_setup_stale_stamp: the ARM64 engine build is without MMQ too (f-spark-nommq)
+1fc1777ec 2026-11-16 Niko1221: Docs: strata-vision is Strata's own picture reader
+d2cdf854e 2026-11-16 Niko1221: Picture reader: strata-vision without llama.cpp's mtmd, llama or ggml
+525ba0ea7 2026-11-16 Niko1221: [GUI] web host: remove the unused autostart.mjs and its test (own-stack step 9 leftover)
+6da3a80e5 2026-11-16 Niko1221: [Engine] Intel Arc: the CPU expert pool on Strata's quant layer, no ggml in the SYCL engine (own-stack step 4)
+8dadf18ad 2026-11-16 Niko1221: install.sh: install-manifest.txt with CRLF line ends reads the same
+cd2b464ed 2026-11-16 Niko1221: Picture reader: remove the "Picture reader" setting and the start-up fallback to llama.cpp's reader
+b55ae23e8 2026-11-16 Niko1221: strata_mcp: the engine named as a component is missing only when it is not installed
+ffb11f070 2026-11-16 Niko1221: [Engine] quant format header: Strata's own, generated from its type tables (own-stack step 5)
+660cddf49 2026-11-16 Niko1221: serve: the Qwen3.6 engine is not sent the VRAM command it does not have (picture reader start, POST /v1/vram)
+2c0a77d9b 2026-11-16 Niko1221: Picture reader: our tower on every GPU under auto (the three mtmd rules go)
+cbeac69d6 2026-11-16 Niko1221: setup on a Mac (app mode): a model whose list entry has no draft layer plans and starts with no drafter, as on Windows and Linux
+f46cb8aa0 2026-11-16 Niko1221: launch: the Intel card's pack step downloads nothing, and the plan, the step line and the failure hint say so
+30f28ecc9 2026-11-16 Niko1221: ctest no_mmq_symbols: a named cuobjdump look that did not run fails the test with its reason (check_no_mmq exit 3)
+86c00f44b 2026-11-16 Niko1221: spark: the GB10 numbers of the build without MMQ in build_engine.sh
+b9d5fb1eb 2026-11-16 Niko1221: host test turn-reattach: the temp chat folder's removal retries (a late chat-store write left it not empty on the macOS runner)
+cc1c75582 2026-11-16 Niko1221: [Engine] Mac: the CPU expert pool on Strata's quant layer by default, no ggml in the Metal engine (own-stack step 3)
+f154ed87d 2026-11-16 Niko1221: check_no_mmq: a look that did not run is named, and a named one fails the check
+edce8fe09 2026-11-16 Niko1221: [Engine] step 1 follow-up: the HIP prompt test programs only in a build that has ggml
+e93650d1e 2026-11-15 Niko1221: [Engine] step 1 follow-up: file_expert_source_test takes the type ids from Strata's table
+3e528494c 2026-11-15 Niko1221: [GUI] web host: remove the llama.cpp download (POST /api/engine/binary)
+9cfa8ec5b 2026-11-15 Niko1221: spark: build the DGX Spark engine without llama.cpp's MMQ
+5c3541b6a 2026-11-15 Niko1221: [Engine] SYCL: delete four prompt-kernel files and the migrated header copy that no build compiles
+7dc0ad0af 2026-11-15 Niko1221: [Engine] x86 CUDA / HIP builds: no ggml-base / ggml-cpu (own-stack 0.2.15 step 1)
+```
+
+### whisper.cpp — 4 commits
+
+```
+ca19af244 2026-11-19 Daniel Bevenius: ci : pin emscripten sdk version to 7.0.0 (#4160)
+91c1e144f 2026-11-19 Daniel Bevenius: examples : remove explict version from test-cmake (#4172)
+cb4da344d 2026-11-19 Daniel Bevenius: ci : add API/ABI check to make-release workflow (#4185)
+8bf716f99 2026-11-19 Daniel Bevenius: examples : set LLAMA_TAG to commit that fixes ctz64 on win32 (#4189)
+```
+
+### stable-diffusion.cpp — 0 commits (unchanged)
+
+### llama-cpp-python — 0 commits (unchanged)
+
+### acestep.cpp — 0 commits (unchanged)
+
+### qwen3-tts.cpp — 0 commits (unchanged)
+
+### parakeet.cpp — 0 commits (unchanged)
+
+### sdcpp-webui — 0 commits (unchanged)
+
+### libwebm — 0 commits (unchanged)
+

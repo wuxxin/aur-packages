@@ -37,7 +37,46 @@ Pinned range per component:
 - `strata --version` prints `strata version: 0.2.15 (c77572806)`; the built engine binary contains the `CLEAR_CACHE` handler (`CLEARED %zu`); `libwhisper.so.1.9.6` embeds `1.9.6-dev (6680804f9)`.
 - All 9 packages build clean from a wiped cache via `updpkgsums && makepkg -Cf --nocheck` at `12522.r0.g2cbfc3c-1`, zero rejects, including the two new patches and the refreshed ones.
 
-## How to regenerate this file (next iteration)
+## Window: 2026-11-18 → 2026-11-19 (`12522.r0.g2cbfc3c` → `12550.r2.g9a080f44b`)
+
+Complete per-source commit listings for this window: [full-changes.md](full-changes.md). The sections below are the filtered digest.
+
+Pinned range per component:
+
+| component | from (installed) | to (built, pending install) |
+|---|---|---|
+| llama.cpp / ggml | `2cbfc3c` (b12522) | `9a080f44b` (b12550+2), 30 commits |
+| Strata | v0.2.15 (`c77572806`) | **v0.2.16+4** (`58ee32277`), Control/Terminal 0.2.16, engines 0.1.61–0.1.62, +609 commits (range, no-merges) |
+| whisper.cpp | `6680804f9` | `ca19af244`, 4 commits — CI-only, functionally unchanged |
+| stable-diffusion.cpp / llama-cpp-python / acestep.cpp / qwen3-tts.cpp / parakeet.cpp / sdcpp-webui / libwebm | unchanged upstream | unchanged (0 commits) |
+
+### Breaking / adopt now
+
+- **Strata 0.2.16 layout move**: the top level is now `app/`, `engine/`, `terminal/`, `docs/`, `tools/` (commit `4058aa782`). Every path our PKGBUILD and patches reference has moved — this build carries the patch/packaging migration. A clone's first run renames old state into `terminal/`; `setup.py --update` now self-updates via git pull.
+- **Strata engine fully leaves llama.cpp** ("own-stack" steps 1–10): the MMQ build path and vendored ggml-cuda are removed, x86 CUDA/HIP builds link no ggml-base/ggml-cpu, quant format headers are Strata's own, docs state "the engine build does not fetch or use llama.cpp". The picture reader `strata-vision` runs without mtmd/llama/ggml (mtmd fallback and the "Picture reader" setting removed; our tower under `auto` on every GPU). Our `strata-system-ggml.patch` shrinks to what still links system libs — verified per build below.
+- **Conversation cache SSD tier** (#5697 P2): evicted parked conversations are written to disk as session files in the background, matched and read back; one budgeted folder per engine process (dead ones cleaned); a park that cannot fit is refused before anything is evicted, and the RAM gate stops evicting when memory does not come back. This is upstream's answer to our parked `strata-spill-plan.md` — conversation-level persistence, not raw KV bytes; `CLEAR_CACHE` stays ours.
+- **Serving API security default**: without an API key, web pages from other origins cannot use `/v1` (Origin check incl. empty Origin and GET /v1). Local browser-based clients must send the key or be same-origin.
+- `/v1/models` now reports each model's context window (`meta.n_ctx`, `context_length`) — clients can drop engine-private port probes (#3931, #5893).
+
+### Features worth wiring in
+
+- **HIP on our cards**: RX 6000 (gfx103x) reads prompts with FP16 GEMMs by default and PcieAuto is on by default (#5151, #4007 — measured on gfx103x); the start-up tip asking for `STRATA_HIP_PROMPT_F16=1` is gone on gfx103x. RX 7000 (gfx1100–1102) takes Gyro trellis experts on fused prompt kernels (#6067). Package-side: HIP builds against kpack ROCm carry rocBLAS device code in-package and point the loader at it (#5060); setup finds the HIP compiler under `lib/llvm/bin` (rocm-core 10.1, #6071); engine test-starts only see cards the package has code for (#6015). RX 6600-class (gfx1032) joins the RX 6000 package and setup vocabulary (#5174).
+- **Tool-calling robustness** (agents on `strata serve`): full recovery parser family for damaged/malformed tool calls (`#6032 R1–R6`, Claude `<invoke>/<parameter>` dialect, XML-element parameters, `anyOf/oneOf` types, >4 KB streamed string values made linear-time #4686); a reply ending in unrunnable tool markup is retried once and marked `strata_unread_tool_markup`; failed tool calls feed the model a tool error (max twice) instead of dead turns; `/v1/responses` honors `tool_choice: required`, accepts Codex multi-agent v2 items, answers Anthropic-shaped errors, streams usage in its own final chunk on `include_usage`.
+- **Drafting**: DFlash2 confidence priced at the pack's real slot size (IQ3_S and above), stock-pack-missing falls back to the tuned pack not to no drafter, explicit `--draft-model` files are kept, DFlash2 downloads honour `HF_ENDPOINT`, drafting decisions follow the config's card family on mixed NVIDIA+AMD machines.
+- **Engine ops**: `--expert-support` reports GPU expert-kernel support without a GPU (#6059); `--ple-gguf` recognizes PLE-table-only files (#6026); `STRATA_CKPT_ASYNC` single-owner checkpoint staging; `--prompt-cache-every` checkpoints sit on the resumed request's grid; refused parks counted by reason in `/metrics`; `run-defaults.json` for user-wide launch defaults.
+- **llama.cpp**: sticky-NaN fix in recurrent state (#31913 — Qwen3-Next-family GDN quality), buffered-I/O fallback on EIO (robust model loading off mounts), IQ2 creation speedup via caching, `PATH_MAX` removal, cpp-httplib 0.67; Vulkan: stream-k MUL_MAT and MMQ with mixed-signness integer dots (fallback-path gains); mtmd voxcpm2 TTS support. No HIP-backend commits this window.
+- **whisper.cpp**: CI/version bumps only (`1.9.6-dev` unchanged); no action.
+
+### Verified in this build
+
+Built at `12550.r4.g7fce543` — the llama.cpp mirror moved 2 commits past the analyzed tip `9a080f44b` during packaging; no new HIP-relevant commits in the drift (both were doc/test churn).
+
+- Strata split into its own package dir [../strata-engine-git-hip](../strata-engine-git-hip) (`strata-engine-git-hip`, provides/conflicts `strata-engine`/`strata-engine-git`, replaces `strata-engine-git-ggml-hip`). Built standalone at `0.2.16.r4.g58ee322`: `strata --version` prints `strata version: 0.2.16 (58ee32277)`; `ldd` on the engine shows **no libggml/libllama linkage**; the `CLEAR_CACHE` handler strings are present; `/usr/bin/strata`, `/usr/share/strata/{terminal,engine,tools}` install as designed.
+- ggml-diag-mask patch (fixed for the upstream SLEEP op, counts 100→102): compiled in — `SLEEP` and `sleep(x)` strings present in `libggml-base.so`.
+- All libggml-suite packages build clean via `updpkgsums && makepkg -C --nocheck`, zero patch rejects (strata patches moved out; `strata-system-ggml.patch` deleted as no longer needed).
+- The `'CUDA graph capture'` string check from the previous window's plan is N/A for this build: that string lives in `ggml-cuda.cu` and we ship HIP/Vulkan/CPU/BLAS backends.
+
+## How to regenerate this file (next iteration):
 
 Append a new "Window:" section; never rewrite older ones. Procedure:
 
