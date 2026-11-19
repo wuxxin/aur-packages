@@ -8,6 +8,63 @@ top, one per upgrade: version range, commit range, curated upstream changes with
 How to re-derive an entry: see "Maintenance" in [README.md](README.md) — diff the installed pkgver's commit to
 HEAD, curate from upstream, regenerate patches via snapshot chain, then append here.
 
+## 2026-11-19 — 18.22.2.r190.g2cdc756 → 19.0.0.r1.gd4ebe4d (41 commits)
+
+Upstream window `2cdc756..d4ebe4d`: the **v19.0.0 release** (`57771ae`) plus post-release fixes and one docs
+commit. Most user-facing features of 19.0.0 were already recorded in the previous entry (they shipped inside
+that window as unreleased commits); this entry lists what is new at or after the tag, breaking first.
+
+### Breaking / architecture — needs action on our side
+
+- **SDK renames now tagged**: `createAgentSession.cacheWarming` takes mode caps `"off"|"streaming"|"idle"`
+  (was boolean); `session.handoff(focus)` → `session.compact(focus, {mode:"handoff"})` + `abortCompaction()`;
+  `deferSkillDescriptionCompression` → `deferHintCompression`, `startSkillDescriptionCompression()` →
+  `startHintCompression()` (now also covers MCP namespace hints). SDK/extension code in the workspace must audit.
+- **Daemon consolidation shipped as breaking**: older daemons/services are not adopted, `omp ps` is global
+  (one `{daemon, reports}` JSON); one restart of omp-managed services after install. New `OMP_DAEMON_TCP`
+  keeps running services/PTYs/language servers alive across future daemon upgrades — worth enabling on the
+  sandbox host.
+- **Auth broker startup**: interactive no longer blocks 30 s retrying an unreachable broker; CLI/print/SDK keep
+  the 30 s window with a stderr notice. Sidecar/headless launches (`omp -p` under systemd) get a defined
+  behavior instead of hanging silently. `OMP_LOG_LEVEL` now also controls console output from services like
+  `omp auth-broker serve`.
+
+### Hooks-bridge feature set (OmpHooksBridge)
+
+- **No change to any mapped event.** The v19 tag carries the #19550 payload support (`excludeFromContext`) the
+  bridge's in-session stats rows were written against — rows are now zero-context on a tagged release; drop any
+  `OMP_BRIDGE_SESSION=0` opt-outs.
+- Extension imports of `@oh-my-pi/pi-natives` resolve again (the v19 crate rename had rewritten the npm dir to
+  `omp-natives`; restored in `003818b`). Any host extension importing it was broken on unreleased tips between
+  the rename and this fix.
+- Compaction barrier fix (#5800): messages queued during `/compact` re-drain after the barrier clears. Adjacent
+  to the queue-steering re-emission our UserPromptSubmit dedup guard compensates for — the guard stays required,
+  no per-model-call re-emission was removed.
+
+### Memory / agent-mesh relevant
+
+- **Mnemopi: retention on yielded pauses is retained and retains are serialized (#19690)** — fixes duplicate and
+  dropped memories in runs with async work, subagents, or peer messages. Directly improves the auto-learn path
+  this harness uses.
+- Ask forms open each question at its preselected answer; Enter accepts the recommendation (#19657). Permission
+  prompts driven by bridge `ask → ui.confirm` benefit from the same flow changes (scrolling details, persistent
+  Approve/Deny).
+- Shell process worker owns SIGTERM/SIGHUP and lets trapped programs finish (`postmortem.exitCleanlyOnStopSignals`) —
+  omp-managed services under systemd stop cleanly with exit 0 instead of orphaning children; unit configs need no
+  `TimeoutStopSec` workarounds.
+- Hosted judgment (>32 questions) fixed for TypeSafe/OpenRouter/Command Code/OpenCode Zen — relevant to
+  gateway-fronted routers. Kiro API-key auth (`ksk_…`) works end-to-end again.
+
+### Package-side changes this iteration
+
+- Patches verified against `d4ebe4d` via the README snapshot chain: final tree byte-identical (chain-tip
+  `git write-tree`). `relative-json-asset-paths.patch` regenerated — upstream's pi-natives rename fix touched
+  its second file (`legacy-pi-virtual-module.ts`), only the index preimage line changed. The other three apply
+  with zero offset in prepare() order.
+- **Package rename completed**: added `replaces=('oh-my-pi-git-tag')` + matching conflict (the pkgbase rename
+  c1d54a2 left no migration edge). Verified: built `.PKGINFO` carries both; `pacman -U` of the new package
+  removes the old-named install in one step.
+
 ## 2026-11-18 — 18.21.0.r32.g6e8ab5f → 18.22.2.r190.g2cdc756 (795 commits)
 
 Upstream window `6e8ab5f..2cdc756`, covering releases 18.22.0/18.22.1/18.22.2 plus unreleased commits.

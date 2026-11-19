@@ -1,6 +1,6 @@
 pkgbase = oh-my-pi-git
 	pkgdesc = AI coding agent for the terminal — hash-anchored edits, optimized tool harness, LSP, Python SDK, browser extension, subagents, and more (git latest tag)
-	pkgver = 18.22.2.r190.g2cdc756
+	pkgver = 19.0.0.r1.gd4ebe4d
 	pkgrel = 1
 	url = https://github.com/can1357/oh-my-pi
 	arch = x86_64
@@ -33,8 +33,10 @@ pkgbase = oh-my-pi-git
 	provides = python-robomp
 	conflicts = oh-my-pi
 	conflicts = omp
+	conflicts = oh-my-pi-git-tag
 	conflicts = python-omp-rpc
 	conflicts = python-robomp
+	replaces = oh-my-pi-git-tag
 	options = !strip
 	source = oh-my-pi::git+https://github.com/can1357/oh-my-pi.git
 	source = tree-sitter-no-strict-aliasing.patch
@@ -45,6 +47,6 @@ pkgbase = oh-my-pi-git
 	sha256sums = a70471cb6d7b75d68cbe468a37afc5b4c981d06e9c617cab497fcd1ae098a51a
 	sha256sums = b0c192f53b699dfebbaa765aa017c6e576d1625dcff22d187a8c56cde2e538fe
 	sha256sums = 491c747d8a8d3740cb81f8e4189341d775e07ec91302e450f554208bdceb5639
-	sha256sums = 1ce0a4c853ee980694d6a1da6944098978f0407c4ca3dd612ff6017744766e8c
+	sha256sums = e6a257af93579d77eff510457448a46fe95fb7155eaf44831a9d15671cdac0cf
 
 pkgname = oh-my-pi-git

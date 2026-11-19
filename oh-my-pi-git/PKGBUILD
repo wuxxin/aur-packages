@@ -3,14 +3,17 @@
 
 pkgname=oh-my-pi-git
 _pkgname=oh-my-pi
-pkgver=18.22.2.r190.g2cdc756
+pkgver=19.0.0.r1.gd4ebe4d
 pkgrel=1
 pkgdesc="AI coding agent for the terminal — hash-anchored edits, optimized tool harness, LSP, Python SDK, browser extension, subagents, and more (git latest tag)"
 arch=('x86_64')
 url="https://github.com/can1357/oh-my-pi"
 license=('MIT')
 provides=("${_pkgname}" "omp" "python-omp-rpc" "python-robomp")
-conflicts=("${_pkgname}" "omp" "python-omp-rpc" "python-robomp")
+conflicts=("${_pkgname}" "omp" "oh-my-pi-git-tag" "python-omp-rpc" "python-robomp")
+# The pkgbase was renamed from oh-my-pi-git-tag (c1d54a2); declaring it lets a
+# pacman -U of the new name remove the old package instead of file-conflicting.
+replaces=('oh-my-pi-git-tag')
 depends=(
     'glibc'
     'opus'
@@ -51,7 +54,7 @@ sha256sums=('SKIP'
             'a70471cb6d7b75d68cbe468a37afc5b4c981d06e9c617cab497fcd1ae098a51a'
             'b0c192f53b699dfebbaa765aa017c6e576d1625dcff22d187a8c56cde2e538fe'
             '491c747d8a8d3740cb81f8e4189341d775e07ec91302e450f554208bdceb5639'
-            '1ce0a4c853ee980694d6a1da6944098978f0407c4ca3dd612ff6017744766e8c')
+            'e6a257af93579d77eff510457448a46fe95fb7155eaf44831a9d15671cdac0cf')
 
 pkgver() {
     cd "${srcdir}/${_pkgname}"

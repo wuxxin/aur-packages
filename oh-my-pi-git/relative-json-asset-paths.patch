@@ -40,7 +40,7 @@ index b0551df07a..d64267734a 100644
  			}));
  			build.onLoad({ filter: /\.json$/ }, async ({ path }) => {
 diff --git a/packages/coding-agent/scripts/legacy-pi-virtual-module.ts b/packages/coding-agent/scripts/legacy-pi-virtual-module.ts
-index 1870facda9..779a82d0aa 100644
+index 7b959b8769..2a5afda060 100644
 --- a/packages/coding-agent/scripts/legacy-pi-virtual-module.ts
 +++ b/packages/coding-agent/scripts/legacy-pi-virtual-module.ts
 @@ -287,7 +287,9 @@ export async function createLegacyPiVirtualModulePlugin(
