@@ -1,8 +1,37 @@
-diff --git a/src/program/generate.cpp b/src/program/generate.cpp
-index 6eea65a..e380c7e 100644
---- a/src/program/generate.cpp
-+++ b/src/program/generate.cpp
-@@ -3330,7 +3330,15 @@ int main(int argc, char** argv) {
+diff --git a/engine/CMakeLists.txt b/engine/CMakeLists.txt
+--- a/engine/CMakeLists.txt
++++ b/engine/CMakeLists.txt
+@@ -32,6 +32,26 @@ if(STRATA_ENABLE_SYCL)
+   return()
+ endif()
+ add_compile_definitions(STRATA_VERSION="${PROJECT_VERSION}")
++if(NOT STRATA_TAG_VERSION)
++  execute_process(COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} describe --tags --abbrev=0 OUTPUT_VARIABLE STRATA_TAG_RAW
++                  OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
++  string(REGEX REPLACE "^v" "" STRATA_TAG_VERSION "${STRATA_TAG_RAW}")
++endif()
++if(NOT STRATA_TAG_VERSION)
++  set(STRATA_TAG_VERSION "${PROJECT_VERSION}")
++endif()
++add_compile_definitions(STRATA_TAG_VERSION="${STRATA_TAG_VERSION}")
++if(NOT STRATA_BUILD_COMMIT AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/BUILD_ID)
++  file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/BUILD_ID STRATA_BUILD_COMMIT LIMIT_COUNT 1)
++endif()
++if(NOT STRATA_BUILD_COMMIT)
++  execute_process(COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} rev-parse --short=9 HEAD OUTPUT_VARIABLE STRATA_BUILD_COMMIT
++                  OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
++endif()
++if(NOT STRATA_BUILD_COMMIT)
++  set(STRATA_BUILD_COMMIT unknown)
++endif()
++add_compile_definitions(STRATA_BUILD_COMMIT="${STRATA_BUILD_COMMIT}")
+ # issue #31: release builds keep a PDB beside the exe (not shipped in it), so a minidump from a stalled engine can
+ # be read back to the exact source line
+ if(MSVC AND CMAKE_BUILD_TYPE STREQUAL "Release")
+diff --git a/engine/src/program/generate.cpp b/engine/src/program/generate.cpp
+--- a/engine/src/program/generate.cpp
++++ b/engine/src/program/generate.cpp
+@@ -3592,7 +3592,15 @@ int main(int argc, char** argv) {
      // `strata --version` / `-V` (also `strata generate --version`): the version and nothing else, before any GPU is touched
      for (int i = 1; i < argc && i < 3; ++i) {
          if (std::strcmp(argv[i], "--version") == 0 || std::strcmp(argv[i], "-V") == 0) {

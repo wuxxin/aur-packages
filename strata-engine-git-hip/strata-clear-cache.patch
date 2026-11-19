@@ -1,8 +1,7 @@
-diff --git a/src/program/generate.cpp b/src/program/generate.cpp
-index c9170ca..52fabcf 100644
---- a/src/program/generate.cpp
-+++ b/src/program/generate.cpp
-@@ -16702,6 +16702,15 @@ int main(int argc, char** argv) {
+diff --git a/engine/src/program/generate.cpp b/engine/src/program/generate.cpp
+--- a/engine/src/program/generate.cpp
++++ b/engine/src/program/generate.cpp
+@@ -17373,6 +17381,15 @@ int main(int argc, char** argv) {
                  std::fflush(stdout);
                  continue;
              }
@@ -18,3 +17,4 @@ index c9170ca..52fabcf 100644
              // a command may touch the expert cache (a request lends slots, a K/V growth moves them, a session restore
              // quiesces it): a round of the asynchronous tier that the batch windows left in flight lands first
              if (!adapt_tick(true)) {
+

@@ -2,8 +2,14 @@
 
 Package-level change history for the `libggml-git-hip` split-package build. Per-update ecosystem deltas relevant to consumers of this system are tracked separately in [CHANGELOG.md](CHANGELOG.md); complete per-source commit lists in [full-changes.md](full-changes.md).
 
-### `12522.r0.g2cbfc3c-1` (Current, built 2026-11-18; not yet installed)
-Replaces the installed `12383.r1.g3549c27-1` (2026-11-14).
+### `12550.r4.g7fce543-1` (Current, built 2026-11-19; not yet installed)
+Replaces the installed `12383.r1.g3549c27-1`. Upstream deltas: [CHANGELOG.md](CHANGELOG.md) window 2026-11-18→19.
+- **Upstream sync**: llama.cpp b12522→b12550+4, whisper.cpp `ca19af244` (CI-only); stable-diffusion/acestep/qwen3-tts/parakeet unchanged upstream.
+- **Strata moved out** to [../strata-engine-git-hip](../strata-engine-git-hip) as `strata-engine-git-hip` (`provides`/`conflicts`: `strata-engine`, `strata-engine-git`; `replaces=('strata-engine-git-ggml-hip')`). Rationale: Strata 0.2.16's engine links no ggml/llama/mtmd at all and its picture reader is self-contained — nothing in this base is shared beyond the ROCm toolchain.
+- **Removed**: `strata-system-ggml.patch` (the engine links no system ggml in release builds; vision has its own tower), plus the strata source entry, build stanzas and split package from this PKGBUILD. `strata-version-commit.patch`/`strata-clear-cache.patch` moved with it, reanchored to the 0.2.16 layout (`engine/CMakeLists.txt` version block, `engine/src/program/generate.cpp`).
+- **Patch drift fix**: `ggml-diag-mask.patch` — upstream added the SLEEP op; diagnostic counts 100→102, hunks reanchored on the new op-name/desc entries. Verified in built `libggml-base.so`.
+
+### `12522.r0.g2cbfc3c-1` (built 2026-11-18; not installed)
 - **Upstream sync**: llama.cpp b12383→b12522, Strata v0.2.13.1→v0.2.15 (Control/Terminal 0.2.14/0.2.15, engines 0.1.60), whisper.cpp 1.9.6-dev, stable-diffusion.cpp v0.3.37, llama-cpp-python bump; qwen3-tts.cpp and parakeet.cpp unchanged upstream.
 - **Patch refresh**: `whisper-version-commit.patch` re-pinned to the new upstream context (`find_package(llama 1.0.0)` stripped); `strata-system-ggml.patch` vision hunk rewritten onto upstream's own-ViT-tower layout — system-mode `strata-vision` now links the new `strata_vit_own` target (built via `STRATA_VISION_HIP`, same gfx archs).
 - **Added**: `strata-clear-cache.patch` — the engine's `CLEAR_CACHE` stdin command (drop parked conversations + `malloc_trim`) split out of the old spill scaffold; verified in the built binary. Added `stable-diffusion-graph-view.patch` — llama.cpp b12521+ keeps `ggml_graph_view` private (defined in ggml.c, not exported from libggml); stable-diffusion v0.3.37's system-ggml compat shim calls it, so the patch mirrors it locally inside the `SD_GGML_GRAPH_COMPAT` block.

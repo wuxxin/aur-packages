@@ -1,6 +1,6 @@
 # libggml-git-hip
 
-An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts.cpp`, `parakeet.cpp`, `strata-engine`, `acestep.cpp`) for Arch Linux. 
+An optimized Git HEAD compilation of the GGML tensor library and associated tools (`llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts.cpp`, `parakeet.cpp`, `acestep.cpp`) for Arch Linux. (Strata moved to its own package: [../strata-engine-git-hip](../strata-engine-git-hip) — since Strata 0.2.16 it links no ggml/llama.cpp at all.)
 
 This package uses **dynamic backends** (`GGML_BACKEND_DL=ON`) to compile and package **CPU** (with auto-selected instruction set variants), **OpenBLAS**, **HIP/ROCm**, and **Vulkan** backends under a unified shared library.
 
@@ -15,7 +15,7 @@ Package change history: [PKG-CHANGELOG.md](PKG-CHANGELOG.md) , per-update ecosys
 - **`stable-diffusion.cpp-git-ggml-hip`**: Stable Diffusion Text-to-Image generation tools (`sd-cli`, `sd-server`) dynamically linking to the shared library.
 - **`qwen3-tts.cpp-git-ggml-hip`**: Qwen3-TTS text-to-speech tools (`qwen3-tts-cli`, `qwen3-tts-server`) dynamically linking to the shared library.
 - **`parakeet.cpp-git-ggml-hip`**: FastConformer and TDT ASR tools (`parakeet-cli`, `parakeet-server`) dynamically linking to the shared library.
-- **`strata-engine-git-ggml-hip`**: Strata inference engine for large MoE models (Qwen 3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen 3.6-35B) with dynamic CPU expert offloading, native HIP acceleration, multimodal vision reader (`strata-vision-hip`), dynamically linking to shared `libggml.so`, `libllama.so`, and `libmtmd.so`.
+- **`strata-engine-git-ggml-hip` → moved out**: since Strata 0.2.16 the engine and its picture reader are self-contained (no ggml/llama.cpp linkage), so the package lives in [../strata-engine-git-hip](../strata-engine-git-hip) as `strata-engine-git-hip`, replacing the old name.
 - **`acestep.cpp-git-ggml-hip`**: ACE-Step 1.5 music generation tools (`ace-lm`, `ace-synth`, `ace-server`, `ace-understand`, `neural-codec`, `mp3-codec`, `quantize`) dynamically linking to the shared library.
 
 ## Key Features
@@ -45,13 +45,13 @@ It adds the following new packages:
 
 - `qwen3-tts.cpp` with HIP/ROCm acceleration.
 - `parakeet.cpp` with HIP/ROCm acceleration.
-- `strata-engine` with HIP/ROCm acceleration.
 - `acestep.cpp` with HIP/ROCm and Vulkan acceleration.
+- (earlier also `strata-engine`; since Strata 0.2.16 it uses none of this stack — it lives in [../strata-engine-git-hip](../strata-engine-git-hip))
 
 In contrast to the listed AUR packages above, each of which contains their own static compilation of `libggml`, this package compiles `libggml` as a single system-wide shared library (`libggml-git-hip`) and dynamically links all downstream packages against it, we achieve:
 
 - **Disk, Compute & Memory Savings**: We compile the heavy HIP/ROCm GPU kernels only once.
-- **Unified Backend Upgrades**: A single update to `libggml-git-hip` automatically upgrades GPU kernel performance, RDNA optimizations, and model support across all 8 downstream tools.
+- **Unified Backend Upgrades**: A single update to `libggml-git-hip` automatically upgrades GPU kernel performance, RDNA optimizations, and model support across all 7 downstream tools.
 
 ### Avoiding Namespace Conflicts
 To prevent conflicts with existing standalone AUR packages (such as `llama.cpp-hip`, `stable-diffusion.cpp-git`, or `qwen3-tts.cpp`), this repository uses the naming suffix `-git-ggml-hip` for all downstream split packages (e.g. `stable-diffusion.cpp-git-ggml-hip` or `qwen3-tts-git-ggml-hip`).
@@ -118,19 +118,9 @@ The built-in voice names for the `Qwen3-TTS-12Hz-0.6B-CustomVoice-Q8_0.gguf` mod
 - `eric`
 - `dylan`
 
-### Strata System GGML & Dynamic CPU Shim (`strata-system-ggml.patch`)
+### Strata (moved to ../strata-engine-git-hip)
 
-Adapts upstream Strata to dynamically link against system-shared `libggml.so`, `libllama.so`, and `libmtmd.so`:
-- **Dynamic CPU Traits Shim (`src/platform/ggml_cpu_shim.cpp`)**: When `libggml` is built with dynamic backend plugin loading (`GGML_BACKEND_DL=ON`), CPU arithmetic kernels reside in `/usr/lib/ggml/libggml-cpu-*.so`. The shim discovers and loads the active CPU variant plugin at runtime via `dlopen`/`dlsym` and provides hardware-accelerated CPU feature queries (`ggml_cpu_has_*`) via compiler builtins.
-- **Vision Reader Dynamic Linking**: Builds `strata-vision-hip` linking against system `libmtmd.so` and `libllama.so`, plus the upstream own-tower target `strata_vit_own` (built for HIP with the same gfx architectures), with shared HIP runtime execution.
-
-### Strata `CLEAR_CACHE` stdin command (`strata-clear-cache.patch`)
-
-Adds a serve-protocol command to the engine's stdin loop: writing `CLEAR_CACHE` drops all parked conversation slots (`ConversationCache::clear()`) and trims the heap (`release_free_heap()` / `malloc_trim(0)`), answering `CLEARED <n>`. Used as the pre-suspend hook: reclaims host RAM held by parked conversations without unloading model weights in VRAM, so AMDGPU S3 deep-sleep eviction completes safely. Split out of the former NVMe-spill scaffold (see `strata-spill-plan.md` for the removed KV-spill half).
-
-### Strata NVMe Conversation Cache Spillover (removed)
-
-The former `strata-nvme-spill.patch` was removed from this build (kept unreferenced here for reference). It never persisted KV bytes — it wired `--disk-spill*` flags and logged evictions only, and upstream has since added its own memory machinery (RAM release on eviction #5697, segment/checkpoint park pools with budget accounting). Its useful half, the `CLEAR_CACHE` command, lives on as `strata-clear-cache.patch` above; a real KV spill design is parked at `strata-spill-plan.md`.
+The former `strata-system-ggml.patch` is retired: since Strata 0.2.16 the engine links no system libraries at all — a release configure prints `Strata: no ggml in this build (own CPU pool, no MMQ, tests off)` and the picture reader is upstream's self-contained own Qwen tower ("no llama.cpp, mtmd or ggml is compiled or linked into it"). The `CLEAR_CACHE` command patch (`strata-clear-cache.patch`) and the version-stamp patch now live in [../strata-engine-git-hip](../strata-engine-git-hip); so does the parked KV-spill design (`strata-spill-plan.md`). Upstream 0.2.16 adds its own SSD tier for evicted conversations (#5697).
 
 ### stable-diffusion.cpp private-symbol shim (`stable-diffusion-graph-view.patch`)
 
@@ -156,12 +146,11 @@ Adds upstream support for the [jina-reranker-v3](https://huggingface.co/jinaai/j
   ```
   Then POST to `/v1/embeddings` to get 512-dim projected embeddings; compute cosine similarity client-side for reranking.
 
-### Git Commit-Hash Versioning for whisper, qwen3-tts and strata-engine
+### Git Commit-Hash Versioning for whisper and qwen3-tts
 
-- patches: `whisper-version-commit.patch`, `qwen3-tts-version-commit.patch` and `strata-version-commit.patch`
+- patches: `whisper-version-commit.patch`, `qwen3-tts-version-commit.patch` (the strata one moved to ../strata-engine-git-hip)
 
 To assist with version identification and debugging of Git-HEAD packages:
 - **Whisper**: Appends the specific Git commit hash of the whisper.cpp repository to the output of `whisper-cli --version` (e.g., `whisper.cpp version: 1.9.1 (commithash)`).
 - **Qwen3-TTS**: Implements the `--version` flag for `qwen3-tts-cli` to output `qwen3-tts version 0.1-main-commithash` where the branch name (`main`) and short commit hash of the qwen3-tts.cpp repository are dynamically resolved at configure time.
-- **Strata Engine**: Implements the `--version` flag for `strata` to output its git tag and build commit hash (e.g. `strata version: 0.2.15 (c77572806)`).
 
