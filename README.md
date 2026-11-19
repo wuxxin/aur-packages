@@ -4,7 +4,8 @@ Arch Linux [AUR packages](https://aur.archlinux.org/) repository for custom PKGB
 
 ## Repository Structure
 
-- `libggml-git-hip/` — ROCm/HIP accelerated GGML, llama.cpp, whisper.cpp.
+- `libggml-git-hip/` — ROCm/HIP accelerated shared GGML library; split packages: llama.cpp, python-llama-cpp, whisper.cpp, stable-diffusion.cpp, qwen3-tts.cpp, parakeet.cpp, acestep.cpp.
+- `strata-engine-git-hip/` — Strata inference engine for large MoE models (Qwen3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen3.6-35B) with native HIP acceleration.
 - `oh-my-pi-git/` — AI coding agent for the terminal.
 - `python-torch*-rocm/` — PyTorch ROCm builds.
 - `<package-dir>/` — AUR package directories containing PKGBUILDs.
@@ -59,10 +60,13 @@ Can be **broken or bitrotten at anytime**.
 - [oh-my-pi-git](oh-my-pi-git) - AI coding agent for the terminal
     - Built from git latest tag with dynamically evaluated versioning and system libraries (opus, pcre2).
 - [libggml-git-hip](libggml-git-hip) - HIP libggml git version shared library
-    - builds `libggml`, `llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts`, `parakeet.cpp`, `strata-engine` with hip/rocm accel from latest git
+    - builds `libggml`, `llama.cpp`, `whisper.cpp`, `python-llama-cpp`, `stable-diffusion.cpp`, `qwen3-tts.cpp`, `parakeet.cpp`, `acestep.cpp` with hip/rocm accel from latest git
     - with patches and Python Bindings to support the latest git version,
     - all packages link dynamically against a single system-wide `libggml-git-hip`.
         - This ensures consistent backend behavior / bug compatibility across all tools.
+
+- [strata-engine-git-hip](strata-engine-git-hip) - Strata inference engine for large MoE models
+    - Qwen3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen3.6-35B serving with dynamic CPU expert offloading and MTP/DFlash2 drafting; self-contained stack (no ggml/llama.cpp linkage), native HIP acceleration for RDNA gfx targets, web chat + agent tooling over `strata serve`, multimodal picture reader (`strata-vision`), `/usr/bin/strata` launcher.
 
 - - [crane-git](crane-git) - Pure Rust LLM, VLM, VLA, TTS, OCR Inference Engine powered by Candle
     - Custom build from latest git with OpenAI-compatible API server (`crane`), `onnx` features, and demo CLI tools (`crane-chat-simple`, `crane-chat-cli`, `crane-ornith-tools`).

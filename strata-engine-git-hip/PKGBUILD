@@ -3,7 +3,7 @@
 pkgname=strata-engine-git-hip
 pkgver=0.2.16.r4.g58ee322
 pkgrel=1
-pkgdesc="Strata inference engine for large MoE models (Qwen3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen3.6-35B) with native HIP acceleration; self-contained stack (no ggml/llama.cpp linkage since 0.2.16)"
+pkgdesc="Strata inference engine for large MoE models (Qwen3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen3.6-35B) with native HIP acceleration"
 arch=('x86_64')
 url="https://github.com/Niko1221/Strata"
 license=('MIT' 'Apache-2.0')
@@ -30,8 +30,8 @@ source=(
     "strata-clear-cache.patch"
 )
 sha256sums=('SKIP'
-            'a67e55601682dc2c286285f95dd3d03fce9692e5f0a9933c4113727997bdc9d9'
-            'e25a20bc25bb22547582c0ac16d5e183f9919425f93bd9e6436d25bce0e545db')
+    'a67e55601682dc2c286285f95dd3d03fce9692e5f0a9933c4113727997bdc9d9'
+    'e25a20bc25bb22547582c0ac16d5e183f9919425f93bd9e6436d25bce0e545db')
 
 pkgver() {
     cd "${srcdir}/Strata"
