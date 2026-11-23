@@ -1,0 +1,23 @@
+diff --git a/packages/coding-agent/scripts/embed-relay-extension.ts b/packages/coding-agent/scripts/embed-relay-extension.ts
+index 5874c455bdc..528b6503f0c 100644
+--- a/packages/coding-agent/scripts/embed-relay-extension.ts
++++ b/packages/coding-agent/scripts/embed-relay-extension.ts
+@@ -26,6 +26,18 @@ export async function embeddedRelayExtensionFiles(): Promise<Record<string, stri
+ 	if (typeof bundle !== "object" || bundle === null || !("build" in bundle) || typeof bundle.build !== "string")
+ 		throw new Error("The generated omp extension has no build id");
+ 	const compressed = await Bun.zstdCompress(Buffer.from(text, "utf8"), { level: EMBEDDED_RELAY_EXTENSION_ZSTD_LEVEL });
++	const externalZstPath = Bun.env.PI_EXTERNAL_RELAY_ZST?.trim();
++	if (externalZstPath) {
++		const outPath = Bun.env.PI_EXTERNAL_RELAY_ZST_OUT?.trim();
++		if (outPath) {
++			await Bun.write(outPath, compressed);
++		}
++		return {
++			[PLACEHOLDER]:
++				`export const embeddedRelayExtensionZstPath: string | null = ${JSON.stringify(externalZstPath)};\n` +
++				`export const embeddedRelayExtensionBuild: string | null = ${JSON.stringify(bundle.build)};\n`,
++		};
++	}
+ 	return {
+ 		[EMBEDDED_ZST]: compressed,
+ 		// A compiled binary gets an absolute `$bunfs` path, which `path.resolve` keeps; the npm bundle gets one relative

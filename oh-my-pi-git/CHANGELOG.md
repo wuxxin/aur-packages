@@ -8,6 +8,63 @@ top, one per upgrade: version range, commit range, curated upstream changes with
 How to re-derive an entry: see "Maintenance" in [README.md](README.md) — diff the installed pkgver's commit to
 HEAD, curate from upstream, regenerate patches via snapshot chain, then append here.
 
+## 2026-11-23 — 19.0.0.r1.gd4ebe4d → 19.1.1.r184.g0aefd54 (1,387 commits)
+
+Upstream window `d4ebe4d..0aefd54`: covers releases **v19.0.1**, **v19.1.0**, **v19.1.1**, plus 184 post-tag
+commits on `main`. Curated for this system; full upstream text lives in `packages/coding-agent/CHANGELOG.md`.
+
+### Breaking / architecture — needs action on our side
+
+- **`xd://` virtual tool devices replaced by tool commands (19.1.0)**: discoverable tools now run as bash
+  commands (`<tool> --help`, `<tool> <args>`) while `bash` is active (top-level otherwise). Staged previews,
+  plan submission, and Auto-QA reports use `resolve`, `reject`, `propose`, and `report_issue`; doc topics moved
+  from `xd://<tool>/<topic>` to `help://<tool>/<topic>`. All profile agent prompts and skills must migrate off
+  `xd://`.
+- **Settings renamed/replaced**: `tools.xdev*` → `tools.commands` / `tools.commandDocs` / `tools.commandInline`
+  / `tools.commandNotices` (19.1.0); `computer.backgroundFallback` → `computer.takeover`
+  (`fallback|refuse|foreground|always`, 19.1.1); `tui.completeScrollback` removed (19.1.0, always-on).
+- **Browser relay moved to Chrome native messaging host (19.1.0)**: `omp browser-relay` server command removed;
+  `omp browser-relay install` writes the unpacked extension and Chrome `NativeMessagingHosts` manifests and
+  auto-syncs on upgrades. Reload the Chrome extension once after upgrading.
+- **MCP servers moved into the per-user omp daemon (19.1.0)**: `mcp.shared` (default on) + `mcp.idleStopMinutes`
+  (default 5), lazy startup, shared discovery cache, MCP `2026-07-28` + handshake fallback (#20208). Daemon no
+  longer loads the model catalog, AI providers, or most TUI (~24 MB less RSS, #20224).
+- **RPC `ask` form breaking change (19.1.0)**: RPC hosts must handle `ask` as one complete HTML-form request
+  (no impact on `--mode=json` shims).
+
+### Hooks-bridge & local-stack fixes
+
+- **OmpHooksBridge: zero adapter work.** All mapped extension events unchanged; additive `parentToolCallId` on
+  `tool_call`/`tool_result`, `pi.registerTodoBackend()` + `todo.backend`, and `registerProvider` overrides.
+- Fixed `read` hanging on images/non-text files when `speculativeExecution` and `beforeToolCall` hooks are both
+  enabled (19.1.1).
+- LSP servers without progress (`pyright`, `ty`, `ruff`, `typescript-language-server`) no longer stall 15 s on
+  first diagnostics — ends after 2 s (#20204); Linux LSP file watching adapts to inotify limits (19.1.1).
+- Claude-format plugin skills/commands/agents now resolve `${CLAUDE_PLUGIN_ROOT}` / `${OMP_PLUGIN_ROOT}` (#20186)
+  and map Claude tool names (`WebFetch`, `TodoWrite`, `AskUserQuestion`, `Agent`, etc.) (19.1.1).
+- `openai-completions` stream replay stops re-running HTTP 500s (#20215); speculative/auto compaction falls back
+  to the next method on oversized handoffs (19.1.1); Hindsight `/tan` forks retain only new turns (#20259).
+
+### Interactive / user-facing highlights
+
+- New `magic` edit mode (`edit.mode: magic`, `edit.magic.model`, 19.1.0/19.1.1); opt-in `tree` status segment
+  (19.1.1); `pty.notify` when a bash PTY waits for input (19.1.0); `/session` shows `local://` path & `/copy local`
+  (19.0.1); `column` shell builtin (19.1.1); `/wt` runs `post-checkout` hooks (19.1.1); full-text `archive.search()`
+  (19.1.0).
+- Vim mode overhaul (#20037): Vim in ask forms/dialogs, `Ctrl+R` redo in Normal mode, `/` & `?` history search,
+  `:` slash commands, `tui.vimStartMode`, `tui.vimShowCommand`, `tui.vimYankToClipboard` (plain `y` no longer
+  copies to system clipboard by default).
+
+### Package-side changes this iteration
+
+- `skip-native-embed-for-aur.patch` updated for upstream's `embeddedRelayExtensionFiles()` addition in
+  `compile-binary.ts`.
+- Added `external-relay-extension-for-aur.patch`: externalizes the zstd-compressed browser-relay bundle out of
+  the `omp` binary into `/usr/share/oh-my-pi/browser-relay-extension.json.zst` (keeping `omp browser-relay install`
+  and auto-sync intact). Dropped redundant `omp-browser-relay-extension.zip` (unpacked `/usr/share/oh-my-pi/browser-relay`
+  retained).
+- Added runtime `optdepends`: `libpulse`, `alsa-lib`, `pipewire`.
+
 ## 2026-11-19 — 18.22.2.r190.g2cdc756 → 19.0.0.r1.gd4ebe4d (41 commits)
 
 Upstream window `2cdc756..d4ebe4d`: the **v19.0.0 release** (`57771ae`) plus post-release fixes and one docs

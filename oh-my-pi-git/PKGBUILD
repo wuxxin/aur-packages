@@ -3,7 +3,7 @@
 
 pkgname=oh-my-pi-git
 _pkgname=oh-my-pi
-pkgver=19.0.0.r1.gd4ebe4d
+pkgver=19.1.1.r184.g0aefd54
 pkgrel=1
 pkgdesc="AI coding agent for the terminal — hash-anchored edits, optimized tool harness, LSP, Python SDK, browser extension, subagents, and more (git latest tag)"
 arch=('x86_64')
@@ -29,6 +29,9 @@ depends=(
 )
 optdepends=(
     'chromium: Browser extension integration support'
+    'libpulse: Local voice/TTS audio playback via PulseAudio'
+    'alsa-lib: Local voice/TTS audio playback via ALSA'
+    'pipewire: Wayland screencast capture support'
 )
 makedepends=(
     'bazel'
@@ -48,12 +51,14 @@ source=(
     "tree-sitter-no-strict-aliasing.patch"
     "use-system-opus-pcre2.patch"
     "skip-native-embed-for-aur.patch"
+    "external-relay-extension-for-aur.patch"
     "relative-json-asset-paths.patch"
 )
 sha256sums=('SKIP'
             'a70471cb6d7b75d68cbe468a37afc5b4c981d06e9c617cab497fcd1ae098a51a'
             'b0c192f53b699dfebbaa765aa017c6e576d1625dcff22d187a8c56cde2e538fe'
-            '491c747d8a8d3740cb81f8e4189341d775e07ec91302e450f554208bdceb5639'
+            'dadb85e4d4be00f03fc6ca5ec1478114c4241699fdcaf967b33ec4f93ce6511c'
+            'a84ff1252e0debdb42ee35e8558189724d9abd5f41dde1721a715ace03ac54e5'
             'e6a257af93579d77eff510457448a46fe95fb7155eaf44831a9d15671cdac0cf')
 
 pkgver() {
@@ -65,6 +70,7 @@ prepare() {
     cd "${srcdir}/${_pkgname}"
 
     patch -p1 -i "${srcdir}/skip-native-embed-for-aur.patch"
+    patch -p1 -i "${srcdir}/external-relay-extension-for-aur.patch"
     patch -p1 -i "${srcdir}/relative-json-asset-paths.patch"
     patch -p1 -i "${srcdir}/use-system-opus-pcre2.patch"
     patch -p1 -i "${srcdir}/tree-sitter-no-strict-aliasing.patch"
@@ -99,9 +105,14 @@ build() {
     # rules_rust fetches the pinned nightly rustc and cargo; no host rust toolchain.
     bun ./scripts/bazel-natives.ts linux-x64-baseline linux-x64-modern --dest packages/natives/native
 
-    # The AUR package ships the addons as loose .node files next to the binary
+    # The AUR package ships the native addons as loose .node files next to the binary
+    # and the browser-relay extension as a loose zstd bundle in /usr/share/oh-my-pi/
     # instead of embedding them into the standalone executable.
-    PI_SKIP_NATIVE_EMBED=1 RELEASE_TARGETS='linux-x64' bun run ci:release:build-binaries
+    PI_SKIP_NATIVE_EMBED=1 \
+        PI_EXTERNAL_RELAY_ZST="/usr/share/${_pkgname}/browser-relay-extension.json.zst" \
+        PI_EXTERNAL_RELAY_ZST_OUT="packages/browser-relay/dist/browser-relay-extension.json.zst" \
+        RELEASE_TARGETS='linux-x64' \
+        bun run ci:release:build-binaries
 
     # Release the server holding an output base under $srcdir.
     bazel shutdown
@@ -149,11 +160,11 @@ package() {
     _install_completions "${pkgdir}/usr/lib/${_pkgname}/omp"
     install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 
-    # Install Browser Relay extension
+    # Install Browser Relay extension (unpacked dir + external zstd bundle for `omp browser-relay install`)
     install -dm755 "${pkgdir}/usr/share/${_pkgname}"
     cp -r packages/browser-relay/dist/extension "${pkgdir}/usr/share/${_pkgname}/browser-relay"
-    install -Dm644 packages/browser-relay/dist/omp-browser-relay-extension.zip \
-        "${pkgdir}/usr/share/${_pkgname}/omp-browser-relay-extension.zip"
+    install -Dm644 packages/browser-relay/dist/browser-relay-extension.json.zst \
+        "${pkgdir}/usr/share/${_pkgname}/browser-relay-extension.json.zst"
 
     # Install Python RPC SDK into system python site-packages
     cd "${srcdir}/${_pkgname}/sdk/python/omp-rpc"

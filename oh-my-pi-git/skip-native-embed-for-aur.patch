@@ -1,18 +1,17 @@
 diff --git a/packages/coding-agent/scripts/compile-binary.ts b/packages/coding-agent/scripts/compile-binary.ts
-index 05d9d70b78..b4f0550404 100644
+index 38d17864fdc..2c8fa327ef3 100644
 --- a/packages/coding-agent/scripts/compile-binary.ts
 +++ b/packages/coding-agent/scripts/compile-binary.ts
-@@ -50,7 +50,12 @@ export async function compileCodingAgent(options: CodingAgentCompileOptions): Pr
- 			entrypoints: [options.entrypoint],
+@@ -52,7 +52,11 @@ export async function compileCodingAgent(options: CodingAgentCompileOptions): Pr
  			root: options.repoRoot,
  			external: [...COMPILED_EXTERNAL_DEPENDENCIES],
--			files: options.native ? await embeddedAddonFiles(options.native) : {},
-+			// AUR packages ship the addons as loose .node files next to the binary;
-+			// the loader falls back to the executable directory when nothing is embedded.
-+			files:
-+				options.native && Bun.env.PI_SKIP_NATIVE_EMBED !== "1"
+ 			files: {
+-				...(options.native ? await embeddedAddonFiles(options.native) : {}),
++				// AUR packages ship the addons as loose .node files next to the binary;
++				// the loader falls back to the executable directory when nothing is embedded.
++				...(options.native && Bun.env.PI_SKIP_NATIVE_EMBED !== "1"
 +					? await embeddedAddonFiles(options.native)
-+					: {},
++					: {}),
+ 				...(await embeddedRelayExtensionFiles()),
+ 			},
  			define: {
- 				"process.env.PI_COMPILED": JSON.stringify("true"),
- 				"process.env.PI_DOCS_EMBED": JSON.stringify((await buildDocsIndexPayload()).payload),
