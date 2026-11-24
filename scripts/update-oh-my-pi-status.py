@@ -11,61 +11,40 @@ Usage:
 
 import argparse
 import datetime
-import glob
-import json
 import os
 import re
-import shutil
-import subprocess
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
+
+from _git_peek import (
+    MissingMakepkgSourceError,
+    PeekResult,
+    list_tree_subdirs,
+    read_blob,
+    resolve_and_peek_repo,
+    run_cmd,
+)
 
 
-def run_cmd(cmd: List[str], cwd: Optional[str] = None) -> str:
-    """Run a shell command and return its stdout as a string."""
-    try:
-        res = subprocess.run(
-            cmd,
-            cwd=cwd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True,
-        )
-        return res.stdout.strip()
-    except subprocess.CalledProcessError:
-        return ""
-
-
-def ensure_repo_sources() -> str:
-    """Ensure the oh-my-pi repository is cloned/fetched and return its path."""
-    pkg_src = "oh-my-pi-git/src/oh-my-pi"
-    bare_path = "oh-my-pi-git/oh-my-pi"
-    target_url = "https://github.com/can1357/oh-my-pi.git"
-
-    if os.path.exists(pkg_src) and run_cmd(["git", "-C", pkg_src, "rev-parse", "HEAD"]):
-        run_cmd(["git", "-C", pkg_src, "fetch", "origin"])
-        return pkg_src
-
-    if os.path.exists(bare_path) and run_cmd(["git", "-C", bare_path, "rev-parse", "HEAD"]):
-        run_cmd(["git", "-C", bare_path, "fetch", "origin", "+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*"])
-        return bare_path
-
-    os.makedirs("scratch", exist_ok=True)
-    scratch_dir = os.path.join("scratch", "oh-my-pi")
-    if not os.path.exists(scratch_dir):
-        print(f"Cloning oh-my-pi into {scratch_dir}...")
-        run_cmd(["git", "clone", "--depth", "3000", target_url, scratch_dir])
-    else:
-        run_cmd(["git", "-C", scratch_dir, "fetch", "origin"])
-    return scratch_dir
+def peek_repo_sources(*, fetch: bool = True, allow_scratch: bool = False) -> PeekResult:
+    """Resolve and peek oh-my-pi sources without mutating oh-my-pi-git/src/oh-my-pi."""
+    return resolve_and_peek_repo(
+        name="oh-my-pi",
+        github="can1357/oh-my-pi",
+        branch="main",
+        pkg_dir="oh-my-pi-git",
+        src_name="oh-my-pi",
+        repo_type="git",
+        fetch=fetch,
+        strict_pkgbuild=not allow_scratch,
+    )
 
 
 def get_tags_in_window(repo_dir: str, days: int) -> List[Dict[str, str]]:
     """Return tags created in the last N days sorted chronologically (oldest to newest)."""
     fmt = "%(creatordate:short)%09%(refname:short)"
     output = run_cmd(["git", "-C", repo_dir, "tag", "-l", "--sort=creatordate", f"--format={fmt}"])
-    
+
     cutoff_date = (datetime.date.today() - datetime.timedelta(days=days)).strftime("%Y-%m-%d")
     results = []
 
@@ -83,21 +62,24 @@ def get_tags_in_window(repo_dir: str, days: int) -> List[Dict[str, str]]:
     return results
 
 
-def parse_package_changelogs(repo_dir: str, target_versions: List[str]) -> Dict[str, Dict[str, Dict[str, List[str]]]]:
-    """Parse all packages/*/CHANGELOG.md files for the target versions."""
-    changelogs = glob.glob(f"{repo_dir}/packages/*/CHANGELOG.md")
+def parse_package_changelogs(
+    repo_dir: str,
+    ref: str,
+    target_versions: List[str],
+) -> Dict[str, Dict[str, Dict[str, List[str]]]]:
+    """Parse packages/*/CHANGELOG.md directly from git objects at `ref`."""
+    pkg_subdirs = list_tree_subdirs(repo_dir, ref, "packages")
     data_by_version: Dict[str, Dict[str, Dict[str, List[str]]]] = {v: {} for v in target_versions}
 
-    for ch in sorted(changelogs):
-        pkg_name = os.path.basename(os.path.dirname(ch))
-        try:
-            with open(ch, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-        except Exception:
+    for subdir in sorted(pkg_subdirs):
+        pkg_name = os.path.basename(subdir)
+        content = read_blob(repo_dir, ref, f"{subdir}/CHANGELOG.md")
+        if content is None:
             continue
 
-        current_ver = None
-        current_cat = None
+        lines = content.splitlines()
+        current_ver: Optional[str] = None
+        current_cat: Optional[str] = None
 
         for line in lines:
             line_str = line.rstrip()
@@ -227,18 +209,18 @@ def generate_markdown(
         "   - Synthesize and distill the key cross-cutting themes (e.g. major breaking changes, native module optimizations, UI/TUI revamps, new settings/commands) and add/update them under `## 🌐 Executive Summary`.",
         "",
         "### Manual Step-by-Step Procedure",
-        "1. **Fetch Upstream Tags**:",
+        "1. **Fetch Upstream Tags (into makepkg bare mirror, without touching `src/`)**:",
         "   ```bash",
-        "   git -C oh-my-pi-git/src/oh-my-pi fetch origin --tags",
+        "   git -C oh-my-pi-git/oh-my-pi fetch origin '+refs/heads/*:refs/heads/*' '+refs/tags/*:refs/tags/*'",
         "   # Query tags from the last 7 days sorted chronologically (oldest to newest)",
-        "   git -C oh-my-pi-git/src/oh-my-pi tag -l --sort=creatordate --format='%(creatordate:short) %(refname:short)'",
+        "   git -C oh-my-pi-git/oh-my-pi tag -l --sort=creatordate --format='%(creatordate:short) %(refname:short)'",
         "   ```",
-        "2. **Inspect Monorepo Package Changelogs**:",
-        "   `can1357/oh-my-pi` maintains modular changelogs under `packages/*/CHANGELOG.md`. For each target release tag, inspect all package changelogs for the matching `## [X.Y.Z]` headings:",
+        "2. **Inspect Monorepo Package Changelogs (directly from git objects)**:",
+        "   `can1357/oh-my-pi` maintains modular changelogs under `packages/*/CHANGELOG.md`. Inspect them directly from the bare mirror at `refs/heads/main` without checking out a working tree:",
         "   ```bash",
-        "   for ch in oh-my-pi-git/src/oh-my-pi/packages/*/CHANGELOG.md; do",
-        "       echo \"=== $ch ===\"",
-        "       sed -n '/## \\[17.3.0\\]/,/## \\[/p' \"$ch\"",
+        "   for dir in $(git -C oh-my-pi-git/oh-my-pi ls-tree -d --name-only refs/heads/main packages/); do",
+        "       echo \"=== $dir/CHANGELOG.md ===\"",
+        "       git -C oh-my-pi-git/oh-my-pi show \"refs/heads/main:$dir/CHANGELOG.md\" 2>/dev/null | sed -n '/## \\[17.3.0\\]/,/## \\[/p'",
         "   done",
         "   ```",
         "3. **Filter and Group by Category**:",
@@ -254,13 +236,40 @@ def generate_markdown(
 
 
 def main() -> None:
+    """Parse CLI arguments and generate the oh-my-pi release status report."""
     parser = argparse.ArgumentParser(description="Update oh-my-pi release status report.")
-    parser.add_argument("--days", type=int, default=7, help="Number of rolling days to inspect (default: 7)")
-    parser.add_argument("--write", "-w", action="store_true", help="Write directly to research/oh-my-pi-status.md")
+    parser.add_argument(
+        "--days",
+        type=int,
+        default=7,
+        help="Number of rolling days to inspect (default: 7)",
+    )
+    parser.add_argument(
+        "--write",
+        "-w",
+        action="store_true",
+        help="Write directly to research/oh-my-pi-status.md",
+    )
+    parser.add_argument(
+        "--no-fetch",
+        action="store_true",
+        help="Inspect currently cached refs without fetching from remotes",
+    )
+    parser.add_argument(
+        "--allow-scratch",
+        action="store_true",
+        help="Allow falling back to a blobless scratch cache if oh-my-pi-git has no makepkg sources",
+    )
     args = parser.parse_args()
 
-    repo_dir = ensure_repo_sources()
-    tags = get_tags_in_window(repo_dir, args.days)
+    try:
+        peek = peek_repo_sources(fetch=not args.no_fetch, allow_scratch=args.allow_scratch)
+    except MissingMakepkgSourceError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Using source: {peek.source_kind} ({peek.repo_dir} @ {peek.ref})")
+    tags = get_tags_in_window(peek.repo_dir, args.days)
 
     if not tags:
         print(f"No release tags found in the last {args.days} days.")
@@ -274,7 +283,7 @@ def main() -> None:
         print(f"  - {t['tag']} ({t['date']})")
 
     target_versions = [t["version"] for t in tags]
-    data_by_version = parse_package_changelogs(repo_dir, target_versions)
+    data_by_version = parse_package_changelogs(peek.repo_dir, peek.ref, target_versions)
 
     output_file = "research/oh-my-pi-status.md"
     existing_summary = extract_existing_summary(output_file)

@@ -7,15 +7,17 @@ updates, queries GitHub/PyPI metrics, compiles activity tables, and can optional
 write them directly to research/weekly-devel-activity.md.
 """
 
+import argparse
 import datetime
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import urllib.request
 from typing import Any, Dict, List, Optional
+
+from _git_peek import MissingMakepkgSourceError, PeekResult, resolve_and_peek_repo, run_cmd
 
 # Define the repositories to track
 TRACKED_REPOS: List[Dict[str, Any]] = [
@@ -112,7 +114,7 @@ TRACKED_REPOS: List[Dict[str, Any]] = [
         "parent_pkg": "libggml-git-hip",
         "github": "mudler/parakeet.cpp",
         "pkg": "parakeet.cpp-git-ggml-hip",
-        "branch": "main",
+        "branch": "master",
         "repo_type": "git",
         "pkg_dir": "libggml-git-hip",
         "src_name": "parakeet.cpp",
@@ -120,15 +122,14 @@ TRACKED_REPOS: List[Dict[str, Any]] = [
     },
     {
         "name": "strata",
-        "display_name": "Strata",
-        "parent_pkg": "libggml-git-hip",
+        "display_name": "strata-engine-git-hip",
         "github": "Niko1221/Strata",
-        "pkg": "strata-engine-git-ggml-hip",
+        "pkg": "strata-engine-git-hip",
         "branch": "main",
         "repo_type": "git",
-        "pkg_dir": "libggml-git-hip",
+        "pkg_dir": "strata-engine-git-hip",
         "src_name": "Strata",
-        "default_ref": "4b9e05a",
+        "default_ref": "58ee322",
     },
     {
         "name": "oh-my-pi",
@@ -273,22 +274,6 @@ TRACKED_REPOS: List[Dict[str, Any]] = [
         "default_ref": "0.0.75",
     },
 ]
-
-
-def run_cmd(cmd: List[str], cwd: Optional[str] = None) -> str:
-    """Run a shell command and return its stdout as a string."""
-    try:
-        res = subprocess.run(
-            cmd,
-            cwd=cwd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True,
-        )
-        return res.stdout.strip()
-    except subprocess.CalledProcessError:
-        return ""
 
 
 def is_commit_in_repo(repo_dir: str, ref: str) -> bool:
@@ -518,104 +503,23 @@ def parse_version_tuple(v: str) -> List[int]:
     return nums
 
 
-def sync_repository(repo: Dict[str, Any]) -> str:
-    """Ensure repository sources are up-to-date and return the inspectable directory."""
-    repo_type = repo.get("repo_type", "git")
-    github = repo["github"]
-    name = repo["name"]
-    branch = repo.get("branch", "main")
-    pkg_dir = repo.get("pkg_dir", "")
-    src_name = repo.get("src_name", name)
-    target_url = f"https://github.com/{github}.git"
-
-    if repo_type == "git" and pkg_dir:
-        # Check standard PKGBUILD source locations
-        src_path = os.path.join(pkg_dir, "src", src_name)
-        bare_path = os.path.join(pkg_dir, src_name)
-
-        # Check if src_path exists and is healthy
-        src_valid = (
-            os.path.exists(src_path) and run_cmd(["git", "-C", src_path, "rev-parse", "HEAD"]) != ""
-        )
-        bare_valid = (
-            os.path.exists(bare_path)
-            and run_cmd(["git", "-C", bare_path, "rev-parse", "HEAD"]) != ""
-        )
-
-        if not src_valid and not bare_valid:
-            print(f"Updating PKGBUILD sources for {pkg_dir} via makepkg...")
-            if os.path.exists(src_path) and not src_valid:
-                shutil.rmtree(src_path, ignore_errors=True)
-            run_cmd(["makepkg", "--nobuild", "-od"], cwd=pkg_dir)
-            src_valid = (
-                os.path.exists(src_path)
-                and run_cmd(["git", "-C", src_path, "rev-parse", "HEAD"]) != ""
-            )
-            bare_valid = (
-                os.path.exists(bare_path)
-                and run_cmd(["git", "-C", bare_path, "rev-parse", "HEAD"]) != ""
-            )
-
-        # Ensure bare repository is always updated from upstream
-        if bare_valid:
-            run_cmd(
-                [
-                    "git",
-                    "-C",
-                    bare_path,
-                    "fetch",
-                    "origin",
-                    "+refs/heads/*:refs/heads/*",
-                    "+refs/tags/*:refs/tags/*",
-                ]
-            )
-
-        # Inspect working tree if present, else bare repository
-        if src_valid:
-            run_cmd(
-                [
-                    "git",
-                    "-C",
-                    src_path,
-                    "fetch",
-                    "origin",
-                    "+refs/heads/*:refs/heads/*",
-                    "+refs/tags/*:refs/tags/*",
-                ]
-            )
-            run_cmd(["git", "-C", src_path, "checkout", branch])
-            run_cmd(["git", "-C", src_path, "reset", "--hard", f"origin/{branch}"])
-            return src_path
-        elif bare_valid:
-            return bare_path
-    # Fallback / tarball / release repos: maintain in scratch/<name>
-    os.makedirs("scratch", exist_ok=True)
-    scratch_dir = os.path.join("scratch", name)
-
-    if os.path.exists(scratch_dir):
-        current_remote = run_cmd(["git", "-C", scratch_dir, "remote", "get-url", "origin"])
-        if current_remote and current_remote != target_url and current_remote != target_url[:-4]:
-            print(f"Remote mismatch for {name}. Re-cloning into scratch...")
-            shutil.rmtree(scratch_dir)
-
-    if not os.path.exists(scratch_dir):
-        print(f"Cloning {name} into {scratch_dir}...")
-        run_cmd(["git", "clone", "--depth", "2000", target_url, scratch_dir])
-
-    run_cmd(
-        [
-            "git",
-            "-C",
-            scratch_dir,
-            "fetch",
-            "origin",
-            "+refs/heads/*:refs/heads/*",
-            "+refs/tags/*:refs/tags/*",
-        ]
+def peek_repository(
+    repo: Dict[str, Any],
+    *,
+    fetch: bool = True,
+    strict_pkgbuild: bool = False,
+) -> PeekResult:
+    """Resolve and peek repository sources without mutating any makepkg src/ tree."""
+    return resolve_and_peek_repo(
+        name=repo["name"],
+        github=repo["github"],
+        branch=repo.get("branch", "main"),
+        pkg_dir=repo.get("pkg_dir", ""),
+        src_name=repo.get("src_name", repo["name"]),
+        repo_type=repo.get("repo_type", "git"),
+        fetch=fetch,
+        strict_pkgbuild=strict_pkgbuild,
     )
-    run_cmd(["git", "-C", scratch_dir, "checkout", branch])
-    run_cmd(["git", "-C", scratch_dir, "reset", "--hard", f"origin/{branch}"])
-    return scratch_dir
 
 
 def make_status_line(stats: Dict[str, Any]) -> str:
@@ -643,7 +547,7 @@ def make_status_line(stats: Dict[str, Any]) -> str:
     return f"* **Status**: {status} ({commits} commits, {tag_phrase}).{pkg_phrase}"
 
 
-def make_recent_focus_block(stats: Dict[str, Any], repo_dir: str) -> str:
+def make_recent_focus_block(stats: Dict[str, Any], repo_dir: str, ref: str = "HEAD") -> str:
     """Fetch and format the Recent Focus block using git log or release comparison."""
     if stats.get("repo_type") == "release":
         latest_rel = stats.get("latest_release") or stats.get("pypi_latest") or "N/A"
@@ -680,7 +584,7 @@ def make_recent_focus_block(stats: Dict[str, Any], repo_dir: str) -> str:
                 "--oneline",
                 "-n",
                 "15",
-                f"{installed_ref}..HEAD",
+                f"{installed_ref}..{ref}",
             ]
         else:
             lines = [
@@ -694,6 +598,7 @@ def make_recent_focus_block(stats: Dict[str, Any], repo_dir: str) -> str:
             "-C",
             repo_dir,
             "log",
+            ref,
             "--since=7 days ago",
             "--no-merges",
             "--oneline",
@@ -723,7 +628,11 @@ def make_recent_focus_block(stats: Dict[str, Any], repo_dir: str) -> str:
     return "\n".join(lines)
 
 
-def compile_activity(write_to_file: bool = False) -> None:
+def compile_activity(
+    write_to_file: bool = False,
+    fetch: bool = True,
+    strict_pkgbuild: bool = False,
+) -> None:
     """Compile the weekly development activity report."""
     print("Starting development activity report update...")
     start_date = (datetime.date.today() - datetime.timedelta(days=7)).strftime("%B %d, %Y")
@@ -745,7 +654,10 @@ def compile_activity(write_to_file: bool = False) -> None:
         pypi_name = repo.get("pypi_name", "")
 
         print(f"\nProcessing {name} ({github}) [{repo_type}]...")
-        repo_dir = sync_repository(repo)
+        peek = peek_repository(repo, fetch=fetch, strict_pkgbuild=strict_pkgbuild)
+        repo_dir = peek.repo_dir
+        repo_ref = peek.ref
+        print(f"  source: {peek.source_kind} ({repo_dir} @ {repo_ref})")
 
         # Commits & Merges in last 7 days
         log_7d = run_cmd(
@@ -754,6 +666,7 @@ def compile_activity(write_to_file: bool = False) -> None:
                 "-C",
                 repo_dir,
                 "log",
+                repo_ref,
                 "--since=7 days ago",
                 "--no-merges",
                 "--oneline",
@@ -767,6 +680,7 @@ def compile_activity(write_to_file: bool = False) -> None:
                 "-C",
                 repo_dir,
                 "log",
+                repo_ref,
                 "--since=7 days ago",
                 "--merges",
                 "--oneline",
@@ -774,7 +688,9 @@ def compile_activity(write_to_file: bool = False) -> None:
         )
         merges = len(log_merges.splitlines()) if log_merges else 0
 
-        last_commit = run_cmd(["git", "-C", repo_dir, "log", "-1", "--format=%ad", "--date=short"])
+        last_commit = run_cmd(
+            ["git", "-C", repo_dir, "log", repo_ref, "-1", "--format=%ad", "--date=short"]
+        )
 
         # 4 weeks average
         log_28d = run_cmd(
@@ -783,6 +699,7 @@ def compile_activity(write_to_file: bool = False) -> None:
                 "-C",
                 repo_dir,
                 "log",
+                repo_ref,
                 "--since=28 days ago",
                 "--no-merges",
                 "--oneline",
@@ -818,16 +735,25 @@ def compile_activity(write_to_file: bool = False) -> None:
                         "log",
                         "--no-merges",
                         "--oneline",
-                        f"{installed_ref}..HEAD",
+                        f"{installed_ref}..{repo_ref}",
                     ]
                 )
                 since_commits = str(len(log_since.strip().splitlines())) if log_since else "0"
 
         pkgbuild_ver = get_pkgbuild_version(pkg_dir) if pkg_dir else ""
 
-        # GitHub metrics & release info
-        github_metrics = query_github_api(github, cached_metrics)
-        pypi_latest = query_pypi_latest(pypi_name) if pypi_name else ""
+        # GitHub metrics & release info (skip network calls in --no-fetch mode)
+        if fetch:
+            github_metrics = query_github_api(github, cached_metrics)
+            pypi_latest = query_pypi_latest(pypi_name) if pypi_name else ""
+        else:
+            cached = cached_metrics.get(github, {})
+            github_metrics = {
+                "stars": cached.get("stars", 0),
+                "forks": cached.get("forks", 0),
+                "latest_release": "",
+            }
+            pypi_latest = ""
 
         # Status determination
         status = "Stale"
@@ -846,6 +772,7 @@ def compile_activity(write_to_file: bool = False) -> None:
                 "pkgs": pkgs,
                 "repo_type": repo_type,
                 "repo_dir": repo_dir,
+                "repo_ref": repo_ref,
                 "pkgbuild_ver": pkgbuild_ver,
                 "stars": github_metrics["stars"],
                 "forks": github_metrics["forks"],
@@ -907,7 +834,7 @@ def compile_activity(write_to_file: bool = False) -> None:
         parent_prefix = f"[{r['parent_pkg']}] " if r.get("parent_pkg") else ""
         header = f"### {parent_prefix}{r['display_name']} (`{r['github']}`)"
         status_line = make_status_line(r)
-        focus_block = make_recent_focus_block(r, r["repo_dir"])
+        focus_block = make_recent_focus_block(r, r["repo_dir"], r["repo_ref"])
         details_blocks.append(f"{header}\n{status_line}\n{focus_block}")
 
     details_str = "\n\n".join(details_blocks)
@@ -964,6 +891,37 @@ def compile_activity(write_to_file: bool = False) -> None:
         print(details_str)
 
 
+def main() -> None:
+    """Parse CLI arguments and run the activity report generator."""
+    parser = argparse.ArgumentParser(description="Compile weekly AUR package development activity.")
+    parser.add_argument(
+        "--write",
+        "-w",
+        action="store_true",
+        help="Write updated tables/details directly to research/weekly-devel-activity.md",
+    )
+    parser.add_argument(
+        "--no-fetch",
+        action="store_true",
+        help="Inspect currently cached refs without fetching from remotes",
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Abort if any git+ PKGBUILD has neither a bare mirror nor src/ checkout yet",
+    )
+    args = parser.parse_args()
+
+    try:
+        compile_activity(
+            write_to_file=args.write,
+            fetch=not args.no_fetch,
+            strict_pkgbuild=args.strict,
+        )
+    except MissingMakepkgSourceError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+
 if __name__ == "__main__":
-    write_flag = "--write" in sys.argv or "-w" in sys.argv
-    compile_activity(write_to_file=write_flag)
+    main()
