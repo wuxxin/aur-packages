@@ -51,6 +51,31 @@ Up to 2026-11-18 Strata shipped as the split package `strata-engine-git-ggml-hip
 - Built standalone at `0.2.16.r4.g58ee322`: `strata --version` prints `strata version: 0.2.16 (58ee32277)`; `ldd` on the engine shows **no libggml/libllama linkage**; the `CLEAR_CACHE` handler strings are present; `/usr/bin/strata`, `/usr/share/strata/{terminal,engine,tools}` install as designed.
 - Package split verified: `replaces=('strata-engine-git-ggml-hip')`, provides/conflicts `strata-engine`/`strata-engine-git`; builds clean via `updpkgsums && makepkg -C --nocheck`, zero patch rejects (`strata-system-ggml.patch` deleted as no longer needed).
 
+## Window: 2026-11-19 → 2026-11-24 (`v0.2.16+4` → `v0.2.21.1`)
+
+| from (installed) | to (built, pending install) |
+|---|---|
+| v0.2.16+4 (`58ee32277`), engine 0.1.62 | **v0.2.21.1** (`2af30ccaa`), Control **0.1.68**, engines **0.1.67**, +770 commits (range, no-merges, across `v0.2.17`–`v0.2.21.1`) |
+
+### Breaking / adopt now
+
+- **`STRATA_DENSE_MMQ=1` is a dead no-op** since 0.2.16 and now emits a startup warning (`#6269`) — removed from `local-chat-strata.sh` and `strata-launcher.py`.
+- **Persistent SSD conversation-spill tier (`--conversation-spill-persist`, `0f1738e61`, `#6833`)**: parked conversations evicted to NVMe now persist across engine restarts and reboots under `<spill-dir>/fp-<model-fingerprint>/`, self-managed by Strata's own LRU (`--conversation-spill-mib`). Superseded snapshots are dropped instead of spilled (`#6833`). Adopted as the sole disk-persistence mechanism (`LCHAT_STRATA_CONV_SPILL_PERSIST=true`), retiring the legacy Python NVMe janitor (`_run_prune()`).
+- **`CLEAR_CACHE` upgraded to spill-then-clear** (`strata-clear-cache.patch`): evicts parked RAM conversations through `conversations.evict_oldest()` → `evict_sink` → `spill_writer->wait_idle()` → `spill_reclaim()` before trimming host heap. Paired with `LCHAT_STRATA_IDLE_UNLOAD=0` (weights stay warm in VRAM) and `LCHAT_STRATA_IDLE_CACHE_CLEAR=3600` (1 h idle RAM cache flush + S3 pre-suspend `SIGUSR1`).
+- **Default API requests stay greedy under MTP (`#6536`)**: model-card sampling defaults no longer silently disable MTP drafting on clients that omit sampling parameters.
+
+### Features worth wiring in
+
+- **HIP & RDNA2–3**: Linux HIP disables kernel NUMA balancing on engine memory (`#4866`); `STRATA_POOL_DEP=1` (per-expert CPU pool dependency queue) is now default ON; `STRATA_GR_FUSED` fixed on HIP (`#6730`/`#6760`); RDNA3 Wave-2 WMMA/LDS decode + Unsloth WMMA/DP4A dispatch (`5ea521afe`, `7c3f971e1`); ROCm 10.2+ `hipblaslt_ext::getKernelNameFromAlgo` compat (`a34979fc9`).
+- **Batched MTP & QSA stream batching (`0f1738e61`)**: `STRATA_BATCH_MTP_FUSED=1` (exposed as `LCHAT_STRATA_BATCH_MTP_FUSED`) for `parallel > 1` runs.
+- **Serve / tool-calling / `omp` 19.1.1**: `/v1/models` now publishes `max_model_len`, `context_length`, `max_context_length`, `meta.n_ctx`, and output cap (`limit.output`, `meta.llamaswap.max_output_tokens`), plus `GET /v1/models/{model_id}`; tool-call & reasoning recovery fixes (`#4923`, `#5183`, `#5605`, `#5804`, `#5883`, `#6022`, `#6120`, `#4035`); crash-loop guard (`264b155dd`); per-key `api_keys` concurrency limits (`#5004`).
+- **Shape engines (B1 package scope)**: `strata-q36`, `strata-inkling` (Inkling-2-Mini `.strata` v1.1 + Vision + 1..64 batching), `strata-hy4` (Hy4-Flash 220B-A12B `.strata`, system `zstd`), real CPU `strata-vision` fallback alongside `strata-vision-hip`, plus `strata-gguf`/`strata-dequant`/`strata-plan`.
+
+### Verified in this build
+
+- Built standalone at `0.2.21.1.r0.g2af30cc-1` for `gfx1030;gfx1100`: `strata --version` prints `strata version: 0.2.21.1 (2af30ccaa)`; `strata --expert-support 22,20,2560,640` prints `supported` (rc=0); `strata-hy4 --version` = `0.1.67`; `strata-inkling --version` = `0.1.67`; `strata-q36`, `strata-vision-hip` (859K), CPU `strata-vision` (496K), and CLI tools (`strata-gguf`, `strata-dequant`, `strata-plan`) all built and packaged.
+- `ldd` across all GPU and vision binaries confirms **zero `libggml`/`libllama` linkage and zero missing libs**; `strings` confirms `--conversation-spill-persist`, `CLEARED %zu`, and the new `CLEAR_CACHE: flushed %zu parked conversation%s` handler; `namcap PKGBUILD` passed with 0 warnings/errors and `namcap *.pkg.tar.zst` passed with 0 errors; `.SRCINFO` regenerated.
+
 ## How to regenerate this file (next iteration):
 
 Append a new "Window:" section; never rewrite older ones. Procedure:

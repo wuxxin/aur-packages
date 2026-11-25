@@ -1,16 +1,16 @@
 # Maintainer: Wuxxin <wuxxin@gmail.com>
 
 pkgname=strata-engine-git-hip
-pkgver=0.2.16.r4.g58ee322
+pkgver=0.2.21.1.r0.g2af30cc
 pkgrel=1
 pkgdesc="Strata inference engine for large MoE models (Qwen3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen3.6-35B) with native HIP acceleration"
 arch=('x86_64')
 url="https://github.com/Niko1221/Strata"
 license=('MIT' 'Apache-2.0')
 options=('!lto' '!debug' '!buildflags')
-makedepends=('cmake' 'git' 'ninja' 'rocm-toolchain' 'rocm-hip-sdk' 'patchelf' 'python')
+makedepends=('cmake' 'git' 'ninja' 'rocm-toolchain' 'rocm-hip-sdk' 'patchelf')
 depends=(
-    'hip-runtime-amd' 'hipblas' 'hipblaslt' 'rocblas' 'openblas' 'gcc-libs'
+    'hip-runtime-amd' 'hipblas' 'hipblaslt' 'rocblas' 'openblas' 'gcc-libs' 'zstd'
     'python' 'python-numpy' 'python-jinja' 'python-regex' 'python-yaml'
     'python-tqdm' 'python-requests' 'python-pillow' 'python-psutil' 'python-rich' 'python-jsonschema'
 )
@@ -30,8 +30,8 @@ source=(
     "strata-clear-cache.patch"
 )
 sha256sums=('SKIP'
-    'a67e55601682dc2c286285f95dd3d03fce9692e5f0a9933c4113727997bdc9d9'
-    'e25a20bc25bb22547582c0ac16d5e183f9919425f93bd9e6436d25bce0e545db')
+            'cf9175f62c811909c1eae685ae4d1732a719e7ae20d4b6d291579388dbdbdc57'
+            '1f7ce8c6f2ca64bd19eb4cc9714ebfb3c8bf1298c8d1713d289612bcaea58e32')
 
 pkgver() {
     cd "${srcdir}/Strata"
@@ -75,8 +75,8 @@ build() {
         _STRATA_HIP_ARCHS="gfx1100;gfx1201"
     fi
 
-    # --- Build Strata Engine (HIP); since 0.2.16 the engine links no ggml/llama at all ---
-    echo "--- Building Strata Engine (HIP) for ${_STRATA_HIP_ARCHS} ---"
+    # --- Build Strata Engine + shape engines (HIP); no ggml/llama linked ---
+    echo "--- Building Strata Engine & Shape Engines (HIP) for ${_STRATA_HIP_ARCHS} ---"
     cmake -B build_strata_hip -S Strata/engine -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="/usr" \
@@ -84,11 +84,16 @@ build() {
         -DCMAKE_HIP_ARCHITECTURES="${_STRATA_HIP_ARCHS}" \
         -DSTRATA_ENABLE_HIP=ON \
         -DSTRATA_ENABLE_CUDA=OFF \
+        -DSTRATA_BUILD_HY4=ON \
+        -DSTRATA_BUILD_INKLING=ON \
+        -DSTRATA_BUILD_INKLING2=ON \
         -DSTRATA_BUILD_TESTS=OFF \
         -DCMAKE_SKIP_RPATH=ON
-    cmake --build build_strata_hip --target strata
+    cmake --build build_strata_hip --target \
+        strata strata-q36 strata-inkling strata-hy4 \
+        strata-gguf strata-dequant strata-plan
 
-    # --- Build Strata Vision (HIP) — own tower, no llama/mtmd/ggml since 0.2.16 ---
+    # --- Build Strata Vision (HIP) — own tower, no llama/mtmd/ggml ---
     echo "--- Building Strata Vision (HIP) ---"
     cmake -B build_strata_vision_hip -S Strata/terminal/tools/vision -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
@@ -98,6 +103,16 @@ build() {
         -DSTRATA_VISION_HIP_ARCHS="${_STRATA_HIP_ARCHS}" \
         -DSTRATA_PORTABLE=OFF
     cmake --build build_strata_vision_hip --target strata-vision
+
+    # --- Build Strata Vision (CPU fallback) ---
+    echo "--- Building Strata Vision (CPU fallback) ---"
+    cmake -B build_strata_vision_cpu -S Strata/terminal/tools/vision -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="/usr" \
+        -DSTRATA_VISION_HIP=OFF \
+        -DSTRATA_VISION_CUDA=OFF \
+        -DSTRATA_PORTABLE=OFF
+    cmake --build build_strata_vision_cpu --target strata-vision
 }
 
 package() {
@@ -105,15 +120,27 @@ package() {
     local _engine="${pkgdir}/usr/lib/strata/engine"
     install -d "${_share}" "${_engine}" "${pkgdir}/usr/bin"
 
-    # --- Read-only application tree (0.2.16 layout: terminal/, engine/, tools/) ---
+    # --- Read-only application tree (terminal/, engine/, tools/) ---
     cd "${srcdir}/Strata"
     cp -r terminal engine tools "${_share}/"
     install -Dm644 setup.sh LICENSE "${_share}/"
-    # --- Compiled engine and vision binaries ---
-    install -Dm755 "${srcdir}/build_strata_hip/strata" "${_engine}/strata"
-    patchelf --remove-rpath "${_engine}/strata"
+    # --- Compiled engine, shape engines, CLI tools, and vision binaries ---
+    local _bin _src_bin
+    for _bin in strata strata-q36 strata-hy4 strata-gguf strata-dequant strata-plan; do
+        install -Dm755 "${srcdir}/build_strata_hip/${_bin}" "${_engine}/${_bin}"
+        patchelf --remove-rpath "${_engine}/${_bin}" 2>/dev/null || true
+    done
+    if [[ -x "${srcdir}/build_strata_hip/src/inkling2/strata-inkling" ]]; then
+        _src_bin="${srcdir}/build_strata_hip/src/inkling2/strata-inkling"
+    else
+        _src_bin="${srcdir}/build_strata_hip/strata-inkling"
+    fi
+    install -Dm755 "${_src_bin}" "${_engine}/strata-inkling"
+    patchelf --remove-rpath "${_engine}/strata-inkling" 2>/dev/null || true
     install -Dm755 "${srcdir}/build_strata_vision_hip/bin/strata-vision-hip" "${_engine}/strata-vision-hip"
-    ln -sf strata-vision-hip "${_engine}/strata-vision"
+    patchelf --remove-rpath "${_engine}/strata-vision-hip" 2>/dev/null || true
+    install -Dm755 "${srcdir}/build_strata_vision_cpu/bin/strata-vision" "${_engine}/strata-vision"
+    patchelf --remove-rpath "${_engine}/strata-vision" 2>/dev/null || true
 
     # --- Generate BUILD.json metadata ---
     local _STRATA_WHITELIST="gfx1100;gfx1101;gfx1102;gfx1103;gfx1150;gfx1151;gfx1152;gfx1200;gfx1201;gfx1010;gfx1011;gfx1012;gfx1030;gfx1031;gfx1032;gfx1034"
@@ -145,6 +172,8 @@ meta = {
     "version": setup.source_version(),
     "archs": archs,
     "vision": "gpu",
+    "vision_cpu": "strata-vision",
+    "vision_gpu": "strata-vision-hip",
     "vision_archs": archs,
     "lib_dirs": ["/opt/rocm/lib"],
     "src": setup.source_hash(setup.ENGINE_SOURCES),
@@ -188,7 +217,7 @@ if [ "$(cat "$app/.pkg-version" 2>/dev/null)" != "$stamp" ]; then
   done
   ln -sfn "$share/engine" "$app/engine"
   cp -f "$lib/engine/BUILD.json" "$app/terminal/engine/BUILD.json"
-  for b in strata strata-vision strata-vision-hip; do
+  for b in strata strata-q36 strata-inkling strata-hy4 strata-gguf strata-dequant strata-plan strata-vision strata-vision-hip; do
       if [ -e "$lib/engine/$b" ]; then ln -sf "$lib/engine/$b" "$app/terminal/engine/$b"; fi
   done
   # keep an existing data folder where it is: the new layout looks for Strata-data next to app/terminal, i.e. in app/
@@ -196,7 +225,7 @@ if [ "$(cat "$app/.pkg-version" 2>/dev/null)" != "$stamp" ]; then
       ln -sfn "$home/Strata-data" "$app/Strata-data"
   fi
   echo "$stamp" > "$app/.pkg-version"
-  echo "strata: set up $app (0.2.16 layout)" >&2
+  echo "strata: set up $app (terminal/engine layout)" >&2
   echo "strata: model files go to $app/Strata-data (use --data-dir to put them elsewhere)" >&2
 fi
 

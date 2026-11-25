@@ -1,20 +1,28 @@
 diff --git a/engine/src/program/generate.cpp b/engine/src/program/generate.cpp
+index af2724f6a..89c576e57 100644
 --- a/engine/src/program/generate.cpp
 +++ b/engine/src/program/generate.cpp
-@@ -17373,6 +17381,15 @@ int main(int argc, char** argv) {
+@@ -18470,6 +18470,23 @@ int main(int argc, char** argv) {
                  std::fflush(stdout);
                  continue;
              }
 +            if (line.rfind("CLEAR_CACHE", 0) == 0) {
-+                const size_t dropped = conversations.clear();
++                size_t evicted = 0;
++                while (conversations.evict_oldest()) ++evicted;
++                if (spill_writer) {
++                    spill_writer->wait_idle();
++                    spill_reclaim();
++                }
++                const size_t dropped_pinned = conversations.clear();
++                if (pools_budget.idle_bytes() > 0) pools_budget.shrink((size_t) -1);
 +                strata::core::release_free_heap();
-+                std::fprintf(stderr, "strata serve: CLEAR_CACHE: dropped %zu parked conversation%s, heap trimmed\n",
-+                             dropped, dropped == 1 ? "" : "s");
-+                std::printf("CLEARED %zu\n", dropped);
++                const size_t total = evicted + dropped_pinned;
++                std::fprintf(stderr, "strata serve: CLEAR_CACHE: flushed %zu parked conversation%s (pinned dropped %zu), heap trimmed\n",
++                             evicted, evicted == 1 ? "" : "s", dropped_pinned);
++                std::printf("CLEARED %zu\n", total);
 +                std::fflush(stdout);
 +                continue;
 +            }
              // a command may touch the expert cache (a request lends slots, a K/V growth moves them, a session restore
              // quiesces it): a round of the asynchronous tier that the batch windows left in flight lands first
              if (!adapt_tick(true)) {
-

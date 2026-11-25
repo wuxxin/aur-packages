@@ -1,6 +1,15 @@
 # strata-engine-git-hip
 
-Git HEAD build of [Strata](https://github.com/Niko1221/Strata) — the inference engine for large MoE models (Qwen3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen3.6-35B) with dynamic CPU expert offloading, MTP/DFlash2 drafting, web chat + agent tooling over `strata serve`, and the self-contained multimodal picture reader (`strata-vision-hip`) — compiled for AMD RDNA GPUs via HIP/ROCm on Arch Linux.
+Git HEAD build of [Strata](https://github.com/Niko1221/Strata) — the inference engine for large MoE models (Qwen3.8-Flash-Next, DeepSeek-V4.1-Flash, Qwen3.6-35B, Inkling-2-Mini, Hy4-Flash) with dynamic CPU expert offloading, MTP/DFlash2 drafting, web chat + agent tooling over `strata serve`, and the self-contained multimodal picture readers (`strata-vision-hip` GPU + `strata-vision` CPU fallback) — compiled for AMD RDNA GPUs via HIP/ROCm on Arch Linux.
+
+## Shipped Binaries (`/usr/lib/strata/engine/`)
+
+- `strata` — main HIP engine (Qwen3.8-Flash-Next, DeepSeek, etc.)
+- `strata-q36` — dedicated HIP engine for Qwen3.6-35B-A3B
+- `strata-inkling` — standalone HIP engine for Inkling-2-Mini (`.strata` v1.1) with in-process vision and 1..64 continuous batching
+- `strata-hy4` — standalone HIP engine for Tencent Hy4-Flash 220B-A12B (`.strata`, linked against system `zstd`)
+- `strata-vision-hip` / `strata-vision` — self-contained GPU (HIP) and CPU fallback Qwen ViT picture readers
+- `strata-gguf`, `strata-dequant`, `strata-plan` — CLI artifact and planning utilities
 
 ## Why a separate package
 
@@ -16,7 +25,7 @@ Adds the tag + build-commit stamp to the engine's CMake (the upstream project's 
 
 ### Strata `CLEAR_CACHE` stdin command (`strata-clear-cache.patch`)
 
-Adds a serve-protocol command to the engine's stdin loop: writing `CLEAR_CACHE` drops all parked conversation slots and trims the heap, answering `CLEARED <n>`. Used as the pre-suspend hook (reclaims host RAM without unloading VRAM weights). Upstream's 0.2.16 SSD tier persists evicted conversations to disk; this command stays complementary — see `strata-spill-plan.md` for the KV-spill design that remains parked.
+Adds a serve-protocol command to the engine's stdin loop: writing `CLEAR_CACHE` evicts all parked RAM conversations through `evict_sink` (flushing them to Strata's persistent SSD spill tier when `--conversation-spill-dir` / `--conversation-spill-persist` is enabled), waits for the background spill writer to finish, shrinks idle segment pools, and trims the host heap, answering `CLEARED <n>`. Used by both the idle RAM-cache-clear timer and the S3 pre-suspend hook to reclaim ~8–16 GiB of host RAM without unloading VRAM weights or losing parked conversations.
 
 ### Layout note (0.2.16)
 
